@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  intranet-portal:
+    image: asisingenieria/corporate-intranet-portal:demo
+    container_name: intranet-portal-test
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+
+volumes:
+  node_modules:
