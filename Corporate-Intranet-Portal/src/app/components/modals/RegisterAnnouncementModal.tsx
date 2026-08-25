@@ -1,5 +1,5 @@
 import { X, Plus, Send, Lock, User } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAnnouncements } from "../../contexts/AnnouncementsContext";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -16,7 +16,7 @@ export function RegisterAnnouncementModal({
   requirePassword = true,
   isComunicaciones = false,
 }: RegisterAnnouncementModalProps) {
-  const { addAnnouncement, publishAnnouncement, announcements } = useAnnouncements();
+  const { addAnnouncement } = useAnnouncements();
   const { user } = useAuth();
   const [step, setStep] = useState<"auth" | "form">(requirePassword ? "auth" : "form");
   const [username, setUsername] = useState("");
@@ -63,11 +63,9 @@ export function RegisterAnnouncementModal({
     return true;
   };
 
-  import("react").then(React => {
-    React.useEffect(() => {
-      if (dateError) setDateError("");
-    }, [startDate, startTime, endDate, endTime]);
-  });
+  useEffect(() => {
+    if (dateError) setDateError("");
+  }, [startDate, startTime, endDate, endTime]);
 
   const handleSubmit = (e: React.FormEvent, publishDirectly: boolean = false) => {
     e.preventDefault();

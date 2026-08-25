@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
+import { getJSON } from "../api/client";
+import { DEV_CREDENTIALS } from "../utils/dev-credentials";
 
 export type UserRole =
   | "admin"
@@ -95,28 +97,13 @@ const INITIAL_USERS: Record<string, User> = {
   }
 };
 
-const MOCK_DEV_USER: User = {
-  id: "dev-user",
-  username: "devuser",
-  fullName: "Usuario DEV",
-  identification: "000000000",
-  email: "dev@icvc.com.co",
-  position: "Usuario de Pruebas",
-  department: "General",
-  role: "asistencial",
-  status: "active",
-  createdDate: new Date().toISOString()
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<Record<string, User>>(() => {
     const saved = localStorage.getItem("intranet_users");
     return saved ? JSON.parse(saved) : INITIAL_USERS;
   });
 
-  const [currentUser, setCurrentUser] = useState<User | null>(
-    import.meta.env?.DEV !== false ? MOCK_DEV_USER : null
-  );
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [accessRecords, setAccessRecords] = useState<AccessRecord[]>(() => {
     const saved = localStorage.getItem("intranet_access_records");
@@ -135,15 +122,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.map((r: any) => ({ ...r, requestDate: new Date(r.requestDate) }));
   });
 
-  useEffect(() => localStorage.setItem("intranet_users", JSON.stringify(users)), [users]);
+useEffect(() => localStorage.setItem("intranet_users", JSON.stringify(users)), [users]);
   useEffect(() => localStorage.setItem("intranet_access_records", JSON.stringify(accessRecords)), [accessRecords]);
   useEffect(() => localStorage.setItem("intranet_access_requests", JSON.stringify(accessRequests)), [accessRequests]);
   useEffect(() => localStorage.setItem("intranet_password_reset_requests", JSON.stringify(passwordResetRequests)), [passwordResetRequests]);
 
-  const login = (username: string, password: string): boolean => {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = await getJSON<User>("/me", 2500);
+        if (!cancelled) setCurrentUser(me);
+      } catch {
+        // Backend no disponible: se mantiene el modo mock/localStorage
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+const login = (username: string, password: string): boolean => {
     const normalizedUsername = username.toLowerCase();
-    const isSpecialAdmin = normalizedUsername === "root" || normalizedUsername === "admin";
-    const isCorrectPassword = password === "icvc2024**";
+    const isSpecialAdmin = DEV_CREDENTIALS.allowedUsernames.includes(normalizedUsername);
+    const isCorrectPassword = password === DEV_CREDENTIALS.password;
 
     if (isSpecialAdmin && isCorrectPassword) {
       setCurrentUser(users["root"]);

@@ -1,6 +1,7 @@
 import { User, Lock, LogIn, AlertCircle, X } from "lucide-react";
 import { useState } from "react";
 import { useAdminAuth } from "../../contexts/AdminAuthContext";
+import { DEV_CREDENTIALS } from "../../utils/dev-credentials";
 
 interface AdminLoginModalProps {
   isOpen: boolean;
@@ -123,10 +124,10 @@ export function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProps) {
               </p>
               <div className="text-xs text-blue-700 space-y-1">
                 <p>
-                  <strong>Usuario:</strong> root
+                  <strong>Usuario:</strong> {DEV_CREDENTIALS.username}
                 </p>
                 <p>
-                  <strong>Password:</strong> icvc2024**
+                  <strong>Password:</strong> {DEV_CREDENTIALS.password}
                 </p>
               </div>
             </div>

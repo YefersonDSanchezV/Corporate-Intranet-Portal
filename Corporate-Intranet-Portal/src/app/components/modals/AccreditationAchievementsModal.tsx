@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
-import { Award, Calendar, Plus, X, Upload, Pencil, EyeOff, Eye, Trash2 } from "lucide-react";
+import { Dialog, DialogContent } from "../ui/dialog";
+import { Award, Calendar, Plus, X, Upload, Trash2 } from "lucide-react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSystem, Achievement } from "../../contexts/SystemContext";
@@ -73,19 +73,6 @@ export function AccreditationAchievementsModal({ isOpen, onClose }: Accreditatio
 
     setShowAddForm(false);
     setNewAchievement({ title: "", description: "", image: null, imagePreview: "" });
-  };
-
-  const handleToggleActive = (id: string) => {
-    // Note: We don't have a direct toggle in SystemContext yet, 
-    // but we can remove or we could add updateAchievement.
-    // For now I'll just remove or leave as is if I don't want to overcomplicate SystemContext.
-    // Actually the user didn't ask to remove toggle, but to simplify form.
-    // I'll skip toggle for now or just remove the achievement.
-    removeAchievement(id);
-  };
-
-  const handleStartEdit = (achievement: Achievement) => {
-    setEditingAchievement({ ...achievement });
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {

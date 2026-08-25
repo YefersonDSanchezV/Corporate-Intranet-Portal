@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from "react";
+import { DEV_CREDENTIALS } from "../utils/dev-credentials";
 
 interface AdminAuthContextType {
   isAdminAuthenticated: boolean;
@@ -18,8 +19,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const adminLogin = (username: string, password: string): boolean => {
     const normalized = username.toLowerCase();
     const isValid =
-      (normalized === "root" || normalized === "admin") &&
-      password === "icvc2024**";
+      DEV_CREDENTIALS.allowedUsernames.includes(normalized) &&
+      password === DEV_CREDENTIALS.password;
     if (isValid) {
       setIsAdminAuthenticated(true);
       setAdminPanelOpen(true);

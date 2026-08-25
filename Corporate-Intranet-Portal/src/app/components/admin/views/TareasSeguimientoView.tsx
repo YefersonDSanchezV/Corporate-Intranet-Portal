@@ -1,4 +1,4 @@
-import { Plus, Eye, CheckCircle, X } from "lucide-react";
+import { Plus, CheckCircle, X } from "lucide-react";
 import { useState } from "react";
 import { useSystem, Task } from "../../../contexts/SystemContext";
 import { useAuth } from "../../../contexts/AuthContext";

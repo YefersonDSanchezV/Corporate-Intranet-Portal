@@ -11,6 +11,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { getGreeting } from "../../utils/greetings";
+import { hasRole, ADMIN_PANEL_ROLES, ASISTENCIAL_PANEL_ROLES } from "../../utils/roles";
 
 export function HomeModule() {
   const { user } = useAuth();
@@ -28,44 +29,17 @@ export function HomeModule() {
   // Los roles que NO necesitan contraseña de confirmación adicional
   const noPasswordRequired = isCoordinador || isComunicaciones || isAdminOrRoot;
 
-  const canSeeAsistencialPanel =
-    user?.role === "admin" ||
-    user?.role === "root" ||
-    user?.role === "ti" ||
-    user?.role === "coordinador_ti" ||
-    user?.role === "asistencial" ||
-    user?.role === "coordinador_asistencial" ||
-    user?.role === "coordinador_consulta_externa" ||
-    user?.role === "administrativo" ||
-    user?.role === "administrativo_rrhh" ||
-    user?.role === "administrativo_calidad" ||
-    user?.role === "coordinador_administrativo";
+  const canSeeAsistencialPanel = hasRole(user, ASISTENCIAL_PANEL_ROLES);
 
-  const canSeeAdministrativePanel =
-    user?.role === "admin" ||
-    user?.role === "root" ||
-    user?.role === "ti" ||
-    user?.role === "coordinador_ti" ||
-    user?.role === "administrativo" ||
-    user?.role === "administrativo_rrhh" ||
-    user?.role === "administrativo_calidad" ||
-    user?.role === "coordinador_administrativo";
+  const canSeeAdministrativePanel = hasRole(user, ADMIN_PANEL_ROLES);
 
-  const canSeeInstitutionalPanel =
-    user?.role === "admin" ||
-    user?.role === "root" ||
-    user?.role === "ti" ||
-    user?.role === "coordinador_ti" ||
-    user?.role === "administrativo" ||
-    user?.role === "administrativo_rrhh" ||
-    user?.role === "administrativo_calidad" ||
-    user?.role === "coordinador_administrativo";
+  const canSeeInstitutionalPanel = hasRole(user, ADMIN_PANEL_ROLES);
 
   return (
     <>
       <div className="mb-8 bg-white p-6 rounded-xl shadow-sm border-l-4 border-[#0778AC]">
         <h1 className="text-2xl md:text-3xl font-bold text-[#0778AC] mb-2">
-          ¡{greeting}, {user?.fullName.split(' ')[0]}!
+          {user ? `¡${greeting}, ${user.fullName.split(' ')[0]}!` : `¡${greeting}!`}
         </h1>
         <p className="text-gray-600 text-sm md:text-base">
           En este módulo encontrarás los accesos principales y anuncios más recientes para mantenerte al día.

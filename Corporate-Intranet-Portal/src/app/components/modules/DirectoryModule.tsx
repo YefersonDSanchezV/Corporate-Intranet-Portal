@@ -1,8 +1,9 @@
-import { Search, Phone, Building2, Users, Plus, Pencil, X, Check, Mail, Briefcase, MapPin, Eye, FileUp } from "lucide-react";
+import { Search, Phone, Building2, Users, Plus, Pencil, X, Check, Mail, Briefcase, MapPin, Eye } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSystem, DirectoryEntry, InstitutionEmail } from "../../contexts/SystemContext";
 import { getGreeting } from "../../utils/greetings";
+import { hasRole, TI_SUPPORT_ROLES } from "../../utils/roles";
 
 type Floor = "Todos" | "Piso 1" | "Piso 2" | "Piso 3" | "Piso 4" | "Piso 5" | "Piso 6" | "Urgencia" | "Línea de frente";
 
@@ -45,13 +46,7 @@ export function DirectoryModule() {
   const [newExtension, setNewExtension] = useState("");
   const [newFloors, setNewFloors] = useState<Floor[]>([]);
 
-  const canManage =
-    user?.role === "admin" ||
-    user?.role === "root" ||
-    user?.role === "coordinador_ti" ||
-    user?.role === "ingeniero_sistemas" ||
-    user?.role === "ti" ||
-    user?.role === "sistemas";
+  const canManage = hasRole(user, TI_SUPPORT_ROLES);
 
   const filteredExtensions = directory.filter(ext => {
     const currentFloors = ext.floor || [];

@@ -1,4 +1,4 @@
-import { Plus, Eye, Pencil, Trash2, X, Save, Award } from "lucide-react";
+import { Plus, Eye, Trash2, X, Save, Award } from "lucide-react";
 import { useState } from "react";
 import { Achievement, useSystem } from "../../../contexts/SystemContext";
 

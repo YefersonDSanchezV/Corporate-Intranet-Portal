@@ -1,3 +1,10 @@
 spring:
+
+  config:
+    import: optional:file:./dev.properties
+
+  profiles:
+    active: dev
+    
   application:
     name: intranet-backend

@@ -1,4 +1,4 @@
-import { Headphones, Wrench, Stethoscope, Globe } from "lucide-react";
+import { Headphones, Wrench } from "lucide-react";
 import { AppCard } from "../AppCard";
 import { useState, useMemo } from "react";
 import { RedirectModal } from "../modals/RedirectModal";

@@ -1,6 +1,4 @@
-import { X, ExternalLink, Settings } from "lucide-react";
-import { useState } from "react";
-import { useAuth } from "../../contexts/AuthContext";
+import { X, ExternalLink } from "lucide-react";
 import { useSystem } from "../../contexts/SystemContext";
 
 interface ExternalConsultationModalProps {
@@ -9,12 +7,11 @@ interface ExternalConsultationModalProps {
 }
 
 export function ExternalConsultationModal({ isOpen, onClose }: ExternalConsultationModalProps) {
-  const { user } = useAuth();
   const { epsList } = useSystem() as any;
 
   const activeEps = (epsList || []).filter((e: any) => e.active);
 
-  const handleEPSClick = (url: string, name: string) => {
+  const handleEPSClick = (url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -51,7 +48,7 @@ export function ExternalConsultationModal({ isOpen, onClose }: ExternalConsultat
                 {activeEps.map((eps: any) => (
                   <button
                     key={eps.id}
-                    onClick={() => handleEPSClick(eps.url, eps.name)}
+                    onClick={() => handleEPSClick(eps.url)}
                     className="p-6 bg-white border-2 border-gray-200 hover:border-[#CF3438] rounded-lg transition-all hover:shadow-lg group flex flex-col items-center gap-3"
                   >
                     <div className="w-20 h-20 bg-gradient-to-br from-[#0778AC]/10 to-[#0778AC]/5 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">

@@ -1,4 +1,4 @@
-import { Plus, Trash2, X, Save, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Trash2, Save, Calendar as CalendarIcon } from "lucide-react";
 import { useState } from "react";
 import { Calendar } from "../../ui/calendar";
 import { format } from "date-fns";

@@ -1,4 +1,4 @@
-import { X, FileText, FileDown, ExternalLink } from "lucide-react";
+import { X, FileText, ExternalLink } from "lucide-react";
 import { useSystem } from "../../contexts/SystemContext";
 
 interface ContingencyFormatsModalProps {

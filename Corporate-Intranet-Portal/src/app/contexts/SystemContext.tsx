@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { sitesApi } from '../api/sites';
+import { directoryApi } from '../api/directory';
+import { apiAvailable } from '../api/client';
 
 export interface RedirectSite {
   id: string;
@@ -279,6 +282,29 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('intranet_tasks', JSON.stringify(tasks));
     localStorage.setItem('intranet_institution_emails', JSON.stringify(institutionEmails));
   }, [sites, roles, rolePermissions, directory, epsList, contracts, supportContacts, contingencyFormats, achievements, tasks, institutionEmails]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!(await apiAvailable())) return;
+      try {
+        const [siteData, extData, emailData] = await Promise.all([
+          sitesApi.list(),
+          directoryApi.extensions(),
+          directoryApi.emails(),
+        ]);
+        if (cancelled) return;
+        if (Array.isArray(siteData) && siteData.length > 0) setSites(siteData);
+        if (Array.isArray(extData)) setDirectory(extData);
+        if (Array.isArray(emailData)) setInstitutionEmails(emailData);
+      } catch {
+        // Backend no disponible: se mantienen los datos mock/localStorage
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const addSite = (site: Omit<RedirectSite, 'id' | 'active'>) => {
     setSites(prev => [...prev, { ...site, id: Date.now().toString(), active: true }]);

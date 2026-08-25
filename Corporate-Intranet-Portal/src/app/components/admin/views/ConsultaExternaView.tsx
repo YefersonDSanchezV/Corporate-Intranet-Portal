@@ -1,4 +1,4 @@
-import { Plus, Trash2, ExternalLink, X, Save, Stethoscope } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Save } from "lucide-react";
 import { useState } from "react";
 import { useSystem } from "../../../contexts/SystemContext";
 

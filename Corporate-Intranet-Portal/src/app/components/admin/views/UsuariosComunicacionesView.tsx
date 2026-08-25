@@ -1,4 +1,4 @@
-import { Users, Search, Shield } from "lucide-react";
+import { Search } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 

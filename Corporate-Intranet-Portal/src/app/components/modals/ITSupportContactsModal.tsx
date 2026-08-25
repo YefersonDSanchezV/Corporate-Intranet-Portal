@@ -1,7 +1,8 @@
-import { X, Phone, Mail, User, Plus, Wrench, Pencil } from "lucide-react";
+import { X, Phone, Mail, User, Plus, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSystem } from "../../contexts/SystemContext";
+import { hasRole, TI_SUPPORT_ROLES } from "../../utils/roles";
 
 
 interface ITSupportContactsModalProps {
@@ -24,13 +25,7 @@ export function ITSupportContactsModal({ isOpen, onClose }: ITSupportContactsMod
   const [newExtName, setNewExtName] = useState("");
   const [newExtNumber, setNewExtNumber] = useState("");
 
-  const canManage =
-    user?.role === "ti" ||
-    user?.role === "sistemas" ||
-    user?.role === "coordinador_ti" ||
-    user?.role === "ingeniero_sistemas" ||
-    user?.role === "admin" ||
-    user?.role === "root";
+  const canManage = hasRole(user, TI_SUPPORT_ROLES);
 
   if (!isOpen) return null;
 

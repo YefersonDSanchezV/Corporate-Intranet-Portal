@@ -10,7 +10,6 @@ import {
 import { AppCard } from "./AppCard";
 import { useState } from "react";
 import { RedirectModal } from "./modals/RedirectModal";
-import { useAuth } from "../contexts/AuthContext";
 import { useSystem } from "../contexts/SystemContext";
 
 const ICON_MAP: Record<string, any> = {
@@ -33,7 +32,6 @@ const MODULE_MAP: Record<string, string> = {
 };
 
 export function QuickAccessSection() {
-  const { user } = useAuth();
   const { sites } = useSystem();
   const [redirectModalOpen, setRedirectModalOpen] = useState(false);
   const [redirectPortal, setRedirectPortal] = useState("");

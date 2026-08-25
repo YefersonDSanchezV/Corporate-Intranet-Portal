@@ -30,6 +30,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+server: {
+    // Mantiene el mismo origen en desarrollo para el acceso al backend.
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: false,
+      },
+    },
+  },
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],

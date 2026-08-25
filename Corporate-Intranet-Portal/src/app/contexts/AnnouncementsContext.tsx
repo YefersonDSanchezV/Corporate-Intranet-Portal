@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { announcementsApi } from "../api/announcements";
+import { apiAvailable } from "../api/client";
 
 export interface Announcement {
   id: string;
@@ -51,6 +53,29 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem('intranet_notifications_count', notificationCount.toString());
   }, [notificationCount]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!(await apiAvailable())) return;
+      try {
+        const data = await announcementsApi.list();
+        if (!cancelled) {
+          setAnnouncements(data.map((ann) => ({
+            ...ann,
+            startDate: new Date(ann.startDate),
+            endDate: new Date(ann.endDate),
+            createdAt: new Date(ann.createdAt),
+          })));
+        }
+      } catch {
+        // Backend no disponible: se mantiene localStorage
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const addAnnouncement = (announcement: Omit<Announcement, "id" | "published" | "createdAt">) => {
     const newAnnouncement: Announcement = {

@@ -1,4 +1,4 @@
-import { Plus, Trash2, X, Save, Cake } from "lucide-react";
+import { Plus, Trash2, Save, Cake } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";

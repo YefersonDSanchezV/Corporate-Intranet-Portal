@@ -1,4 +1,4 @@
-import { FileText, FlaskConical, Image, BookOpen, ClipboardList, Stethoscope, Globe } from "lucide-react";
+import { FileText, FlaskConical, Image, BookOpen, Stethoscope, Globe } from "lucide-react";
 import { AppCard } from "../AppCard";
 import { useState, useMemo } from "react";
 import { RedirectModal } from "../modals/RedirectModal";

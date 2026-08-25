@@ -3,6 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useState } from "react";
 import { AccessRequestModal } from "./modals/AccessRequestModal";
 import { PasswordResetModal } from "./modals/PasswordResetModal";
+import { DEV_CREDENTIALS } from "../utils/dev-credentials";
 
 export function Login() {
   const { login, user } = useAuth();
@@ -100,8 +101,8 @@ export function Login() {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-xs text-blue-800 font-semibold mb-1">Acceso Administrativo Inicial:</p>
               <div className="text-xs text-blue-700 mt-2 space-y-1">
-                <p><strong>Usuario:</strong> root</p>
-                <p><strong>Password:</strong> icvc2024**</p>
+                <p><strong>Usuario:</strong> {DEV_CREDENTIALS.username}</p>
+                <p><strong>Password:</strong> {DEV_CREDENTIALS.password}</p>
               </div>
               <p className="text-[10px] text-blue-600 mt-2 font-medium italic">
                 * Use estas credenciales para configurar el sistema desde cero.

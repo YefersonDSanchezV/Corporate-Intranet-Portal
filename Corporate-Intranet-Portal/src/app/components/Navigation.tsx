@@ -6,12 +6,7 @@ interface NavigationProps {
   onModuleChange: (module: string) => void;
 }
 
-interface MenuItem {
-  name: string;
-  children?: string[];
-}
-
-const PUBLIC_MENU: MenuItem[] = [
+const PUBLIC_MENU: { name: string }[] = [
   { name: "Inicio" },
   { name: "Area Asistencial" },
   { name: "Area Administrativa" },
@@ -23,16 +18,10 @@ const PUBLIC_MENU: MenuItem[] = [
 
 export function Navigation({ activeModule, onModuleChange }: NavigationProps) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   const handleModuleChange = (module: string) => {
     onModuleChange(module);
     setShowMobileMenu(false);
-    setActiveDropdown(null);
-  };
-
-  const toggleDropdown = (name: string) => {
-    setActiveDropdown(activeDropdown === name ? null : name);
   };
 
   return (
@@ -43,40 +32,15 @@ export function Navigation({ activeModule, onModuleChange }: NavigationProps) {
           </button>
           <ul className="flex gap-1 flex-wrap items-center">
             {PUBLIC_MENU.map((item, index) => (
-              <li key={index} className="relative group">
-                {item.children ? (
-                  <div>
-                    <button
-                      onClick={() => toggleDropdown(item.name)}
-                      className={`flex items-center gap-1 px-4 lg:px-5 py-4 transition-all font-medium text-sm lg:text-base ${
-                        item.children.includes(activeModule) || activeDropdown === item.name
-                          ? "bg-[#CF3438] text-white shadow-lg"
-                          : "bg-[#0778AC] hover:bg-[#CF3438] text-white/90 hover:text-white"
-                      }`}
-                    >
-                      {item.name}
-                      <ChevronDown className={`w-4 h-4 transition-transform ${activeDropdown === item.name ? "rotate-180" : ""}`} />
-                    </button>
-                    {activeDropdown === item.name && (
-                      <div className="absolute top-full left-0 mt-0 w-56 bg-white shadow-xl border-t-4 border-[#CF3438] rounded-b-lg overflow-hidden py-2" onMouseLeave={() => setActiveDropdown(null)}>
-                        {item.children.map((child) => (
-                          <button key={child} onClick={() => handleModuleChange(child)} className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors ${activeModule === child ? "bg-[#f0f4f8] text-[#CF3438] border-l-4 border-[#CF3438]" : "text-gray-700 hover:bg-gray-100 hover:text-[#0778AC]"}`}>
-                            {child}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => handleModuleChange(item.name)}
-                    className={`px-4 lg:px-5 py-4 transition-all font-medium text-sm lg:text-base ${
-                      activeModule === item.name ? "bg-[#CF3438] text-white shadow-lg" : "bg-[#0778AC] hover:bg-[#CF3438] text-white/90 hover:text-white"
-                    }`}
-                  >
-                    {item.name}
-                  </button>
-                )}
+              <li key={index}>
+                <button
+                  onClick={() => handleModuleChange(item.name)}
+                  className={`px-4 lg:px-5 py-4 transition-all font-medium text-sm lg:text-base ${
+                    activeModule === item.name ? "bg-[#CF3438] text-white shadow-lg" : "bg-[#0778AC] hover:bg-[#CF3438] text-white/90 hover:text-white"
+                  }`}
+                >
+                  {item.name}
+                </button>
               </li>
             ))}
           </ul>

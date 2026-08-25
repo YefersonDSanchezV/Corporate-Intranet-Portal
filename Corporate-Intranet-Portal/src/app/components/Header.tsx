@@ -7,7 +7,7 @@ import { AdminLoginModal } from "./admin/AdminLoginModal";
 
 export function Header() {
   const { notificationCount, clearNotifications, publishedAnnouncements } = useAnnouncements();
-  const { isAdminAuthenticated, openAdminPanel, adminLogout } = useAdminAuth();
+  const { isAdminAuthenticated, openAdminPanel } = useAdminAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);

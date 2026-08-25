@@ -1,4 +1,4 @@
-import { Bell, Calendar, CheckCircle, ClipboardCheck, FileText, Megaphone, Users } from "lucide-react";
+import { Bell, CheckCircle, ClipboardCheck, Megaphone } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useAnnouncements } from "../../../contexts/AnnouncementsContext";

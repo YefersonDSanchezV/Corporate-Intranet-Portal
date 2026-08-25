@@ -1,4 +1,4 @@
-import { Eye, Send, CheckCircle, XCircle, X, Trash2 } from "lucide-react";
+import { Eye, Send, X, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";

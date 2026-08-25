@@ -1,5 +1,5 @@
-import { BarChart2, ExternalLink, Globe, Plus } from "lucide-react";
-import { useState, useMemo } from "react";
+import { BarChart2, ExternalLink, Globe } from "lucide-react";
+import { useMemo } from "react";
 import { useSystem } from "../../contexts/SystemContext";
 import { getGreeting } from "../../utils/greetings";
 

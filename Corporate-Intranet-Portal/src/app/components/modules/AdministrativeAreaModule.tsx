@@ -1,4 +1,4 @@
-import { Calendar, FileText, Plus, CheckCircle, Globe } from "lucide-react";
+import { Calendar,  Globe } from "lucide-react";
 import { AppCard } from "../AppCard";
 import { useState, useMemo } from "react";
 import { RedirectModal } from "../modals/RedirectModal";
@@ -13,25 +13,11 @@ export function AdministrativeAreaModule() {
   const [redirectModalOpen, setRedirectModalOpen] = useState(false);
   const [redirectPortal, setRedirectPortal] = useState("");
   const [redirectUrl, setRedirectUrl] = useState("");
-  const [contractMatrixOpen, setContractMatrixOpen] = useState(false);
-
-  // Solo RRHH, admin y root tienen acceso a Matriz de Contratos y Tareas
-  const isHRAdmin =
-    user?.role === "administrativo_rrhh" ||
-    user?.role === "admin" ||
-    user?.role === "root";
-
 
   const handleAppClick = (appName: string, url?: string) => {
-    if (appName === "Contratos") {
-      if (isHRAdmin) {
-        setContractMatrixOpen(true);
-      }
-    } else {
-      setRedirectPortal(appName);
-      setRedirectUrl(url || "");
-      setRedirectModalOpen(true);
-    }
+    setRedirectPortal(appName);
+    setRedirectUrl(url || "");
+    setRedirectModalOpen(true);
   };
 
   const adminApps = useMemo(() => {
@@ -55,7 +41,7 @@ export function AdministrativeAreaModule() {
       }));
 
     return [...baseApps, ...customSites];
-  }, [isHRAdmin, sites]);
+  }, [sites]);
 
   return (
     <>
