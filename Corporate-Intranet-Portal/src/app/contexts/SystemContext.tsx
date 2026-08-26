@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { sitesApi } from '../api/sites';
 import { directoryApi } from '../api/directory';
-import { apiAvailable } from '../api/client';
+import { tasksApi } from '../api/tasks';
+import { achievementsApi } from '../api/achievements';
+import { apiAvailable, apiFetch } from '../api/client';
 
 export interface RedirectSite {
   id: string;
@@ -17,6 +19,7 @@ export interface Role {
   id: string;
   name: string;
   description: string;
+  estado?: boolean;
 }
 
 export interface RolePermission {
@@ -116,20 +119,21 @@ export interface DirectoryEntry {
 interface SystemContextType {
   sites: RedirectSite[];
   setSites: React.Dispatch<React.SetStateAction<RedirectSite[]>>;
-  addSite: (site: Omit<RedirectSite, 'id' | 'active'>) => void;
-  updateSite: (site: RedirectSite) => void;
-  toggleSiteActive: (id: string) => void;
+  addSite: (site: Omit<RedirectSite, 'id' | 'active'>) => Promise<void>;
+  updateSite: (site: RedirectSite) => Promise<void>;
+  toggleSiteActive: (id: string) => Promise<void>;
   
   roles: Role[];
-  addRole: (role: Omit<Role, 'id'>) => void;
+  addRole: (role: Omit<Role, 'id'>) => Promise<void>;
+  toggleRoleEstado: (id: string) => Promise<void>;
   rolePermissions: RolePermission[];
   updateRoleModulePermissions: (roleId: string, modules: string[]) => void;
   updateRoleActionPermissions: (roleId: string, actions: string[]) => void;
   
   directory: DirectoryEntry[];
-  addDirectoryEntry: (entry: Omit<DirectoryEntry, 'id' | 'active'>) => void;
-  updateDirectoryEntry: (entry: DirectoryEntry) => void;
-  removeDirectoryEntry: (id: string) => void;
+  addDirectoryEntry: (entry: Omit<DirectoryEntry, 'id' | 'active'>) => Promise<void>;
+  updateDirectoryEntry: (entry: DirectoryEntry) => Promise<void>;
+  removeDirectoryEntry: (id: string) => Promise<void>;
 
   epsList: EpsPlatform[];
   setEpsList: React.Dispatch<React.SetStateAction<EpsPlatform[]>>;
@@ -137,7 +141,7 @@ interface SystemContextType {
   removeEps: (id: string) => void;
 
   contracts: Contract[];
-  addContract: (contract: Omit<Contract, 'id' | 'status'>) => void;
+  addContract: (contract: Omit<Contract, "id" | "status">) => void;
   updateContract: (contract: Contract) => void;
 
   supportContacts: SupportContact[];
@@ -149,19 +153,19 @@ interface SystemContextType {
   removeFormat: (id: string) => void;
 
   achievements: Achievement[];
-  addAchievement: (achievement: Omit<Achievement, 'id'>) => void;
-  removeAchievement: (id: string) => void;
+  addAchievement: (achievement: Omit<Achievement, 'id'>) => Promise<void>;
+  removeAchievement: (id: string) => Promise<void>;
 
   tasks: Task[];
-  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'completed' | 'observations'>) => void;
-  updateTask: (task: Task) => void;
-  addObservationToTask: (taskId: string, observation: { text: string; author: string }) => void;
-  completeTask: (taskId: string) => void;
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'completed' | 'observations'>) => Promise<void>;
+  updateTask: (task: Task) => Promise<void>;
+  addObservationToTask: (taskId: string, observation: { text: string; author: string }) => Promise<void>;
+  completeTask: (taskId: string) => Promise<void>;
 
   institutionEmails: InstitutionEmail[];
-  addInstitutionEmail: (email: Omit<InstitutionEmail, 'id'>) => void;
-  updateInstitutionEmail: (email: InstitutionEmail) => void;
-  removeInstitutionEmail: (id: string) => void;
+  addInstitutionEmail: (email: Omit<InstitutionEmail, 'id'>) => Promise<void>;
+  updateInstitutionEmail: (email: InstitutionEmail) => Promise<void>;
+  removeInstitutionEmail: (id: string) => Promise<void>;
 }
 
 const SystemContext = createContext<SystemContextType | undefined>(undefined);
@@ -169,64 +173,25 @@ const SystemContext = createContext<SystemContextType | undefined>(undefined);
 export function SystemProvider({ children }: { children: React.ReactNode }) {
   const [sites, setSites] = useState<RedirectSite[]>(() => {
     const saved = localStorage.getItem('intranet_sites');
-    if (saved && JSON.parse(saved).length > 0) return JSON.parse(saved);
-    
-    // Default initial sites requested by user
-    return [
-      { id: "s1", title: "DGH - Dinamica Gestion Hospitalaria", url: "", type: "icon", ref: "FileText", moduleId: "Inicio", active: true },
-      { id: "s2", title: "Enterprise - Software de Laboratorio", url: "", type: "icon", ref: "ShieldCheck", moduleId: "Inicio", active: true },
-      { id: "s3", title: "ActualPac - Software de Imagenologia", url: "", type: "icon", ref: "FileText", moduleId: "Inicio", active: true },
-      { id: "s4", title: "biometric - Agenda del Personal", url: "", type: "icon", ref: "Calendar", moduleId: "Inicio", active: true },
-      { id: "s5", title: "almera - Sistema de gestion de calidad", url: "", type: "icon", ref: "FileText", moduleId: "Inicio", active: true },
-      { id: "s6", title: "GLPI - Mesa de ayuda TI", url: "", type: "icon", ref: "Globe", moduleId: "Soporte", active: true }
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [roles, setRoles] = useState<Role[]>(() => {
     const saved = localStorage.getItem('intranet_roles');
-    return saved ? JSON.parse(saved) : [
-      { id: "r1", name: "admin", description: "Administrador Total" },
-      { id: "r2", name: "root", description: "Super Usuario" },
-      { id: "r3", name: "asistencial", description: "Personal Médico/Asistencial" },
-      { id: "r4", name: "administrativo", description: "Personal Administrativo" }
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [rolePermissions, setRolePermissions] = useState<RolePermission[]>(() => {
     const saved = localStorage.getItem('intranet_role_permissions');
-    const defaultPerms: RolePermission[] = [
-      {
-        roleId: "r1",
-        modules: ["Inicio", "Área Asistencial", "Área Administrativa", "Gestión Institucional", "Soporte", "Directorio", "Comunicaciones", "Gestión de Usuarios", "Logs", "Administrador Intranet"],
-        actions: ["Registrar Directorio", "Editar Solicitudes de registros de anuncios", "Aprobar y Rechazar solicitudes de Anuncios", "Listar Usuarios", "Crear usuarios", "Solicitudes de Usuarios", "Editar Usuarios", "Reinicio de Contraseña", "Consultar Logs", "Registrar Sitios de redirección", "Actualizar sitios de redirección", "Consultar sitios de redirección", "Autorizar módulos a Usuarios", "Autorizar Acciones de Módulos a Usuarios"]
-      },
-      {
-        roleId: "r2",
-        modules: ["Inicio", "Área Asistencial", "Área Administrativa", "Gestión Institucional", "Soporte", "Directorio", "Comunicaciones", "Gestión de Usuarios", "Logs", "Administrador Intranet"],
-        actions: ["Registrar Directorio", "Editar Solicitudes de registros de anuncios", "Aprobar y Rechazar solicitudes de Anuncios", "Listar Usuarios", "Crear usuarios", "Solicitudes de Usuarios", "Editar Usuarios", "Reinicio de Contraseña", "Consultar Logs", "Registrar Sitios de redirección", "Actualizar sitios de redirección", "Consultar sitios de redirección", "Autorizar módulos a Usuarios", "Autorizar Acciones de Módulos a Usuarios"]
-      },
-      {
-        roleId: "r3",
-        modules: ["Inicio", "Área Asistencial", "Directorio"],
-        actions: []
-      },
-      {
-        roleId: "r4",
-        modules: ["Inicio", "Área Asistencial", "Área Administrativa", "Gestión Institucional", "Soporte", "Directorio"],
-        actions: []
-      }
-    ];
-
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error("Error parsing role permissions", e);
       }
     }
-    
-    return defaultPerms;
+    return [];
   });
 
   const [directory, setDirectory] = useState<DirectoryEntry[]>(() => {
@@ -288,15 +253,49 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       if (!(await apiAvailable())) return;
       try {
-        const [siteData, extData, emailData] = await Promise.all([
-          sitesApi.list(),
-          directoryApi.extensions(),
-          directoryApi.emails(),
+        const [siteData, extData, emailData, taskData, achData, cargoData] = await Promise.all([
+          sitesApi.list().catch(() => null),
+          directoryApi.extensions().catch(() => null),
+          directoryApi.emails().catch(() => null),
+          tasksApi.list().catch(() => null),
+          achievementsApi.list().catch(() => null),
+          apiFetch<{ oid: number; nombre: string; estado: boolean }[]>("/cargos").catch(() => null),
         ]);
         if (cancelled) return;
-        if (Array.isArray(siteData) && siteData.length > 0) setSites(siteData);
+        // Si el backend responde (aunque sea []), sincroniza y limpia localStorage viejo
+        if (Array.isArray(siteData)) setSites(siteData);
         if (Array.isArray(extData)) setDirectory(extData);
         if (Array.isArray(emailData)) setInstitutionEmails(emailData);
+        if (Array.isArray(taskData)) setTasks(taskData);
+        if (Array.isArray(achData)) setAchievements(achData);
+        if (Array.isArray(cargoData)) {
+          const mappedRoles: Role[] = cargoData.map(c => ({ id: String(c.oid), name: c.nombre, description: c.nombre, estado: c.estado }));
+          setRoles(mappedRoles);
+          setRolePermissions(curr => {
+            const next = [...curr];
+            let updated = false;
+            mappedRoles.forEach(r => {
+              const existing = next.find(p => p.roleId === r.id);
+              const isAdmin = r.name.toLowerCase() === 'administrador';
+              if (!existing) {
+                next.push({
+                  roleId: r.id,
+                  modules: isAdmin ? ["Inicio", "Área Asistencial", "Área Administrativa", "Gestión Institucional", "Soporte", "Directorio", "Comunicaciones", "Gestión de Usuarios", "Logs", "Administrador Intranet"] : ["Inicio"],
+                  actions: isAdmin ? ["Registrar Directorio", "Editar Solicitudes de registros de anuncios", "Aprobar y Rechazar solicitudes de Anuncios", "Listar Usuarios", "Crear usuarios", "Solicitudes de Usuarios", "Editar Usuarios", "Reinicio de Contraseña", "Consultar Logs", "Registrar Sitios de redirección", "Actualizar sitios de redirección", "Consultar sitios de redirección", "Autorizar módulos a Usuarios", "Autorizar Acciones de Módulos a Usuarios"] : []
+                });
+                updated = true;
+              } else if (isAdmin && existing.modules.length === 0) {
+                // Corrige admin que quedó con 0 permisos por limpieza previa
+                existing.modules = ["Inicio", "Área Asistencial", "Área Administrativa", "Gestión Institucional", "Soporte", "Directorio", "Comunicaciones", "Gestión de Usuarios", "Logs", "Administrador Intranet"];
+                existing.actions = ["Registrar Directorio", "Editar Solicitudes de registros de anuncios", "Aprobar y Rechazar solicitudes de Anuncios", "Listar Usuarios", "Crear usuarios", "Solicitudes de Usuarios", "Editar Usuarios", "Reinicio de Contraseña", "Consultar Logs", "Registrar Sitios de redirección", "Actualizar sitios de redirección", "Consultar sitios de redirección", "Autorizar módulos a Usuarios", "Autorizar Acciones de Módulos a Usuarios"];
+                updated = true;
+              }
+            });
+            // Limpiar permisos de roles que ya no existen
+            const filtered = next.filter(p => mappedRoles.some(r => r.id === p.roleId));
+            return filtered.length !== next.length || updated ? filtered : next;
+          });
+        }
       } catch {
         // Backend no disponible: se mantienen los datos mock/localStorage
       }
@@ -306,22 +305,59 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const addSite = (site: Omit<RedirectSite, 'id' | 'active'>) => {
-    setSites(prev => [...prev, { ...site, id: Date.now().toString(), active: true }]);
+  const addSite = async (site: Omit<RedirectSite, 'id' | 'active'>) => {
+    try {
+      const created = await sitesApi.create(site);
+      setSites(prev => [...prev, created]);
+    } catch {
+      setSites(prev => [...prev, { ...site, id: Date.now().toString(), active: true }]);
+    }
   };
 
-  const updateSite = (updatedSite: RedirectSite) => {
-    setSites(prev => prev.map(s => s.id === updatedSite.id ? updatedSite : s));
+  const updateSite = async (updatedSite: RedirectSite) => {
+    try {
+      const updated = await sitesApi.update(updatedSite);
+      setSites(prev => prev.map(s => s.id === updatedSite.id ? updated : s));
+    } catch {
+      setSites(prev => prev.map(s => s.id === updatedSite.id ? updatedSite : s));
+    }
   };
 
-  const toggleSiteActive = (id: string) => {
-    setSites(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
+  const toggleSiteActive = async (id: string) => {
+    try {
+      await sitesApi.toggleActive(id);
+      setSites(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
+    } catch {
+      setSites(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
+    }
   };
 
-  const addRole = (role: Omit<Role, 'id'>) => {
-    const newId = `r-${Date.now()}`;
-    setRoles(prev => [...prev, { ...role, id: newId }]);
-    setRolePermissions(prev => [...prev, { roleId: newId, modules: ["Inicio"], actions: [] }]);
+  const addRole = async (role: Omit<Role, 'id'>) => {
+    const displayName = role.description || role.name;
+    try {
+      const created = await apiFetch<{ oid: number; nombre: string; estado: boolean }>("/cargos", { method: "POST", body: { nombre: displayName } });
+      const newRole: Role = { id: String(created.oid), name: created.nombre, description: created.nombre, estado: created.estado };
+      setRoles(prev => [...prev, newRole]);
+      setRolePermissions(prev => [...prev, { roleId: newRole.id, modules: ["Inicio"], actions: [] }]);
+    } catch {
+      const newId = `r-${Date.now()}`;
+      setRoles(prev => [...prev, { ...role, id: newId, estado: true }]);
+      setRolePermissions(prev => [...prev, { roleId: newId, modules: ["Inicio"], actions: [] }]);
+    }
+  };
+
+  const toggleRoleEstado = async (id: string) => {
+    const role = roles.find(r => r.id === id);
+    if (!role) return;
+    const previo = role.estado !== false;
+    // Optimistic update
+    setRoles(prev => prev.map(r => r.id === id ? { ...r, estado: !previo } : r));
+    try {
+      await apiFetch(`/cargos/${id}/estado`, { method: "PATCH" });
+    } catch {
+      // Revertir si falla
+      setRoles(prev => prev.map(r => r.id === id ? { ...r, estado: previo } : r));
+    }
   };
 
   const updateRoleModulePermissions = (roleId: string, modules: string[]) => {
@@ -344,16 +380,31 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const addDirectoryEntry = (entry: Omit<DirectoryEntry, 'id' | 'active'>) => {
-    setDirectory(prev => [...prev, { ...entry, id: Date.now().toString(), active: true }]);
+  const addDirectoryEntry = async (entry: Omit<DirectoryEntry, 'id' | 'active'>) => {
+    try {
+      const created = await directoryApi.createExtension(entry);
+      setDirectory(prev => [...prev, created]);
+    } catch {
+      setDirectory(prev => [...prev, { ...entry, id: Date.now().toString(), active: true }]);
+    }
   };
 
-  const updateDirectoryEntry = (updatedEntry: DirectoryEntry) => {
-    setDirectory(prev => prev.map(e => e.id === updatedEntry.id ? updatedEntry : e));
+  const updateDirectoryEntry = async (updatedEntry: DirectoryEntry) => {
+    try {
+      const updated = await directoryApi.updateExtension(updatedEntry);
+      setDirectory(prev => prev.map(e => e.id === updatedEntry.id ? updated : e));
+    } catch {
+      setDirectory(prev => prev.map(e => e.id === updatedEntry.id ? updatedEntry : e));
+    }
   };
 
-  const removeDirectoryEntry = (id: string) => {
-    setDirectory(prev => prev.filter(e => e.id !== id));
+  const removeDirectoryEntry = async (id: string) => {
+    try {
+      await directoryApi.deleteExtension(id);
+      setDirectory(prev => prev.filter(e => e.id !== id));
+    } catch {
+      setDirectory(prev => prev.filter(e => e.id !== id));
+    }
   };
 
   const addEps = (eps: Omit<EpsPlatform, 'id'>) => {
@@ -388,53 +439,99 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
     setContingencyFormats(prev => prev.filter(f => f.id !== id));
   };
 
-  const addAchievement = (achievement: Omit<Achievement, 'id'>) => {
-    setAchievements(prev => [...prev, { ...achievement, id: Date.now().toString() }]);
+  const addAchievement = async (achievement: Omit<Achievement, 'id'>) => {
+    try {
+      const created = await achievementsApi.create(achievement);
+      setAchievements(prev => [...prev, created]);
+    } catch {
+      setAchievements(prev => [...prev, { ...achievement, id: Date.now().toString() }]);
+    }
   };
 
-  const removeAchievement = (id: string) => {
-    setAchievements(prev => prev.filter(a => a.id !== id));
+  const removeAchievement = async (id: string) => {
+    try {
+      await achievementsApi.remove(id);
+      setAchievements(prev => prev.filter(a => a.id !== id));
+    } catch {
+      setAchievements(prev => prev.filter(a => a.id !== id));
+    }
   };
 
-  const addTask = (task: Omit<Task, 'id' | 'createdAt' | 'completed' | 'observations'>) => {
-    setTasks(prev => [{
-      ...task,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      completed: false,
-      observations: []
-    }, ...prev]);
+  const addTask = async (task: Omit<Task, 'id' | 'createdAt' | 'completed' | 'observations'>) => {
+    try {
+      const created = await tasksApi.create(task);
+      setTasks(prev => [created, ...prev]);
+    } catch {
+      setTasks(prev => [{
+        ...task,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        completed: false,
+        observations: []
+      }, ...prev]);
+    }
   };
 
-  const updateTask = (updatedTask: Task) => {
-    setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+  const updateTask = async (updatedTask: Task) => {
+    try {
+      const updated = await tasksApi.update(updatedTask);
+      setTasks(prev => prev.map(t => t.id === updatedTask.id ? updated : t));
+    } catch {
+      setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+    }
   };
 
-  const addObservationToTask = (taskId: string, observation: { text: string; author: string }) => {
-    const obs = { ...observation, date: new Date().toISOString() };
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, observations: [...t.observations, obs] } : t));
+  const addObservationToTask = async (taskId: string, observation: { text: string; author: string }) => {
+    try {
+      await tasksApi.addComment(taskId, observation);
+      const obs = { ...observation, date: new Date().toISOString() };
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, observations: [...t.observations, obs] } : t));
+    } catch {
+      const obs = { ...observation, date: new Date().toISOString() };
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, observations: [...t.observations, obs] } : t));
+    }
   };
 
-  const completeTask = (taskId: string) => {
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completed: true } : t));
+  const completeTask = async (taskId: string) => {
+    try {
+      await tasksApi.complete(taskId);
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completed: true } : t));
+    } catch {
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completed: true } : t));
+    }
   };
 
-  const addInstitutionEmail = (email: Omit<InstitutionEmail, 'id'>) => {
-    setInstitutionEmails(prev => [...prev, { ...email, id: Date.now().toString() }]);
+  const addInstitutionEmail = async (email: Omit<InstitutionEmail, 'id'>) => {
+    try {
+      const created = await directoryApi.createEmail(email);
+      setInstitutionEmails(prev => [...prev, created]);
+    } catch {
+      setInstitutionEmails(prev => [...prev, { ...email, id: Date.now().toString() }]);
+    }
   };
 
-  const updateInstitutionEmail = (updatedEmail: InstitutionEmail) => {
-    setInstitutionEmails(prev => prev.map(e => e.id === updatedEmail.id ? updatedEmail : e));
+  const updateInstitutionEmail = async (updatedEmail: InstitutionEmail) => {
+    try {
+      const updated = await directoryApi.updateEmail(updatedEmail);
+      setInstitutionEmails(prev => prev.map(e => e.id === updatedEmail.id ? updated : e));
+    } catch {
+      setInstitutionEmails(prev => prev.map(e => e.id === updatedEmail.id ? updatedEmail : e));
+    }
   };
 
-  const removeInstitutionEmail = (id: string) => {
-    setInstitutionEmails(prev => prev.filter(e => e.id !== id));
+  const removeInstitutionEmail = async (id: string) => {
+    try {
+      await directoryApi.deleteEmail(id);
+      setInstitutionEmails(prev => prev.filter(e => e.id !== id));
+    } catch {
+      setInstitutionEmails(prev => prev.filter(e => e.id !== id));
+    }
   };
 
   return (
     <SystemContext.Provider value={{
       sites, setSites, addSite, updateSite, toggleSiteActive,
-      roles, addRole, rolePermissions, updateRoleModulePermissions, updateRoleActionPermissions,
+      roles, addRole, toggleRoleEstado, rolePermissions, updateRoleModulePermissions, updateRoleActionPermissions,
       directory, addDirectoryEntry, updateDirectoryEntry, removeDirectoryEntry,
       epsList, setEpsList, addEps, removeEps,
       contracts, addContract, updateContract,

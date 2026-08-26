@@ -1,21 +1,25 @@
 import type { Task } from "../contexts/SystemContext";
 import { apiFetch } from "./client";
+import { mapTareaToFE, type BackendTareaResponse } from "./mappers";
 
-export interface TaskComment {
-  text: string;
-  author: string;
-}
+export interface TaskComment { text: string; author: string; }
 
 export const tasksApi = {
-  list: (params?: Record<string, string>) => {
+  list: async (params?: Record<string, string>) => {
     const query = params ? `?${new URLSearchParams(params).toString()}` : "";
-    return apiFetch<Task[]>(`/tasks${query}`);
+    const data = await apiFetch<BackendTareaResponse[]>(`/tasks${query}`);
+    return data.map(mapTareaToFE);
   },
-  create: (task: Omit<Task, "id" | "createdAt" | "completed" | "observations">) =>
-    apiFetch<Task>("/tasks", { method: "POST", body: task }),
-  update: (task: Task) =>
-    apiFetch<Task>(`/tasks/${task.id}`, { method: "PUT", body: task }),
+  create: async (task: Omit<Task, "id" | "createdAt" | "completed" | "observations">) => {
+    const body = { titulo: task.title, descripcion: task.description, prioridad: "MEDIA" };
+    const dto = await apiFetch<BackendTareaResponse>("/tasks", { method: "POST", body });
+    return mapTareaToFE(dto);
+  },
+  update: async (task: Task) => {
+    const body = { titulo: task.title, descripcion: task.description };
+    const dto = await apiFetch<BackendTareaResponse>(`/tasks/${task.id}`, { method: "PUT", body });
+    return mapTareaToFE(dto);
+  },
   complete: (id: string) => apiFetch<void>(`/tasks/${id}/complete`, { method: "POST" }),
-  addComment: (id: string, comment: TaskComment) =>
-    apiFetch<void>(`/tasks/${id}/comments`, { method: "POST", body: comment }),
+  addComment: (id: string, comment: TaskComment) => apiFetch<void>(`/tasks/${id}/comments`, { method: "POST", body: comment }),
 };

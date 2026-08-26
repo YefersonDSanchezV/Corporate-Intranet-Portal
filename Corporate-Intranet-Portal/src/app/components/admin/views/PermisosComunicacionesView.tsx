@@ -16,7 +16,8 @@ export function PermisosComunicacionesView() {
   const { roles, rolePermissions, updateRoleActionPermissions } = useSystem();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredRoles = roles.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()) || r.description.toLowerCase().includes(searchTerm.toLowerCase()));
+  const comRoles = roles.filter(r => r.name.toLowerCase().includes("comunicac") || r.description.toLowerCase().includes("comunicac"));
+  const filteredRoles = (comRoles.length > 0 ? comRoles : roles).filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()) || r.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const toggleAction = (roleId: string, action: string) => {
     const current = rolePermissions.find(p => p.roleId === roleId)?.actions || [];

@@ -27,7 +27,8 @@ public final class UsuarioDtos {
             @NotBlank String nombreCompleto,
             @NotBlank @Email String correoInstitucional,
             @NotNull @Positive Integer cargoOid,
-            @NotNull Boolean estado) {
+            @NotNull Boolean estado,
+            LocalDate fechaNacimiento) {
     }
 
     public record StatusRequest(@NotNull Boolean estado) {

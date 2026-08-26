@@ -8,13 +8,18 @@ import co.com.icvc.intranet_backend.user.entity.Usuario;
 import co.com.icvc.intranet_backend.user.repository.CargoIntraRepository;
 import co.com.icvc.intranet_backend.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -22,6 +27,7 @@ public class UserService {
     private final UsuarioRepository usuarioRepository;
     private final CargoIntraRepository cargoRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
     @Transactional(readOnly = true)
     public List<UsuarioDtos.Response> list() {
@@ -38,20 +44,35 @@ public class UserService {
         if (usuarioRepository.existsByCorreoInstitucional(request.correoInstitucional())) {
             throw new ConflictException("El correo institucional ya está registrado");
         }
-        CargoIntra cargo = cargoRepository.findById(request.cargoOid())
+        cargoRepository.findById(request.cargoOid())
                 .orElseThrow(() -> NotFoundException.of("Cargo", request.cargoOid()));
-        Usuario usuario = Usuario.builder()
-                .username(request.username())
-                .passwordHash(passwordEncoder.encode(request.password()))
-                .estado(true)
-                .identificacion(request.identificacion())
-                .nombreCompleto(request.nombreCompleto())
-                .fechaNacimiento(request.fechaNacimiento())
-                .correoInstitucional(request.correoInstitucional())
-                .cargo(cargo)
-                .fechaCreacion(LocalDateTime.now())
-                .build();
-        return UsuarioDtos.Response.from(usuarioRepository.save(usuario));
+        String hash = passwordEncoder.encode(request.password());
+        LocalDateTime now = LocalDateTime.now();
+        // Uso de SQL nativo con oid explícito para compatibilidad con BDs existentes sin IDENTITY
+        try {
+            Integer nextOid = jdbcTemplate.queryForObject("SELECT COALESCE(MAX(oid),0)+1 FROM genusuario", Integer.class);
+            jdbcTemplate.update(
+                    "INSERT INTO genusuario (oid, genusunom, genusuclahash, genususta, genusuide, genusunomcom, genusufecnam, genusuemacor, gencargointra, genusufechcrea) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    nextOid, request.username(), hash, true, request.identificacion(), request.nombreCompleto(),
+                    Date.valueOf(request.fechaNacimiento()), request.correoInstitucional(), request.cargoOid(), Timestamp.valueOf(now));
+            Usuario saved = usuarioRepository.findByUsername(request.username()).orElseThrow();
+            return UsuarioDtos.Response.from(saved);
+        } catch (Exception ex) {
+            log.warn("Fallback nativo falló, intentando JPA: {}", ex.getMessage());
+            CargoIntra cargo = cargoRepository.findById(request.cargoOid()).orElseThrow();
+            Usuario usuario = Usuario.builder()
+                    .username(request.username())
+                    .passwordHash(hash)
+                    .estado(true)
+                    .identificacion(request.identificacion())
+                    .nombreCompleto(request.nombreCompleto())
+                    .fechaNacimiento(request.fechaNacimiento())
+                    .correoInstitucional(request.correoInstitucional())
+                    .cargo(cargo)
+                    .fechaCreacion(now)
+                    .build();
+            return UsuarioDtos.Response.from(usuarioRepository.save(usuario));
+        }
     }
 
     @Transactional
@@ -63,6 +84,9 @@ public class UserService {
         usuario.setCorreoInstitucional(request.correoInstitucional());
         usuario.setCargo(cargo);
         usuario.setEstado(request.estado());
+        if (request.fechaNacimiento() != null) {
+            usuario.setFechaNacimiento(request.fechaNacimiento());
+        }
         return UsuarioDtos.Response.from(usuarioRepository.save(usuario));
     }
 

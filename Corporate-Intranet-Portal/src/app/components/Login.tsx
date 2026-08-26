@@ -3,7 +3,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { useState } from "react";
 import { AccessRequestModal } from "./modals/AccessRequestModal";
 import { PasswordResetModal } from "./modals/PasswordResetModal";
-import { DEV_CREDENTIALS } from "../utils/dev-credentials";
 
 export function Login() {
   const { login, user } = useAuth();
@@ -20,15 +19,23 @@ export function Login() {
   const [showAccessRequestModal, setShowAccessRequestModal] = useState(false);
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    const success = login(username, password);
-    if (success) {
-      sessionStorage.setItem("intranet_session_started", "true");
-    } else {
-      setError("Usuario o contraseña incorrectos");
+    setLoading(true);
+    try {
+      const success = await login(username, password);
+      if (success) {
+        sessionStorage.setItem("intranet_session_started", "true");
+      } else {
+        setError("Usuario o contraseña incorrectos");
+      }
+    } catch {
+      setError("No se pudo conectar con el servidor");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -97,25 +104,14 @@ export function Login() {
               </div>
             </div>
 
-            {/* Información de usuarios de prueba */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs text-blue-800 font-semibold mb-1">Acceso Administrativo Inicial:</p>
-              <div className="text-xs text-blue-700 mt-2 space-y-1">
-                <p><strong>Usuario:</strong> {DEV_CREDENTIALS.username}</p>
-                <p><strong>Password:</strong> {DEV_CREDENTIALS.password}</p>
-              </div>
-              <p className="text-[10px] text-blue-600 mt-2 font-medium italic">
-                * Use estas credenciales para configurar el sistema desde cero.
-              </p>
-            </div>
-
             {/* Botón Ingresar */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-[#CF3438] to-[#e74c3c] hover:from-[#a01f24] hover:to-[#CF3438] text-white rounded-lg py-4 transition-all flex items-center justify-center gap-3 mt-8 shadow-lg hover:shadow-xl font-semibold"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[#CF3438] to-[#e74c3c] hover:from-[#a01f24] hover:to-[#CF3438] text-white rounded-lg py-4 transition-all flex items-center justify-center gap-3 mt-8 shadow-lg hover:shadow-xl font-semibold disabled:opacity-60"
             >
               <LogIn className="w-5 h-5" />
-              <span className="text-base md:text-lg">INGRESAR</span>
+              <span className="text-base md:text-lg">{loading ? "INGRESANDO..." : "INGRESAR"}</span>
             </button>
           </form>
 

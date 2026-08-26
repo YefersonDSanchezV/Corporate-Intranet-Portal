@@ -12,5 +12,7 @@ public interface UsuarioComunicacionRepository extends JpaRepository<UsuarioComu
 
     Optional<UsuarioComunicacion> findByUsuarioOid(Integer usuarioOid);
 
+    List<UsuarioComunicacion> findAllByUsuarioOid(Integer usuarioOid);
+
     boolean existsByUsuarioOid(Integer usuarioOid);
 }

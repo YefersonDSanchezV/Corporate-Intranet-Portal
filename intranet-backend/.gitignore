@@ -34,3 +34,5 @@ build/
 
 ### Configuración local ###
 .env
+.env_pruebas
+dev.properties

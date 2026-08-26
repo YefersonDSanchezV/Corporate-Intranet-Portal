@@ -2,13 +2,13 @@ import { Search } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 
-const COM_ROLES = ["comunicaciones", "coordinador_ti", "admin", "root", "coordinador_asistencial", "coordinador_administrativo"];
+const COM_ROLES = ["comunicaciones"];
 
 export function UsuariosComunicacionesView() {
   const { users } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const comUsers = users.filter(u => COM_ROLES.includes(u.role));
+  const comUsers = users.filter(u => u.role === "comunicaciones" || (u.position || "").toLowerCase().includes("comunicac"));
   const filtered = comUsers.filter(u => 
     u.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||

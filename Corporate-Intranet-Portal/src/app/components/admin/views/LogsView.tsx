@@ -1,16 +1,38 @@
 import { Search, Filter, Calendar, Eye, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { logsApi, type LogEntry } from "../../../api/logs";
 import { useAuth } from "../../../contexts/AuthContext";
 
 export function LogsView() {
   const { accessRecords } = useAuth();
+  const [backendLogs, setBackendLogs] = useState<LogEntry[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
 
-  const filteredLogs = accessRecords.filter(log => {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await logsApi.list();
+        if (!cancelled && Array.isArray(data) && data.length > 0) setBackendLogs(data);
+      } catch {
+        // fallback a accessRecords si backend no disponible
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const sourceLogs = backendLogs.length > 0 ? backendLogs.map(l => ({
+    userName: l.username,
+    moduleName: l.table ? `${l.action} - ${l.table}` : l.action,
+    accessTime: new Date(l.timestamp),
+    raw: l,
+  })) : accessRecords;
+
+  const filteredLogs = sourceLogs.filter(log => {
     const matchesSearch = log.userName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDate = !dateFilter || format(new Date(log.accessTime), "yyyy-MM-dd") === dateFilter;
     return matchesSearch && matchesDate;

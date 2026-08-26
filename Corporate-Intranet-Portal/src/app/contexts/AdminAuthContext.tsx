@@ -1,10 +1,11 @@
-import { createContext, useContext, useState, ReactNode } from "react";
-import { DEV_CREDENTIALS } from "../utils/dev-credentials";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { authApi } from "../api/auth";
+import { getToken, clearToken } from "../api/client";
 
 interface AdminAuthContextType {
   isAdminAuthenticated: boolean;
   adminPanelOpen: boolean;
-  adminLogin: (username: string, password: string) => boolean;
+  adminLogin: (username: string, password: string) => Promise<boolean>;
   adminLogout: () => void;
   openAdminPanel: () => void;
   closeAdminPanel: () => void;
@@ -16,25 +17,42 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
 
-  const adminLogin = (username: string, password: string): boolean => {
-    const normalized = username.toLowerCase();
-    const isValid =
-      DEV_CREDENTIALS.allowedUsernames.includes(normalized) &&
-      password === DEV_CREDENTIALS.password;
-    if (isValid) {
+  useEffect(() => {
+    const onExpired = () => {
+      setIsAdminAuthenticated(false);
+      setAdminPanelOpen(false);
+    };
+    window.addEventListener("auth:expired", onExpired);
+    return () => window.removeEventListener("auth:expired", onExpired);
+  }, []);
+
+  const adminLogin = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const res = await authApi.login(username, password);
+      const isAdmin = res.roles.map((r) => r.toUpperCase()).includes("ADMIN");
+      if (!isAdmin) {
+        clearToken();
+        return false;
+      }
       setIsAdminAuthenticated(true);
       setAdminPanelOpen(true);
       return true;
+    } catch {
+      return false;
     }
-    return false;
   };
 
   const adminLogout = () => {
+    authApi.logout().catch(() => {});
     setIsAdminAuthenticated(false);
     setAdminPanelOpen(false);
   };
 
-  const openAdminPanel = () => setAdminPanelOpen(true);
+  const openAdminPanel = () => {
+    const token = getToken();
+    if (!token) return;
+    setAdminPanelOpen(true);
+  };
   const closeAdminPanel = () => setAdminPanelOpen(false);
 
   return (

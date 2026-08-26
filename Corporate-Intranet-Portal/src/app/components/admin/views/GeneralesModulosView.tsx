@@ -10,20 +10,11 @@ interface PortalModule {
   allowedUsers: string[];
 }
 
-const DEFAULT_MODULES: PortalModule[] = [
-  { id: "clinical", name: "Area Asistencial", active: true, adEnabled: true, allowedUsers: [] },
-  { id: "administrative", name: "Area Administrativa", active: true, adEnabled: true, allowedUsers: [] },
-  { id: "institutional", name: "Gestion Institucional", active: true, adEnabled: false, allowedUsers: [] },
-  { id: "support", name: "Soporte", active: true, adEnabled: true, allowedUsers: [] },
-  { id: "directory", name: "Directorio", active: true, adEnabled: false, allowedUsers: [] },
-  { id: "analytics", name: "Innovacion Analitica", active: true, adEnabled: true, allowedUsers: [] },
-];
-
 export function GeneralesModulosView() {
   const { users } = useAuth();
   const [modules, setModules] = useState<PortalModule[]>(() => {
     const saved = localStorage.getItem("admin_portal_modules");
-    return saved ? JSON.parse(saved) : DEFAULT_MODULES;
+    return saved ? JSON.parse(saved) : [];
   });
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<PortalModule | null>(null);

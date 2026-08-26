@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
-import { getJSON } from "../api/client";
-import { DEV_CREDENTIALS } from "../utils/dev-credentials";
+import { authApi } from "../api/auth";
+import { usersApi } from "../api/users";
+import { apiAvailable, getToken, clearToken } from "../api/client";
 
 export type UserRole =
   | "admin"
@@ -31,6 +32,7 @@ export interface User {
   role: UserRole;
   status: "active" | "inactive";
   createdDate: string;
+  birthDate?: string;
 }
 
 export interface AccessRecord {
@@ -46,7 +48,7 @@ interface AuthContextType {
   accessRecords: AccessRecord[];
   accessRequests: AccessRequest[];
   passwordResetRequests: PasswordResetRequest[];
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   addAccessRecord: (moduleName: string) => void;
   addAccessRequest: (request: Omit<AccessRequest, "id" | "requestDate" | "status">) => void;
@@ -55,9 +57,9 @@ interface AuthContextType {
   rejectAccessRequest: (id: string) => void;
   resetPassword: (id: string) => void;
   setUsers: React.Dispatch<React.SetStateAction<Record<string, User>>>;
-  addUser: (user: Omit<User, "id" | "status" | "createdDate">) => void;
-  toggleUserStatus: (username: string) => void;
-  updateUser: (user: User) => void;
+  addUser: (user: Omit<User, "id" | "status" | "createdDate">) => Promise<void>;
+  toggleUserStatus: (username: string) => Promise<void>;
+  updateUser: (user: User) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -82,25 +84,11 @@ export interface PasswordResetRequest {
   status: "pending" | "completed";
 }
 
-const INITIAL_USERS: Record<string, User> = {
-  "root": {
-    id: "1",
-    username: "root",
-    fullName: "Admin",
-    identification: "123456789",
-    email: "root@icvc.com.co",
-    position: "Administrador de Sistemas",
-    department: "Tecnología",
-    role: "root",
-    status: "active",
-    createdDate: new Date().toISOString()
-  }
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<Record<string, User>>(() => {
     const saved = localStorage.getItem("intranet_users");
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
+    // Si hay backend disponible, se sobrescribirá con datos reales; si no, queda como caché offline
+    return saved ? JSON.parse(saved) : {};
   });
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -127,42 +115,56 @@ useEffect(() => localStorage.setItem("intranet_users", JSON.stringify(users)), [
   useEffect(() => localStorage.setItem("intranet_access_requests", JSON.stringify(accessRequests)), [accessRequests]);
   useEffect(() => localStorage.setItem("intranet_password_reset_requests", JSON.stringify(passwordResetRequests)), [passwordResetRequests]);
 
+  // Sincroniza usuarios con el backend (fuente de verdad). Si falla, mantiene localStorage como fallback offline.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (!(await apiAvailable())) return;
       try {
-        const me = await getJSON<User>("/me", 2500);
-        if (!cancelled) setCurrentUser(me);
+        const backendUsers = await usersApi.list();
+        if (cancelled) return;
+        const map: Record<string, User> = {};
+        backendUsers.forEach(u => { map[u.username.toLowerCase()] = u; });
+        setUsers(map);
       } catch {
-        // Backend no disponible: se mantiene el modo mock/localStorage
+        // Backend no disponible: se mantiene caché local
       }
     })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = await authApi.me();
+        if (!cancelled) setCurrentUser(me);
+      } catch {
+        clearToken();
+      }
+    })();
+    const onExpired = () => setCurrentUser(null);
+    window.addEventListener("auth:expired", onExpired);
     return () => {
       cancelled = true;
+      window.removeEventListener("auth:expired", onExpired);
     };
   }, []);
 
-const login = (username: string, password: string): boolean => {
-    const normalizedUsername = username.toLowerCase();
-    const isSpecialAdmin = DEV_CREDENTIALS.allowedUsernames.includes(normalizedUsername);
-    const isCorrectPassword = password === DEV_CREDENTIALS.password;
-
-    if (isSpecialAdmin && isCorrectPassword) {
-      setCurrentUser(users["root"]);
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const res = await authApi.login(username, password);
+      setCurrentUser(res.user);
       return true;
+    } catch {
+      return false;
     }
-
-    const foundUser = users[normalizedUsername];
-    if (foundUser && !isSpecialAdmin && foundUser.status === "active") {
-      if (foundUser.password && foundUser.password !== password) return false;
-      setCurrentUser(foundUser);
-      return true;
-    }
-    
-    return false;
   };
 
   const logout = () => {
+    authApi.logout().catch(() => {});
     setCurrentUser(null);
   };
 
@@ -217,36 +219,45 @@ const login = (username: string, password: string): boolean => {
     );
   }, []);
 
-  const addUser = useCallback((userData: Omit<User, "id" | "status" | "createdDate">) => {
-    const newUser: User = {
-      ...userData,
-      id: Date.now().toString(),
-      status: "active",
-      createdDate: new Date().toISOString()
-    };
-    setUsers(prev => ({
-      ...prev,
-      [newUser.username.toLowerCase()]: newUser
-    }));
-  }, []);
-
-  const toggleUserStatus = useCallback((username: string) => {
-    setUsers(prev => {
-      const key = username.toLowerCase();
-      const user = prev[key];
-      if (!user) return prev;
-      return {
-        ...prev,
-        [key]: { ...user, status: user.status === "active" ? "inactive" : "active" }
+  const addUser = useCallback(async (userData: Omit<User, "id" | "status" | "createdDate">) => {
+    try {
+      const created = await usersApi.create(userData);
+      setUsers(prev => ({ ...prev, [created.username.toLowerCase()]: created }));
+    } catch {
+      // Fallback offline: guarda en localStorage
+      const newUser: User = {
+        ...userData,
+        id: Date.now().toString(),
+        status: "active",
+        createdDate: new Date().toISOString()
       };
-    });
+      setUsers(prev => ({ ...prev, [newUser.username.toLowerCase()]: newUser }));
+    }
   }, []);
 
-  const updateUser = useCallback((updatedUser: User) => {
-    setUsers(prev => ({
-      ...prev,
-      [updatedUser.username.toLowerCase()]: updatedUser
-    }));
+  const toggleUserStatus = useCallback(async (username: string) => {
+    const key = username.toLowerCase();
+    const user = users[key];
+    if (!user) return;
+    try {
+      const updated = await usersApi.toggleStatus(username, user.status);
+      setUsers(prev => ({ ...prev, [key]: updated }));
+    } catch {
+      setUsers(prev => {
+        const u = prev[key];
+        if (!u) return prev;
+        return { ...prev, [key]: { ...u, status: u.status === "active" ? "inactive" : "active" } };
+      });
+    }
+  }, [users]);
+
+  const updateUser = useCallback(async (updatedUser: User) => {
+    try {
+      const updated = await usersApi.update(updatedUser);
+      setUsers(prev => ({ ...prev, [updated.username.toLowerCase()]: updated }));
+    } catch {
+      setUsers(prev => ({ ...prev, [updatedUser.username.toLowerCase()]: updatedUser }));
+    }
   }, []);
 
   return (

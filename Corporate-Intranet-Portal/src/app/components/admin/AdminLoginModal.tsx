@@ -1,7 +1,6 @@
 import { User, Lock, LogIn, AlertCircle, X } from "lucide-react";
 import { useState } from "react";
 import { useAdminAuth } from "../../contexts/AdminAuthContext";
-import { DEV_CREDENTIALS } from "../../utils/dev-credentials";
 
 interface AdminLoginModalProps {
   isOpen: boolean;
@@ -14,18 +13,27 @@ export function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  const [loading, setLoading] = useState(false);
+
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const success = adminLogin(username, password);
-    if (success) {
-      setUsername("");
-      setPassword("");
-      onClose();
-    } else {
-      setError("Usuario o contraseña incorrectos");
+    setLoading(true);
+    try {
+      const success = await adminLogin(username, password);
+      if (success) {
+        setUsername("");
+        setPassword("");
+        onClose();
+      } else {
+        setError("Usuario o contraseña incorrectos o sin permisos de administrador");
+      }
+    } catch {
+      setError("No se pudo conectar con el servidor");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -117,28 +125,14 @@ export function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProps) {
               </div>
             </div>
 
-            {/* Hint dev */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs text-blue-800 font-semibold mb-1">
-                Acceso Administrativo:
-              </p>
-              <div className="text-xs text-blue-700 space-y-1">
-                <p>
-                  <strong>Usuario:</strong> {DEV_CREDENTIALS.username}
-                </p>
-                <p>
-                  <strong>Password:</strong> {DEV_CREDENTIALS.password}
-                </p>
-              </div>
-            </div>
-
             {/* Botón */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-[#CF3438] to-[#e74c3c] hover:from-[#a01f24] hover:to-[#CF3438] text-white rounded-lg py-4 transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-xl font-semibold"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[#CF3438] to-[#e74c3c] hover:from-[#a01f24] hover:to-[#CF3438] text-white rounded-lg py-4 transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-xl font-semibold disabled:opacity-60"
             >
               <LogIn className="w-5 h-5" />
-              <span className="text-base md:text-lg">INGRESAR</span>
+              <span className="text-base md:text-lg">{loading ? "INGRESANDO..." : "INGRESAR"}</span>
             </button>
           </form>
         </div>

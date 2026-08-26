@@ -7,6 +7,14 @@ public final class CargoDtos {
     private CargoDtos() {
     }
 
+    public record CreateRequest(
+            @jakarta.validation.constraints.NotBlank String nombre) {
+    }
+
+    public record UpdateStatusRequest(
+            @jakarta.validation.constraints.NotNull Boolean estado) {
+    }
+
     public record Response(Integer oid, String nombre, boolean estado) {
 
         public static Response from(CargoIntra cargo) {

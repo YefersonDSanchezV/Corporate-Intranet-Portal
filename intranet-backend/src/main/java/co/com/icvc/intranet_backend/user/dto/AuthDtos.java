@@ -10,6 +10,9 @@ public final class AuthDtos {
     public record LoginRequest(@NotBlank String username, @NotBlank String password) {
     }
 
-    public record LoginResponse(UsuarioDtos.Response usuario, String mensaje) {
+    public record LoginResponse(UsuarioDtos.Response usuario, String token, java.util.List<String> roles, String mensaje) {
+        public LoginResponse(UsuarioDtos.Response usuario, String mensaje) {
+            this(usuario, null, java.util.List.of(), mensaje);
+        }
     }
 }

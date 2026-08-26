@@ -1,6 +1,32 @@
-const API_BASE = "/api";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
 const DEFAULT_TIMEOUT_MS = 8000;
 const PROBE_TIMEOUT_MS = 2500;
+
+export const TOKEN_KEY = "intranet_token";
+
+export function getToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setToken(token: string) {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+  } catch {
+    // storage no disponible
+  }
+}
+
+export function clearToken() {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // storage no disponible
+  }
+}
 
 export class ApiError extends Error {
   readonly status: number;
@@ -26,6 +52,8 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
   try {
     const headers: Record<string, string> = {};
     if (body !== undefined) headers["Content-Type"] = "application/json";
+    const token = getToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
 
     const response = await fetch(`${API_BASE}${path}`, {
       method,
@@ -35,6 +63,10 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        clearToken();
+        window.dispatchEvent(new CustomEvent("auth:expired"));
+      }
       let message = `HTTP ${response.status}`;
       try {
         const data = await response.json();
@@ -67,8 +99,8 @@ export async function apiAvailable(timeoutMs = PROBE_TIMEOUT_MS): Promise<boolea
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(`${API_BASE}/me`, { signal: controller.signal });
-    return true;
+    const response = await fetch(`${API_BASE}/modules`, { signal: controller.signal });
+    return response.ok;
   } catch {
     return false;
   } finally {

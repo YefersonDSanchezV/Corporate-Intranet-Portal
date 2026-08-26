@@ -18,10 +18,10 @@ interface AnnouncementsContextType {
   publishedAnnouncements: Announcement[];
   notificationCount: number;
   clearNotifications: () => void;
-  addAnnouncement: (announcement: Omit<Announcement, "id" | "published" | "createdAt">) => void;
-  publishAnnouncement: (id: string) => void;
-  updateAnnouncement: (id: string, updates: Partial<Announcement>) => void;
-  deleteAnnouncement: (id: string) => void;
+  addAnnouncement: (announcement: Omit<Announcement, "id" | "published" | "createdAt">) => Promise<void>;
+  publishAnnouncement: (id: string) => Promise<void>;
+  updateAnnouncement: (id: string, updates: Partial<Announcement>) => Promise<void>;
+  deleteAnnouncement: (id: string) => Promise<void>;
 }
 
 const AnnouncementsContext = createContext<AnnouncementsContextType | undefined>(undefined);
@@ -77,40 +77,52 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const addAnnouncement = (announcement: Omit<Announcement, "id" | "published" | "createdAt">) => {
-    const newAnnouncement: Announcement = {
-      ...announcement,
-      id: Date.now().toString(),
-      published: false,
-      createdAt: new Date()
-    };
-    setAnnouncements(prev => [newAnnouncement, ...prev]);
+  const addAnnouncement = async (announcement: Omit<Announcement, "id" | "published" | "createdAt">) => {
+    try {
+      const created = await announcementsApi.create(announcement);
+      setAnnouncements(prev => [created, ...prev]);
+    } catch {
+      const newAnnouncement: Announcement = {
+        ...announcement,
+        id: Date.now().toString(),
+        published: false,
+        createdAt: new Date()
+      };
+      setAnnouncements(prev => [newAnnouncement, ...prev]);
+    }
   };
 
-  const publishAnnouncement = (id: string) => {
-    setAnnouncements(prev =>
-      prev.map(ann =>
-        ann.id === id ? { ...ann, published: true } : ann
-      )
-    );
-    // Incrementar notificaciones al publicar
-    setNotificationCount(prev => prev + 1);
+  const publishAnnouncement = async (id: string) => {
+    try {
+      await announcementsApi.publish(id);
+      setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, published: true } : ann));
+      setNotificationCount(prev => prev + 1);
+    } catch {
+      setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, published: true } : ann));
+      setNotificationCount(prev => prev + 1);
+    }
   };
 
   const clearNotifications = () => {
     setNotificationCount(0);
   };
 
-  const updateAnnouncement = (id: string, updates: Partial<Announcement>) => {
-    setAnnouncements(prev =>
-      prev.map(ann =>
-        ann.id === id ? { ...ann, ...updates } : ann
-      )
-    );
+  const updateAnnouncement = async (id: string, updates: Partial<Announcement>) => {
+    try {
+      const updated = await announcementsApi.update(id, updates);
+      setAnnouncements(prev => prev.map(ann => ann.id === id ? updated : ann));
+    } catch {
+      setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, ...updates } : ann));
+    }
   };
 
-  const deleteAnnouncement = (id: string) => {
-    setAnnouncements(prev => prev.filter(ann => ann.id !== id));
+  const deleteAnnouncement = async (id: string) => {
+    try {
+      await announcementsApi.remove(id);
+      setAnnouncements(prev => prev.filter(ann => ann.id !== id));
+    } catch {
+      setAnnouncements(prev => prev.filter(ann => ann.id !== id));
+    }
   };
 
   // Filtrar anuncios publicados y que estén dentro del rango de fechas
