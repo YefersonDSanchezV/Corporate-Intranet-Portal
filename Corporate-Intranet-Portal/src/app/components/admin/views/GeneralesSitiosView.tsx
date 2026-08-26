@@ -1,15 +1,16 @@
 import { Calendar, Edit2, Eye, FileText, Globe, Image, Plus, ShieldCheck, Trash2, User } from "lucide-react";
 import { useState } from "react";
+import { ApiError } from "../../../api/client";
 import { RedirectSite, useSystem } from "../../../contexts/SystemContext";
 
 const MODULE_OPTIONS = [
   { id: "Inicio", name: "Inicio" },
-  { id: "Clinical", name: "Area Asistencial" },
-  { id: "Administrative", name: "Area Administrativa" },
-  { id: "Institutional", name: "Gestion Institucional" },
+  { id: "Area Asistencial", name: "Area Asistencial" },
+  { id: "Area Administrativa", name: "Area Administrativa" },
+  { id: "Gestion Institucional", name: "Gestion Institucional" },
   { id: "Soporte", name: "Soporte" },
   { id: "Directorio", name: "Directorio" },
-  { id: "InnovacionAnalitica", name: "Innovacion Analitica" },
+  { id: "Innovacion Analitica", name: "Innovacion Analitica" },
 ];
 
 const ICON_OPTIONS = [
@@ -21,24 +22,24 @@ const ICON_OPTIONS = [
 ];
 
 export function GeneralesSitiosView() {
-  const { sites, setSites } = useSystem();
+  const { sites, addSite, updateSite, removeSite } = useSystem();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<RedirectSite | null>(null);
   const [consulting, setConsulting] = useState<RedirectSite | null>(null);
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
-  const [moduleId, setModuleId] = useState("Administrative");
+  const [moduleId, setModuleId] = useState("Area Administrativa");
   const [ref, setRef] = useState("Globe");
 
   const reset = () => {
     setTitle("");
     setUrl("");
-    setModuleId("Administrative");
+    setModuleId("Area Administrativa");
     setRef("Globe");
     setEditing(null);
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !url.trim()) return;
 
@@ -51,15 +52,28 @@ export function GeneralesSitiosView() {
       type: "icon",
       ref,
     };
-
-    setSites(editing ? sites.map((site) => site.id === editing.id ? nextSite : site) : [...sites, nextSite]);
-    reset();
-    setShowForm(false);
+    try {
+      if (editing) {
+        await updateSite(nextSite);
+      } else {
+        await addSite({ title: nextSite.title, url: nextSite.url, moduleId: nextSite.moduleId, type: nextSite.type, ref: nextSite.ref });
+      }
+      reset();
+      setShowForm(false);
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "No se pudo guardar el sitio";
+      alert(message);
+    }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Eliminar sitio de redireccion?")) {
-      setSites(sites.filter((site) => site.id !== id));
+      try {
+        await removeSite(id);
+      } catch (error) {
+        const message = error instanceof ApiError ? error.message : "No se pudo eliminar el sitio";
+        alert(message);
+      }
     }
   };
 

@@ -51,6 +51,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
                 // Archivos públicos dentro del instituto (documentos sin riesgo)
                 .requestMatchers(HttpMethod.GET, "/api/files/**").permitAll()
+                // Escritura permitida para usuarios autenticados en estos módulos del panel
+                .requestMatchers(HttpMethod.POST, "/api/sites/**", "/api/directory/**").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/sites/**", "/api/directory/**").authenticated()
+                .requestMatchers(HttpMethod.PATCH, "/api/sites/**", "/api/directory/**").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/sites/**", "/api/directory/**").authenticated()
                 // Escritura protegida — solo ADMIN (panel de control)
                 .requestMatchers(HttpMethod.POST, "/api/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/**").hasRole("ADMIN")

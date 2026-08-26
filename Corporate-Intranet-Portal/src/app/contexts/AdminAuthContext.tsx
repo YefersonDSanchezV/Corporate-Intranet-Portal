@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { authApi } from "../api/auth";
-import { getToken, clearToken } from "../api/client";
+import { getToken } from "../api/client";
+import type { User } from "./AuthContext";
 
 interface AdminAuthContextType {
   isAdminAuthenticated: boolean;
   adminPanelOpen: boolean;
+  adminUser: User | null;
   adminLogin: (username: string, password: string) => Promise<boolean>;
   adminLogout: () => void;
   openAdminPanel: () => void;
@@ -16,11 +18,13 @@ const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefin
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
+  const [adminUser, setAdminUser] = useState<User | null>(null);
 
   useEffect(() => {
     const onExpired = () => {
       setIsAdminAuthenticated(false);
       setAdminPanelOpen(false);
+      setAdminUser(null);
     };
     window.addEventListener("auth:expired", onExpired);
     return () => window.removeEventListener("auth:expired", onExpired);
@@ -29,11 +33,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const adminLogin = async (username: string, password: string): Promise<boolean> => {
     try {
       const res = await authApi.login(username, password);
-      const isAdmin = res.roles.map((r) => r.toUpperCase()).includes("ADMIN");
-      if (!isAdmin) {
-        clearToken();
-        return false;
-      }
+      setAdminUser(res.user);
       setIsAdminAuthenticated(true);
       setAdminPanelOpen(true);
       return true;
@@ -46,6 +46,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     authApi.logout().catch(() => {});
     setIsAdminAuthenticated(false);
     setAdminPanelOpen(false);
+    setAdminUser(null);
   };
 
   const openAdminPanel = () => {
@@ -60,6 +61,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       value={{
         isAdminAuthenticated,
         adminPanelOpen,
+        adminUser,
         adminLogin,
         adminLogout,
         openAdminPanel,

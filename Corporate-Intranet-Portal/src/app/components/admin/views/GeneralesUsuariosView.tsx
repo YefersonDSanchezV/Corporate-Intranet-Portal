@@ -15,68 +15,10 @@ import { useEffect, useMemo, useState } from "react";
 import { AccessRequest, useAuth, User, UserRole } from "../../../contexts/AuthContext";
 import { useSystem } from "../../../contexts/SystemContext";
 import { AdminView } from "../AdminSidebar";
+import { CONTROL_PANEL_MODULES, countAuthorizedSubmodules } from "../rbac";
 
 type Mode = "list" | "create" | "requests" | "cargos";
 
-const MODULE_PERMISSIONS = [
-  "Usuarios",
-  "Crear Usuario",
-  "Solicitudes",
-  "Cargo",
-  "Modulos",
-  "Sitio de Redireccion",
-  "Directorio de Extensiones",
-  "Directorio de Correos",
-];
-
-// Estructura jerárquica del panel de control para autorización de cargos
-const CONTROL_PANEL_MODULES: Array<{ id: string; label: string; children?: Array<{ id: string; label: string }> }> = [
-  {
-    id: "generales",
-    label: "Generales",
-    children: [
-      { id: "usuarios", label: "Usuarios" },
-      { id: "crear-usuario", label: "Crear Usuario" },
-      { id: "solicitudes", label: "Solicitudes" },
-      { id: "cargos", label: "Cargo" },
-      { id: "modulos", label: "Módulos" },
-      { id: "sitios", label: "Sitio de Redirección" },
-      { id: "directorio-extensiones", label: "Directorio de Extensiones" },
-      { id: "directorio-correos", label: "Directorio de Correos" },
-      { id: "logs", label: "Logs" },
-    ],
-  },
-  {
-    id: "comunicaciones",
-    label: "Comunicaciones",
-    children: [
-      { id: "dashboard-comunicaciones", label: "Dashboard" },
-      { id: "usuarios-comunicaciones", label: "Usuarios" },
-      { id: "permisos", label: "Permisos" },
-      { id: "crear-anuncio", label: "Crear Anuncio" },
-      { id: "calendario-anuncios", label: "Calendario de Anuncios" },
-      { id: "anuncios-pendientes", label: "Anuncios Pendientes" },
-      { id: "anuncios-historial", label: "Historial de Anuncios" },
-      { id: "calendario-cumpleanios", label: "Calendario de Cumpleaños" },
-      { id: "calendario-eventos", label: "Calendario de Eventos" },
-      { id: "logros-acreditaciones", label: "Logros y Acreditaciones" },
-      { id: "tareas-seguimiento", label: "Tareas y Seguimiento" },
-    ],
-  },
-  {
-    id: "asistencia",
-    label: "Asistencia",
-    children: [
-      { id: "formatos-contingencia", label: "Formatos de Contingencia" },
-      { id: "consulta-externa", label: "Consulta Externa" },
-    ],
-  },
-  {
-    id: "innovacion",
-    label: "Innovación Analítica",
-    children: [{ id: "enlace-redireccion", label: "Enlace de Redirección" }],
-  },
-];
 
 function statusLabel(status: User["status"]) {
   return status === "active" ? "Activo" : "Inactivo";
@@ -401,7 +343,9 @@ export function GeneralesUsuariosView({
                   {cargos.map((item) => {
                     const cargoRole = roles.find(r => r.id === item.id);
                     const totalUsers = users.filter(u => u.role.toLowerCase() === item.name.toLowerCase() || (u.position || "").toLowerCase() === item.label.toLowerCase()).length;
-                    const totalPerms = rolePermissions.find((permission) => permission.roleId === item.id)?.modules.length || 0;
+                    const totalPerms = countAuthorizedSubmodules(
+                      rolePermissions.find((permission) => permission.roleId === item.id)?.modules || [],
+                    );
                     const isActive = cargoRole?.estado !== false;
                     return (
                       <tr key={item.id} className="hover:bg-gray-50">

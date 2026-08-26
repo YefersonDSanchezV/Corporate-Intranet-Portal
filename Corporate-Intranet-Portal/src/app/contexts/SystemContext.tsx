@@ -4,6 +4,7 @@ import { directoryApi } from '../api/directory';
 import { tasksApi } from '../api/tasks';
 import { achievementsApi } from '../api/achievements';
 import { apiAvailable, apiFetch } from '../api/client';
+import { CONTROL_PANEL_ALL_PERMISSION_IDS } from '../components/admin/rbac';
 
 export interface RedirectSite {
   id: string;
@@ -121,6 +122,7 @@ interface SystemContextType {
   setSites: React.Dispatch<React.SetStateAction<RedirectSite[]>>;
   addSite: (site: Omit<RedirectSite, 'id' | 'active'>) => Promise<void>;
   updateSite: (site: RedirectSite) => Promise<void>;
+  removeSite: (id: string) => Promise<void>;
   toggleSiteActive: (id: string) => Promise<void>;
   
   roles: Role[];
@@ -280,15 +282,17 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
               if (!existing) {
                 next.push({
                   roleId: r.id,
-                  modules: isAdmin ? ["Inicio", "Área Asistencial", "Área Administrativa", "Gestión Institucional", "Soporte", "Directorio", "Comunicaciones", "Gestión de Usuarios", "Logs", "Administrador Intranet"] : ["Inicio"],
+                  modules: isAdmin ? CONTROL_PANEL_ALL_PERMISSION_IDS : ["Inicio"],
                   actions: isAdmin ? ["Registrar Directorio", "Editar Solicitudes de registros de anuncios", "Aprobar y Rechazar solicitudes de Anuncios", "Listar Usuarios", "Crear usuarios", "Solicitudes de Usuarios", "Editar Usuarios", "Reinicio de Contraseña", "Consultar Logs", "Registrar Sitios de redirección", "Actualizar sitios de redirección", "Consultar sitios de redirección", "Autorizar módulos a Usuarios", "Autorizar Acciones de Módulos a Usuarios"] : []
                 });
                 updated = true;
-              } else if (isAdmin && existing.modules.length === 0) {
-                // Corrige admin que quedó con 0 permisos por limpieza previa
-                existing.modules = ["Inicio", "Área Asistencial", "Área Administrativa", "Gestión Institucional", "Soporte", "Directorio", "Comunicaciones", "Gestión de Usuarios", "Logs", "Administrador Intranet"];
+              } else if (isAdmin) {
+                const merged = [...new Set([...existing.modules, ...CONTROL_PANEL_ALL_PERMISSION_IDS])];
+                if (merged.length !== existing.modules.length) {
+                  existing.modules = merged;
+                  updated = true;
+                }
                 existing.actions = ["Registrar Directorio", "Editar Solicitudes de registros de anuncios", "Aprobar y Rechazar solicitudes de Anuncios", "Listar Usuarios", "Crear usuarios", "Solicitudes de Usuarios", "Editar Usuarios", "Reinicio de Contraseña", "Consultar Logs", "Registrar Sitios de redirección", "Actualizar sitios de redirección", "Consultar sitios de redirección", "Autorizar módulos a Usuarios", "Autorizar Acciones de Módulos a Usuarios"];
-                updated = true;
               }
             });
             // Limpiar permisos de roles que ya no existen
@@ -306,30 +310,23 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addSite = async (site: Omit<RedirectSite, 'id' | 'active'>) => {
-    try {
-      const created = await sitesApi.create(site);
-      setSites(prev => [...prev, created]);
-    } catch {
-      setSites(prev => [...prev, { ...site, id: Date.now().toString(), active: true }]);
-    }
+    const created = await sitesApi.create(site);
+    setSites(prev => [...prev, created]);
   };
 
   const updateSite = async (updatedSite: RedirectSite) => {
-    try {
-      const updated = await sitesApi.update(updatedSite);
-      setSites(prev => prev.map(s => s.id === updatedSite.id ? updated : s));
-    } catch {
-      setSites(prev => prev.map(s => s.id === updatedSite.id ? updatedSite : s));
-    }
+    const updated = await sitesApi.update(updatedSite);
+    setSites(prev => prev.map(s => s.id === updatedSite.id ? updated : s));
   };
 
   const toggleSiteActive = async (id: string) => {
-    try {
-      await sitesApi.toggleActive(id);
-      setSites(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
-    } catch {
-      setSites(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
-    }
+    await sitesApi.toggleActive(id);
+    setSites(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
+  };
+
+  const removeSite = async (id: string) => {
+    await sitesApi.remove(id);
+    setSites(prev => prev.filter(s => s.id !== id));
   };
 
   const addRole = async (role: Omit<Role, 'id'>) => {
@@ -381,30 +378,18 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addDirectoryEntry = async (entry: Omit<DirectoryEntry, 'id' | 'active'>) => {
-    try {
-      const created = await directoryApi.createExtension(entry);
-      setDirectory(prev => [...prev, created]);
-    } catch {
-      setDirectory(prev => [...prev, { ...entry, id: Date.now().toString(), active: true }]);
-    }
+    const created = await directoryApi.createExtension(entry);
+    setDirectory(prev => [...prev, created]);
   };
 
   const updateDirectoryEntry = async (updatedEntry: DirectoryEntry) => {
-    try {
-      const updated = await directoryApi.updateExtension(updatedEntry);
-      setDirectory(prev => prev.map(e => e.id === updatedEntry.id ? updated : e));
-    } catch {
-      setDirectory(prev => prev.map(e => e.id === updatedEntry.id ? updatedEntry : e));
-    }
+    const updated = await directoryApi.updateExtension(updatedEntry);
+    setDirectory(prev => prev.map(e => e.id === updatedEntry.id ? updated : e));
   };
 
   const removeDirectoryEntry = async (id: string) => {
-    try {
-      await directoryApi.deleteExtension(id);
-      setDirectory(prev => prev.filter(e => e.id !== id));
-    } catch {
-      setDirectory(prev => prev.filter(e => e.id !== id));
-    }
+    await directoryApi.deleteExtension(id);
+    setDirectory(prev => prev.filter(e => e.id !== id));
   };
 
   const addEps = (eps: Omit<EpsPlatform, 'id'>) => {
@@ -502,35 +487,23 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addInstitutionEmail = async (email: Omit<InstitutionEmail, 'id'>) => {
-    try {
-      const created = await directoryApi.createEmail(email);
-      setInstitutionEmails(prev => [...prev, created]);
-    } catch {
-      setInstitutionEmails(prev => [...prev, { ...email, id: Date.now().toString() }]);
-    }
+    const created = await directoryApi.createEmail(email);
+    setInstitutionEmails(prev => [...prev, created]);
   };
 
   const updateInstitutionEmail = async (updatedEmail: InstitutionEmail) => {
-    try {
-      const updated = await directoryApi.updateEmail(updatedEmail);
-      setInstitutionEmails(prev => prev.map(e => e.id === updatedEmail.id ? updated : e));
-    } catch {
-      setInstitutionEmails(prev => prev.map(e => e.id === updatedEmail.id ? updatedEmail : e));
-    }
+    const updated = await directoryApi.updateEmail(updatedEmail);
+    setInstitutionEmails(prev => prev.map(e => e.id === updatedEmail.id ? updated : e));
   };
 
   const removeInstitutionEmail = async (id: string) => {
-    try {
-      await directoryApi.deleteEmail(id);
-      setInstitutionEmails(prev => prev.filter(e => e.id !== id));
-    } catch {
-      setInstitutionEmails(prev => prev.filter(e => e.id !== id));
-    }
+    await directoryApi.deleteEmail(id);
+    setInstitutionEmails(prev => prev.filter(e => e.id !== id));
   };
 
   return (
     <SystemContext.Provider value={{
-      sites, setSites, addSite, updateSite, toggleSiteActive,
+      sites, setSites, addSite, updateSite, removeSite, toggleSiteActive,
       roles, addRole, toggleRoleEstado, rolePermissions, updateRoleModulePermissions, updateRoleActionPermissions,
       directory, addDirectoryEntry, updateDirectoryEntry, removeDirectoryEntry,
       epsList, setEpsList, addEps, removeEps,

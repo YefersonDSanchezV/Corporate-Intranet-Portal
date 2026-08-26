@@ -37,9 +37,10 @@ function mapBackendUsuario(u: BackendUsuario): User {
     email: u.correoInstitucional,
     position: u.cargoNombre ?? "",
     department: "",
-    role: "admin" as UserRole,
+    role: (u.cargoNombre?.toLowerCase().replace(/\s+/g, "_") as UserRole) || "admin",
     status: u.estado ? "active" : "inactive",
     createdDate: u.fechaCreacion,
+    birthDate: u.fechaNacimiento,
   };
 }
 

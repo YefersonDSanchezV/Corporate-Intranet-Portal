@@ -1,4 +1,4 @@
-import { Shield, Users, LayoutGrid, Globe, ClipboardCheck, BriefcaseBusiness, Phone, Mail } from "lucide-react";
+import { Shield, Users, Globe, ClipboardCheck, BriefcaseBusiness, Phone, Mail } from "lucide-react";
 import { AdminView } from "../AdminSidebar";
 
 const QUICK_STATS: Array<{ label: string; icon: any; color: string; desc: string; view: AdminView }> = [
@@ -6,7 +6,6 @@ const QUICK_STATS: Array<{ label: string; icon: any; color: string; desc: string
   { label: "Crear Usuario", icon: Users, color: "bg-sky-500", desc: "Registrar nuevos accesos", view: "crear-usuario" },
   { label: "Solicitudes", icon: ClipboardCheck, color: "bg-emerald-500", desc: "Autorizar o denegar accesos", view: "solicitudes" },
   { label: "Cargo", icon: BriefcaseBusiness, color: "bg-indigo-500", desc: "Permisos por cargo", view: "cargos" },
-  { label: "Modulos", icon: LayoutGrid, color: "bg-purple-500", desc: "Configurar modulos del portal", view: "modulos" },
   { label: "Sitios de Redireccion", icon: Globe, color: "bg-green-500", desc: "Gestionar enlaces externos", view: "sitios" },
   { label: "Directorio de Extensiones", icon: Phone, color: "bg-rose-500", desc: "Administrar extensiones", view: "directorio-extensiones" },
   { label: "Directorio de Correos", icon: Mail, color: "bg-amber-500", desc: "Administrar correos institucionales", view: "directorio-correos" },
@@ -29,7 +28,7 @@ export function WelcomeView({ onViewChange }: { onViewChange: (view: AdminView) 
       </div>
 
       <p className="text-gray-600 text-center max-w-lg mb-10 text-sm md:text-base leading-relaxed">
-        Bienvenido al Panel Administrativo. Desde aqui puede gestionar usuarios, cargos, modulos, sitios y directorios del portal institucional.
+        Bienvenido al Panel Administrativo. Desde aqui puede gestionar usuarios, cargos, sitios y directorios del portal institucional.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 w-full max-w-5xl">

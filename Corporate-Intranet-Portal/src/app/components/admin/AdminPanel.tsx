@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AdminSidebar, AdminView } from "./AdminSidebar";
 import { WelcomeView } from "./views/WelcomeView";
 import { GeneralesUsuariosView } from "./views/GeneralesUsuariosView";
-import { GeneralesModulosView } from "./views/GeneralesModulosView";
 import { GeneralesSitiosView } from "./views/GeneralesSitiosView";
 import { GeneralesDirectorioView } from "./views/GeneralesDirectorioView";
 import { DashboardComunicacionesView } from "./views/DashboardComunicacionesView";
@@ -20,9 +19,36 @@ import { FormatosContingenciaView } from "./views/FormatosContingenciaView";
 import { ConsultaExternaView } from "./views/ConsultaExternaView";
 import { EnlaceRedireccionView } from "./views/EnlaceRedireccionView";
 import { LogsView } from "./views/LogsView";
+import { useAdminAuth } from "../../contexts/AdminAuthContext";
+import { useSystem } from "../../contexts/SystemContext";
+import { getAllowedAdminViews, getUserAdminPermissions } from "./rbac";
 
 export function AdminPanel() {
+  const { adminUser } = useAdminAuth();
+  const { roles, rolePermissions } = useSystem();
   const [activeView, setActiveView] = useState<AdminView>("welcome");
+  const allowedViews = useMemo(() => {
+    const permissions = getUserAdminPermissions(adminUser, roles, rolePermissions);
+    return getAllowedAdminViews(permissions);
+  }, [adminUser, roles, rolePermissions]);
+
+  useEffect(() => {
+    if (activeView === "welcome") return;
+    if (!allowedViews.has(activeView)) {
+      setActiveView("welcome");
+    }
+  }, [activeView, allowedViews]);
+
+  useEffect(() => {
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, []);
 
   const renderView = () => {
     switch (activeView) {
@@ -36,8 +62,6 @@ export function AdminPanel() {
         return <GeneralesUsuariosView mode="requests" onModeChange={setActiveView} />;
       case "cargos":
         return <GeneralesUsuariosView mode="cargos" onModeChange={setActiveView} />;
-      case "modulos":
-        return <GeneralesModulosView />;
       case "sitios":
         return <GeneralesSitiosView />;
       case "directorio-extensiones":

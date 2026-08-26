@@ -1,5 +1,5 @@
 import type { DirectoryEntry, InstitutionEmail } from "../contexts/SystemContext";
-import { apiFetch } from "./client";
+import { ApiError, apiFetch } from "./client";
 import { mapExtensionToFE, mapCorreoToFE, type BackendExtensionResponse, type BackendCorreoResponse } from "./mappers";
 
 export const directoryApi = {
@@ -48,9 +48,12 @@ async function buildExtensionBody(entry: DirectoryEntry | Omit<DirectoryEntry, "
     apiFetch<{ oid: number; nombre: string }[]>("/directory/areas").catch(() => [] as { oid: number; nombre: string }[]),
     apiFetch<{ oid: number; nombre: string }[]>("/directory/floors").catch(() => [] as { oid: number; nombre: string }[]),
   ]);
-  const areaOid = (areas as unknown as { oid: number; nombre: string }[]).find(a => a.nombre === (entry as DirectoryEntry).area)?.oid ?? (areas as unknown as { oid: number }[])[0]?.oid ?? 1;
+  if (areas.length === 0 || floors.length === 0) {
+    throw new ApiError("No hay áreas o pisos configurados en backend para guardar extensiones.", 400);
+  }
+  const areaOid = (areas as unknown as { oid: number; nombre: string }[]).find(a => a.nombre === (entry as DirectoryEntry).area)?.oid ?? (areas as unknown as { oid: number }[])[0].oid;
   const floorName = (entry as DirectoryEntry).floor?.[0] || "";
-  const pisoOid = (floors as unknown as { oid: number; nombre: string }[]).find(f => f.nombre === floorName)?.oid ?? (floors as unknown as { oid: number }[])[0]?.oid ?? 1;
+  const pisoOid = (floors as unknown as { oid: number; nombre: string }[]).find(f => f.nombre === floorName)?.oid ?? (floors as unknown as { oid: number }[])[0].oid;
   return { nombre: (entry as DirectoryEntry).name, extension: (entry as DirectoryEntry).extension, areaOid, pisoOid, soporte: !!(entry as DirectoryEntry).isSupport };
 }
 async function buildCorreoBody(email: InstitutionEmail | Omit<InstitutionEmail, "id">) {
@@ -58,7 +61,10 @@ async function buildCorreoBody(email: InstitutionEmail | Omit<InstitutionEmail, 
     apiFetch<{ oid: number; nombre: string }[]>("/directory/areas").catch(() => [] as { oid: number; nombre: string }[]),
     apiFetch<{ oid: number; nombre: string }[]>("/directory/floors").catch(() => [] as { oid: number; nombre: string }[]),
   ]);
-  const areaOid = (areas as unknown as { oid: number; nombre: string }[]).find(a => a.nombre === (email as InstitutionEmail).area)?.oid ?? (areas as unknown as { oid: number }[])[0]?.oid ?? 1;
-  const pisoOid = (floors as unknown as { oid: number; nombre: string }[]).find(f => f.nombre === (email as InstitutionEmail).floor)?.oid ?? (floors as unknown as { oid: number }[])[0]?.oid ?? 1;
+  if (areas.length === 0 || floors.length === 0) {
+    throw new ApiError("No hay áreas o pisos configurados en backend para guardar correos.", 400);
+  }
+  const areaOid = (areas as unknown as { oid: number; nombre: string }[]).find(a => a.nombre === (email as InstitutionEmail).area)?.oid ?? (areas as unknown as { oid: number }[])[0].oid;
+  const pisoOid = (floors as unknown as { oid: number; nombre: string }[]).find(f => f.nombre === (email as InstitutionEmail).floor)?.oid ?? (floors as unknown as { oid: number }[])[0].oid;
   return { nombre: (email as InstitutionEmail).employeeName, correo: (email as InstitutionEmail).email, areaOid, pisoOid, soporte: false };
 }

@@ -1,5 +1,6 @@
 import { Edit2, Eye, Mail, Phone, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { ApiError } from "../../../api/client";
 import { DirectoryEntry, InstitutionEmail, useSystem } from "../../../contexts/SystemContext";
 
 export function GeneralesDirectorioView({ type }: { type: "extension" | "email" }) {
@@ -63,7 +64,7 @@ export function GeneralesDirectorioView({ type }: { type: "extension" | "email" 
     setShowForm(true);
   };
 
-  const saveExtension = (e: React.FormEvent) => {
+  const saveExtension = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload: DirectoryEntry = {
       id: editingExtension?.id || Date.now().toString(),
@@ -75,12 +76,21 @@ export function GeneralesDirectorioView({ type }: { type: "extension" | "email" 
       type: isSupport ? "administrativo" : "asistencial",
       active: editingExtension?.active ?? true,
     };
-    editingExtension ? updateDirectoryEntry(payload) : addDirectoryEntry(payload);
-    reset();
-    setShowForm(false);
+    try {
+      if (editingExtension) {
+        await updateDirectoryEntry(payload);
+      } else {
+        await addDirectoryEntry(payload);
+      }
+      reset();
+      setShowForm(false);
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "No se pudo guardar la extensión";
+      alert(message);
+    }
   };
 
-  const saveEmail = (e: React.FormEvent) => {
+  const saveEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload: InstitutionEmail = {
       id: editingEmail?.id || Date.now().toString(),
@@ -89,9 +99,18 @@ export function GeneralesDirectorioView({ type }: { type: "extension" | "email" 
       area: employeeArea,
       position: employeePosition,
     };
-    editingEmail ? updateInstitutionEmail(payload) : addInstitutionEmail(payload);
-    reset();
-    setShowForm(false);
+    try {
+      if (editingEmail) {
+        await updateInstitutionEmail(payload);
+      } else {
+        await addInstitutionEmail(payload);
+      }
+      reset();
+      setShowForm(false);
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "No se pudo guardar el correo";
+      alert(message);
+    }
   };
 
   const isExtension = type === "extension";
@@ -138,9 +157,33 @@ export function GeneralesDirectorioView({ type }: { type: "extension" | "email" 
           )}
         </div>
       ) : isExtension ? (
-        <DirectoryTable entries={directory} onEdit={editExtension} onConsult={setConsulting} onDelete={removeDirectoryEntry} />
+        <DirectoryTable
+          entries={directory}
+          onEdit={editExtension}
+          onConsult={setConsulting}
+          onDelete={async (id) => {
+            try {
+              await removeDirectoryEntry(id);
+            } catch (error) {
+              const message = error instanceof ApiError ? error.message : "No se pudo eliminar la extensión";
+              alert(message);
+            }
+          }}
+        />
       ) : (
-        <EmailTable entries={institutionEmails} onEdit={editEmail} onConsult={setConsulting} onDelete={removeInstitutionEmail} />
+        <EmailTable
+          entries={institutionEmails}
+          onEdit={editEmail}
+          onConsult={setConsulting}
+          onDelete={async (id) => {
+            try {
+              await removeInstitutionEmail(id);
+            } catch (error) {
+              const message = error instanceof ApiError ? error.message : "No se pudo eliminar el correo";
+              alert(message);
+            }
+          }}
+        />
       )}
 
       {consulting && (
@@ -156,7 +199,7 @@ export function GeneralesDirectorioView({ type }: { type: "extension" | "email" 
   );
 }
 
-function DirectoryTable({ entries, onEdit, onConsult, onDelete }: { entries: DirectoryEntry[]; onEdit: (entry: DirectoryEntry) => void; onConsult: (entry: DirectoryEntry) => void; onDelete: (id: string) => void }) {
+function DirectoryTable({ entries, onEdit, onConsult, onDelete }: { entries: DirectoryEntry[]; onEdit: (entry: DirectoryEntry) => void; onConsult: (entry: DirectoryEntry) => void; onDelete: (id: string) => Promise<void> }) {
   return (
     <TableShell>
       <thead><tr className="bg-gray-50 border-b-2 border-gray-100"><Th>Nombre de la extension</Th><Th>Extension</Th><Th>Piso</Th><Th>Area</Th><Th>Acciones</Th></tr></thead>
@@ -176,7 +219,7 @@ function DirectoryTable({ entries, onEdit, onConsult, onDelete }: { entries: Dir
   );
 }
 
-function EmailTable({ entries, onEdit, onConsult, onDelete }: { entries: InstitutionEmail[]; onEdit: (entry: InstitutionEmail) => void; onConsult: (entry: InstitutionEmail) => void; onDelete: (id: string) => void }) {
+function EmailTable({ entries, onEdit, onConsult, onDelete }: { entries: InstitutionEmail[]; onEdit: (entry: InstitutionEmail) => void; onConsult: (entry: InstitutionEmail) => void; onDelete: (id: string) => Promise<void> }) {
   return (
     <TableShell>
       <thead><tr className="bg-gray-50 border-b-2 border-gray-100"><Th>Nombre</Th><Th>Correo del funcionario</Th><Th>Area</Th><Th>Cargo</Th><Th>Acciones</Th></tr></thead>

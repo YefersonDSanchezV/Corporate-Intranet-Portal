@@ -12,7 +12,6 @@ import {
   FileText,
   Globe,
   LayoutDashboard,
-  LayoutGrid,
   LogOut,
   Mail,
   Microwave,
@@ -22,35 +21,13 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAdminAuth } from "../../contexts/AdminAuthContext";
+import { useSystem } from "../../contexts/SystemContext";
 import { Panel } from "react-resizable-panels";
+import { getAllowedAdminViews, getUserAdminPermissions, PermissionBasedAdminView } from "./rbac";
 
-export type AdminView =
-  | "welcome"
-  | "usuarios"
-  | "usuarios-comunicaciones"
-  | "dashboard-comunicaciones"
-  | "crear-usuario"
-  | "solicitudes"
-  | "cargos"
-  | "permisos"
-  | "modulos"
-  | "sitios"
-  | "directorio-extensiones"
-  | "directorio-correos"
-  | "logs"
-  | "crear-anuncio"
-  | "calendario-anuncios"
-  | "anuncios-pendientes"
-  | "anuncios-historial"
-  | "calendario-cumpleanios"
-  | "calendario-eventos"
-  | "logros-acreditaciones"
-  | "tareas-seguimiento"
-  | "formatos-contingencia"
-  | "consulta-externa"
-  | "enlace-redireccion";
+export type AdminView = "welcome" | PermissionBasedAdminView;
 
 interface SidebarItem {
   id: string;
@@ -77,7 +54,6 @@ const MENU: SidebarItem[] = [
           { id: "cargos", label: "Cargo", view: "cargos", icon: BriefcaseBusiness },
         ],
       },
-      { id: "modulos", label: "Modulos", view: "modulos", icon: LayoutGrid },
       { id: "sitios", label: "Sitio de Redireccion", view: "sitios", icon: Globe },
       {
         id: "directorio",
@@ -221,7 +197,33 @@ function SidebarNode({
 }
 
 export function AdminSidebar({ activeView, onViewChange }: AdminSidebarProps) {
-  const { adminLogout } = useAdminAuth();
+  const { adminLogout, adminUser } = useAdminAuth();
+  const { roles, rolePermissions } = useSystem();
+  const allowedViews = useMemo(() => {
+    const permissions = getUserAdminPermissions(adminUser, roles, rolePermissions);
+    return getAllowedAdminViews(permissions);
+  }, [adminUser, roles, rolePermissions]);
+
+  const visibleMenu = useMemo(() => {
+    function filterByPermissions(items: SidebarItem[]): SidebarItem[] {
+      return items
+        .map((item) => {
+          if (item.view) {
+            return allowedViews.has(item.view) ? item : null;
+          }
+          if (!item.children) {
+            return item;
+          }
+          const visibleChildren = filterByPermissions(item.children);
+          if (visibleChildren.length === 0) {
+            return null;
+          }
+          return { ...item, children: visibleChildren };
+        })
+        .filter((item): item is SidebarItem => item !== null);
+    }
+    return filterByPermissions(MENU);
+  }, [allowedViews]);
 
   return (
     <aside className="w-72 bg-[#0778AC] flex flex-col h-full flex-shrink-0 select-none">
@@ -232,7 +234,7 @@ export function AdminSidebar({ activeView, onViewChange }: AdminSidebarProps) {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1 custom-scrollbar">
-        {MENU.map((section) => (
+        {visibleMenu.map((section) => (
           <div key={section.id} className="mb-2">
             <button
               onClick={() => onViewChange("welcome")}

@@ -28,7 +28,7 @@ export function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProps) {
         setPassword("");
         onClose();
       } else {
-        setError("Usuario o contraseña incorrectos o sin permisos de administrador");
+        setError("Usuario o contraseña incorrectos, o el usuario está inactivo");
       }
     } catch {
       setError("No se pudo conectar con el servidor");
