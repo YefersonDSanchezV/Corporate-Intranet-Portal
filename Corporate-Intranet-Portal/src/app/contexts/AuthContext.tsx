@@ -222,7 +222,9 @@ useEffect(() => localStorage.setItem("intranet_users", JSON.stringify(users)), [
   const addUser = useCallback(async (userData: Omit<User, "id" | "status" | "createdDate">) => {
     try {
       const created = await usersApi.create(userData);
-      setUsers(prev => ({ ...prev, [created.username.toLowerCase()]: created }));
+      // Preservar phone localmente porque backend no lo persiste (genusuario no tiene campo teléfono)
+      const merged = { ...created, phone: (userData as any).phone ?? (created as any).phone } as User;
+      setUsers(prev => ({ ...prev, [merged.username.toLowerCase()]: merged }));
     } catch {
       // Fallback offline: guarda en localStorage
       const newUser: User = {
@@ -254,7 +256,8 @@ useEffect(() => localStorage.setItem("intranet_users", JSON.stringify(users)), [
   const updateUser = useCallback(async (updatedUser: User) => {
     try {
       const updated = await usersApi.update(updatedUser);
-      setUsers(prev => ({ ...prev, [updated.username.toLowerCase()]: updated }));
+      const merged = { ...updated, phone: (updatedUser as any).phone ?? (updated as any).phone } as User;
+      setUsers(prev => ({ ...prev, [merged.username.toLowerCase()]: merged }));
     } catch {
       setUsers(prev => ({ ...prev, [updatedUser.username.toLowerCase()]: updatedUser }));
     }

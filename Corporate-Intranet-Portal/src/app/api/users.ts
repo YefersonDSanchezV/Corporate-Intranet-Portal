@@ -11,7 +11,8 @@ export const usersApi = {
     let cargoOid = 1;
     try {
       const cargos = await apiFetch<{ oid: number; nombre: string }[]>("/cargos");
-      const found = (cargos as unknown as { oid: number; nombre: string }[]).find(c => c.nombre.toLowerCase() === (user.position || user.role || "").toLowerCase());
+      const roleName = (user.role || "").toLowerCase();
+      const found = (cargos as unknown as { oid: number; nombre: string }[]).find(c => c.nombre.toLowerCase() === roleName);
       if (found) cargoOid = found.oid;
     } catch { /* fallback 1 */ }
     const body = {
@@ -30,8 +31,8 @@ export const usersApi = {
     let cargoOid = 1;
     try {
       const cargos = await apiFetch<{ oid: number; nombre: string }[]>("/cargos");
-      const cargoName = (user.position || (user as User).role || "").toLowerCase();
-      const found = (cargos as unknown as { oid: number; nombre: string }[]).find(c => c.nombre.toLowerCase() === cargoName);
+      const roleName = ((user as User).role || "").toLowerCase();
+      const found = (cargos as unknown as { oid: number; nombre: string }[]).find(c => c.nombre.toLowerCase() === roleName);
       if (found) cargoOid = found.oid;
     } catch {}
     const body: Record<string, unknown> = { nombreCompleto: user.fullName, correoInstitucional: user.email, cargoOid, estado: user.status === "active" };

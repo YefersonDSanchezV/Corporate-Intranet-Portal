@@ -47,11 +47,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/access-requests", "/api/password-reset-requests").permitAll()
                 // /api/me requiere JWT para identificar al usuario
                 .requestMatchers("/api/me").authenticated()
-                // Lectura pública — portal público accesible a todo el personal
-                .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
-                // Archivos públicos dentro del instituto (documentos sin riesgo)
-                .requestMatchers(HttpMethod.GET, "/api/files/**").permitAll()
-                // Escritura permitida para usuarios autenticados en estos módulos del panel
+                // Escritura permitida para usuarios autenticados en estos módulos del panel (antes de regla ADMIN)
                 .requestMatchers(HttpMethod.POST, "/api/sites/**", "/api/directory/**").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/sites/**", "/api/directory/**").authenticated()
                 .requestMatchers(HttpMethod.PATCH, "/api/sites/**", "/api/directory/**").authenticated()
@@ -61,6 +57,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")
+                // Lectura pública — portal público accesible a todo el personal
+                .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
                 .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

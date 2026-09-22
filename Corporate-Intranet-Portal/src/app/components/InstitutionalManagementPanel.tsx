@@ -1,25 +1,18 @@
-import { ClipboardCheck, Award } from "lucide-react";
+import { Award } from "lucide-react";
 import { AppCard } from "./AppCard";
 import { useState } from "react";
-import { RedirectModal } from "./modals/RedirectModal";
 import { AccreditationAchievementsModal } from "./modals/AccreditationAchievementsModal";
 
 export function InstitutionalManagementPanel() {
-  const [redirectModalOpen, setRedirectModalOpen] = useState(false);
-  const [redirectPortal, setRedirectPortal] = useState("");
   const [achievementsModalOpen, setAchievementsModalOpen] = useState(false);
 
   const handleAppClick = (appName: string) => {
     if (appName === "Logros") {
       setAchievementsModalOpen(true);
-    } else {
-      setRedirectPortal(appName);
-      setRedirectModalOpen(true);
     }
   };
 
   const managementApps = [
-    { title: "Almera - Sistema de Gestión de Calidad", icon: ClipboardCheck, name: "Almera - Sistema de Gestión de Calidad" },
     { title: "Logros obtenidos", icon: Award, name: "Logros" }
   ];
 
@@ -40,12 +33,6 @@ export function InstitutionalManagementPanel() {
           ))}
         </div>
       </section>
-
-      <RedirectModal
-        isOpen={redirectModalOpen}
-        onClose={() => setRedirectModalOpen(false)}
-        portalName={redirectPortal}
-      />
 
       <AccreditationAchievementsModal
         isOpen={achievementsModalOpen}

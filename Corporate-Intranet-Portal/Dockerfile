@@ -6,11 +6,13 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json* ./
 
-# Install ALL dependencies including peer deps (react, react-dom)
-# --force ensures peerDependencies are installed
-RUN npm install --force
+# Install dependencies (legacy peer deps for compatibility with optional peers)
+RUN npm install --legacy-peer-deps
+
+ARG VITE_API_BASE_URL=/api
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # Copy all source files
 COPY . .

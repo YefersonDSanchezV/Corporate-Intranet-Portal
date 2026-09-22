@@ -52,6 +52,7 @@ export function GeneralesUsuariosView({
 
   const [newCargoName, setNewCargoName] = useState("");
   const [showCargoModal, setShowCargoModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [permissionRoleId, setPermissionRoleId] = useState("");
 
   useEffect(() => {
@@ -63,7 +64,7 @@ export function GeneralesUsuariosView({
   }, [roles]);
 
   useEffect(() => {
-    if (mode !== "create") return;
+    if (mode !== "create" && !showCreateModal) return;
     const raw = sessionStorage.getItem("pending_access_request");
     if (!raw) return;
 
@@ -77,10 +78,14 @@ export function GeneralesUsuariosView({
       setUsername((request.email || request.documentNumber || "").split("@")[0]);
       setPassword(request.documentNumber || "");
       sessionStorage.removeItem("pending_access_request");
+      if (mode === "create") {
+        // Compatibilidad: modo página antigua redirige a modal flotante
+        setShowCreateModal(true);
+      }
     } catch {
       sessionStorage.removeItem("pending_access_request");
     }
-  }, [mode]);
+  }, [mode, showCreateModal]);
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
@@ -128,13 +133,20 @@ export function GeneralesUsuariosView({
       birthDate,
     });
     resetCreateForm();
-    onModeChange("usuarios");
+    setShowCreateModal(false);
+    if (mode === "create") onModeChange("usuarios");
   };
 
   const handleAuthorize = (request: AccessRequest) => {
     approveAccessRequest(request.id);
     sessionStorage.setItem("pending_access_request", JSON.stringify(request));
-    onModeChange("crear-usuario");
+    // Abrir modal flotante sobre Usuarios en lugar de navegar a módulo separado
+    if (mode === "create") {
+      onModeChange("usuarios");
+      setTimeout(() => setShowCreateModal(true), 100);
+    } else {
+      setShowCreateModal(true);
+    }
   };
 
   const handleResetPassword = async (user: User) => {
@@ -179,7 +191,7 @@ export function GeneralesUsuariosView({
           </p>
         </div>
         {mode !== "create" && (
-          <button onClick={() => onModeChange("crear-usuario")} className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm">
+          <button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm">
             <UserPlus className="w-4 h-4" />
             Crear Usuario
           </button>
@@ -195,7 +207,10 @@ export function GeneralesUsuariosView({
               <option value="inactive">Inactivo</option>
             </select>
             <input value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} placeholder="Filtrar por nombre o usuario" className="border-2 border-gray-200 rounded-lg p-2.5 text-sm" />
-            <input value={positionFilter} onChange={(e) => setPositionFilter(e.target.value)} placeholder="Filtrar por cargo" className="border-2 border-gray-200 rounded-lg p-2.5 text-sm" />
+            <select value={positionFilter} onChange={(e) => setPositionFilter(e.target.value)} className="border-2 border-gray-200 rounded-lg p-2.5 text-sm bg-white">
+              <option value="">Filtrar por cargo (Todos)</option>
+              {cargos.map((c) => <option key={c.id} value={c.label}>{c.label}</option>)}
+            </select>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
@@ -265,10 +280,52 @@ export function GeneralesUsuariosView({
               <button type="button" onClick={resetCreateForm} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold">Limpiar</button>
               <button type="submit" className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-6 py-2.5 rounded-lg text-sm font-semibold">
                 <Save className="w-4 h-4" />
-                Guardar Usuario
+                Grabar
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Modal flotante Crear Usuario sobre pantalla Usuarios - efecto difuminado */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+            <div className="bg-[#0778AC] px-6 py-4 flex justify-between items-center flex-shrink-0">
+              <div>
+                <h3 className="font-bold text-white text-lg flex items-center gap-2"><UserPlus className="w-5 h-5" /> Crear Usuario</h3>
+                <p className="text-white/70 text-xs mt-0.5">Complete los datos del nuevo usuario</p>
+              </div>
+              <button onClick={() => { setShowCreateModal(false); resetCreateForm(); }} className="text-white/80 hover:text-white hover:bg-white/20 p-1.5 rounded-full"><XCircle className="w-6 h-6" /></button>
+            </div>
+            <form onSubmit={handleCreateUser} className="grid grid-cols-1 lg:grid-cols-2 gap-5 p-6 overflow-y-auto">
+              <FormField label="Nombre de Usuario *" value={username} onChange={setUsername} required />
+              <FormField label="Clave de Usuario *" value={password} onChange={setPassword} required type="password" />
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Estado del Usuario</label>
+                <input value="Activo automatico" disabled className="w-full border-2 border-gray-100 bg-gray-50 rounded-lg p-3 text-sm text-gray-500" />
+              </div>
+              <FormField label="Numero de identificacion *" value={identification} onChange={setIdentification} required />
+              <FormField label="Nombre completo del Usuario *" value={fullName} onChange={setFullName} required />
+              <FormField label="Email Corporativo del Usuario" value={email} onChange={setEmail} type="email" />
+              <FormField label="Celular del Usuario" value={phone} onChange={setPhone} />
+              <FormField label="Cargo del Usuario" value={position} onChange={setPosition} />
+              <FormField label="Fecha de Nacimiento *" value={birthDate} onChange={setBirthDate} type="date" required />
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Cargo para permisos</label>
+                <select value={cargo} onChange={(e) => setCargo(e.target.value as UserRole)} className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm bg-white">
+                  {cargos.map((item) => <option key={item.id} value={item.name}>{item.label}</option>)}
+                </select>
+              </div>
+              <div className="lg:col-span-2 flex justify-end gap-3 pt-2 border-t border-gray-100 mt-2">
+                <button type="button" onClick={() => { setShowCreateModal(false); resetCreateForm(); }} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50">Cancelar</button>
+                <button type="submit" className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-6 py-2.5 rounded-lg text-sm font-semibold">
+                  <Save className="w-4 h-4" />
+                  Grabar
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

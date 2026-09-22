@@ -5,8 +5,8 @@ import type { Announcement } from "../contexts/AnnouncementsContext";
 export interface BackendSitioResponse { oid: number; nombre: string; url: string; moduloOid: number; moduloNombre: string; icono: string; }
 export interface BackendSitioRequest { nombre: string; url: string; moduloOid: number; icono: string; }
 export interface BackendModuloResponse { oid: number; nombre: string; estado: boolean; }
-export interface BackendExtensionResponse { oid: number; nombre: string; extension: string; areaOid: number; areaNombre: string; pisoOid: number; pisoNombre: string; soporte: boolean; }
-export interface BackendCorreoResponse { oid: number; nombre: string; correo: string; areaOid: number; areaNombre: string; pisoOid: number; pisoNombre: string; soporte: boolean; }
+export interface BackendExtensionResponse { oid: number; nombre: string; extension: string; areaOid: number; areaNombre: string; pisoOid: number; pisoNombre: string; soporte: boolean; tipo?: string; }
+export interface BackendCorreoResponse { oid: number; nombre: string; correo: string; areaOid: number; areaNombre: string; pisoOid: number; pisoNombre: string; soporte: boolean; cargo?: string | null; }
 export interface BackendAnuncioResponse { oid: number; titulo: string; descripcion: string; tipoOid: number; tipoNombre: string; fechaInicio: string; fechaFin: string; creadorOid: number | null; creadorNombre: string | null; estado: string; fechaCreacion: string; fechaVencimiento: string | null; eliminado: boolean; }
 export interface BackendTareaResponse { oid: number; titulo: string; descripcion: string; asignadaAOid: number | null; asignadaANombre: string | null; asignadaPorOid: number | null; asignadaPorNombre: string | null; estado: string; fechaInicio: string | null; fechaLimite: string | null; prioridad: string; }
 export interface BackendLogroResponse { oid: number; titulo: string; descripcion: string; urlImagen: string | null; fechaCreacion: string; }
@@ -29,6 +29,8 @@ export function mapSitioToBE(fe: Omit<RedirectSite, "id" | "active">, moduloOid:
 
 // --- Directory ---
 export function mapExtensionToFE(dto: BackendExtensionResponse): DirectoryEntry {
+  const rawTipo = (dto as any).tipo as string | undefined;
+  const normalizedTipo = rawTipo && rawTipo.trim().toLowerCase() === "asistencial" ? "asistencial" : "administrativo";
   return {
     id: String(dto.oid),
     name: dto.nombre,
@@ -36,7 +38,7 @@ export function mapExtensionToFE(dto: BackendExtensionResponse): DirectoryEntry 
     floor: dto.pisoNombre ? [dto.pisoNombre] : [],
     area: dto.areaNombre || undefined,
     isSupport: dto.soporte,
-    type: "administrativo",
+    type: normalizedTipo,
     active: true,
   };
 }
@@ -44,10 +46,11 @@ export function mapCorreoToFE(dto: BackendCorreoResponse): InstitutionEmail {
   return {
     id: String(dto.oid),
     employeeName: dto.nombre,
-    position: dto.areaNombre || "",
+    position: (dto as any).cargo ?? dto.areaNombre ?? "",
     email: dto.correo,
     area: dto.areaNombre || "",
     floor: dto.pisoNombre || "",
+    isSupport: dto.soporte,
   };
 }
 

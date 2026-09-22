@@ -45,4 +45,7 @@ public class ExtensionDirectorio {
 
     @Column(name = "gendirextsop", nullable = false)
     private boolean soporte;
+
+    @Column(name = "gendirexttipo", nullable = false, length = 20)
+    private String tipo;
 }

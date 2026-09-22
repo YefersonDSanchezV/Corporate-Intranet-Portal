@@ -1,7 +1,6 @@
-import { Headphones, Wrench } from "lucide-react";
+import { Wrench } from "lucide-react";
 import { AppCard } from "../AppCard";
 import { useState, useMemo } from "react";
-import { RedirectModal } from "../modals/RedirectModal";
 import { ITSupportContactsModal } from "../modals/ITSupportContactsModal";
 import { useSystem } from "../../contexts/SystemContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -11,32 +10,26 @@ export function SupportModule() {
   const { user } = useAuth();
   const { sites } = useSystem();
   const greeting = getGreeting();
-  const [redirectModalOpen, setRedirectModalOpen] = useState(false);
-  const [redirectPortal, setRedirectPortal] = useState("");
-  const [redirectUrl, setRedirectUrl] = useState("");
   const [contactsModalOpen, setContactsModalOpen] = useState(false);
 
   const handleAppClick = (appName: string, url?: string) => {
     if (appName === "Contactos") {
       setContactsModalOpen(true);
-    } else {
-      setRedirectPortal(appName);
-      setRedirectUrl(url || "");
-      setRedirectModalOpen(true);
+    } else if (url) {
+      window.open(url, "_blank");
     }
   };
 
   const supportApps = useMemo(() => {
     const baseApps = [
       { title: "Correo y Extensiones - Soporte Técnico", icon: Wrench, name: "Contactos" },
-      { title: "GLPI - Mesa de Ayuda", icon: Headphones, name: "Mesa de Ayuda"},
     ];
 
     const customSites = sites
-      .filter(s => s.moduleId === "Support" && s.active)
+      .filter(s => (s.moduleId === "Soporte" || s.moduleId === "Support") && s.active)
       .map(s => ({
         title: s.title,
-        icon: Headphones,
+        icon: Wrench,
         name: s.title,
         url: s.url
       }));
@@ -78,13 +71,6 @@ export function SupportModule() {
           </div>
         </section>
       </div>
-
-      <RedirectModal
-        isOpen={redirectModalOpen}
-        onClose={() => setRedirectModalOpen(false)}
-        portalName={redirectPortal}
-        portalUrl={redirectUrl}
-      />
 
       <ITSupportContactsModal
         isOpen={contactsModalOpen}

@@ -49,7 +49,6 @@ const MENU: SidebarItem[] = [
         icon: Users,
         children: [
           { id: "usuarios", label: "Usuarios", view: "usuarios", icon: Users },
-          { id: "crear-usuario", label: "Crear Usuario", view: "crear-usuario", icon: UserPlus },
           { id: "solicitudes", label: "Solicitudes", view: "solicitudes", icon: ClipboardCheck },
           { id: "cargos", label: "Cargo", view: "cargos", icon: BriefcaseBusiness },
         ],

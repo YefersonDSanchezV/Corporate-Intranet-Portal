@@ -45,4 +45,7 @@ public class CorreoDirectorio {
 
     @Column(name = "gendircorsop", nullable = false)
     private boolean soporte;
+
+    @Column(name = "gendircorcargo", length = 255)
+    private String cargo;
 }

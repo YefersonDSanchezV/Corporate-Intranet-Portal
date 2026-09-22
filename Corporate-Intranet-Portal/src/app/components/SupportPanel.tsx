@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 import { AppCard } from "./AppCard";
 import { useState } from "react";
-import { RedirectModal } from "./modals/RedirectModal";
 import { ITSupportContactsModal } from "./modals/ITSupportContactsModal";
 import { useSystem } from "../contexts/SystemContext";
 
@@ -17,16 +16,13 @@ const ICON_MAP: Record<string, any> = {
 
 export function SupportPanel() {
   const { sites } = useSystem();
-  const [redirectModalOpen, setRedirectModalOpen] = useState(false);
-  const [redirectPortal, setRedirectPortal] = useState("");
   const [contactsModalOpen, setContactsModalOpen] = useState(false);
 
-  const handleAppClick = (appName: string) => {
+  const handleAppClick = (appName: string, url?: string) => {
     if (appName === "Contactos") {
       setContactsModalOpen(true);
-    } else {
-      setRedirectPortal(appName);
-      setRedirectModalOpen(true);
+    } else if (url) {
+      window.open(url, "_blank");
     }
   };
 
@@ -35,7 +31,8 @@ export function SupportPanel() {
     .map(s => ({
        title: s.title,
        icon: ICON_MAP[s.ref] || Headphones,
-       name: s.title
+       name: s.title,
+       url: s.url
     }));
 
   const supportApps = [
@@ -55,17 +52,11 @@ export function SupportPanel() {
               key={index} 
               title={app.title} 
               icon={app.icon}
-              onClick={() => handleAppClick(app.name)}
+              onClick={() => handleAppClick(app.name, (app as any).url)}
             />
           ))}
         </div>
       </section>
-
-      <RedirectModal
-        isOpen={redirectModalOpen}
-        onClose={() => setRedirectModalOpen(false)}
-        portalName={redirectPortal}
-      />
 
       <ITSupportContactsModal
         isOpen={contactsModalOpen}

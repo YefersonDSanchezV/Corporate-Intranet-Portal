@@ -41,6 +41,7 @@ public class DirectoryService {
                 .area(requireArea(request.areaOid()))
                 .piso(requirePiso(request.pisoOid()))
                 .soporte(request.soporte())
+                .tipo(normalizeTipo(request.tipo()))
                 .build();
         return DirectoryDtos.ExtensionResponse.from(extensionRepository.save(extension));
     }
@@ -53,6 +54,7 @@ public class DirectoryService {
         extension.setArea(requireArea(request.areaOid()));
         extension.setPiso(requirePiso(request.pisoOid()));
         extension.setSoporte(request.soporte());
+        extension.setTipo(normalizeTipo(request.tipo()));
         return DirectoryDtos.ExtensionResponse.from(extensionRepository.save(extension));
     }
 
@@ -77,6 +79,7 @@ public class DirectoryService {
                 .area(requireArea(request.areaOid()))
                 .piso(requirePiso(request.pisoOid()))
                 .soporte(request.soporte())
+                .cargo(request.cargo())
                 .build();
         return DirectoryDtos.CorreoResponse.from(correoRepository.save(correo));
     }
@@ -89,6 +92,7 @@ public class DirectoryService {
         correo.setArea(requireArea(request.areaOid()));
         correo.setPiso(requirePiso(request.pisoOid()));
         correo.setSoporte(request.soporte());
+        correo.setCargo(request.cargo());
         return DirectoryDtos.CorreoResponse.from(correoRepository.save(correo));
     }
 
@@ -127,5 +131,11 @@ public class DirectoryService {
     private CorreoDirectorio requireEmail(Integer id) {
         return correoRepository.findById(id)
                 .orElseThrow(() -> NotFoundException.of("Correo de directorio", id));
+    }
+
+    private String normalizeTipo(String tipo) {
+        if (tipo == null) return "administrativo";
+        String t = tipo.trim().toLowerCase();
+        return t.equals("asistencial") ? "asistencial" : "administrativo";
     }
 }

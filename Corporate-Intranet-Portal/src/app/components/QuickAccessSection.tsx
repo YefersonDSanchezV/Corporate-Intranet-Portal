@@ -1,26 +1,10 @@
 import {
-  FileText,
-  Globe,
-  User,
-  ShieldCheck,
-  Phone,
-  Calendar,
-  Users
+  Users, FileText, Globe, User, ShieldCheck, Phone, Calendar
 } from "lucide-react";
 import { AppCard } from "./AppCard";
-import { useState } from "react";
-import { RedirectModal } from "./modals/RedirectModal";
 import { useSystem } from "../contexts/SystemContext";
 
-const ICON_MAP: Record<string, any> = {
-  FileText,
-  Globe,
-  User,
-  ShieldCheck,
-  Phone,
-  Calendar
-};
-
+const ICON_MAP: Record<string, any> = { FileText, Globe, User, ShieldCheck, Phone, Calendar };
 const MODULE_MAP: Record<string, string> = {
   Inicio: "Inicio",
   Clinical: "Area Asistencial",
@@ -33,8 +17,6 @@ const MODULE_MAP: Record<string, string> = {
 
 export function QuickAccessSection() {
   const { sites } = useSystem();
-  const [redirectModalOpen, setRedirectModalOpen] = useState(false);
-  const [redirectPortal, setRedirectPortal] = useState("");
 
   const handleAppClick = (appName: string, moduleId?: string, url?: string) => {
     if (appName === "Extensiones") {
@@ -43,24 +25,22 @@ export function QuickAccessSection() {
       window.dispatchEvent(new CustomEvent("switchModule", { detail: MODULE_MAP[moduleId] }));
     } else if (!url && MODULE_MAP[appName]) {
       window.dispatchEvent(new CustomEvent("switchModule", { detail: MODULE_MAP[appName] }));
-    } else {
-      setRedirectPortal(appName);
-      setRedirectModalOpen(true);
+    } else if (url) {
+      window.open(url, "_blank");
     }
   };
 
-  // Filtrar accesos rápidos de la base de datos (SystemContext)
+  // Sitios de redirección del módulo Inicio (SystemContext sincronizado con /api/sites). No deforma aunque URL/título sean largos.
   const dynamicSites = sites
     .filter(s => s.moduleId === "Inicio" && s.active)
     .map(s => ({
       title: s.title,
-      icon: ICON_MAP[s.ref] || FileText,
+      icon: (ICON_MAP as any)[s.ref] || Globe,
       name: s.title,
       moduleId: s.moduleId,
       url: s.url
     }));
 
-  // Siempre incluimos Extensiones ya que es una función interna compleja
   const allQuickAccess = [
     ...dynamicSites,
     { title: "Extensiones Telefónicas - Directorio Institucional", icon: Users, name: "Extensiones" }
@@ -79,7 +59,7 @@ export function QuickAccessSection() {
           {quickAccess.map((app, index) => (
             <AppCard 
               key={index} 
-              title={app.title} 
+              title={<span className="block truncate max-w-[160px] break-all" title={app.title as string}>{app.title}</span>} 
               icon={app.icon} 
               size="large"
               onClick={() => handleAppClick(app.name, (app as any).moduleId, (app as any).url)}
@@ -88,11 +68,6 @@ export function QuickAccessSection() {
         </div>
       </section>
 
-      <RedirectModal
-        isOpen={redirectModalOpen}
-        onClose={() => setRedirectModalOpen(false)}
-        portalName={redirectPortal}
-      />
     </>
   );
 }

@@ -43,7 +43,8 @@ export function EnlaceRedireccionView() {
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse table-fixed">
+            <colgroup><col style={{width: 220}}/><col style={{width: 380}}/><col style={{width: 100}}/></colgroup>
             <thead>
               <tr className="bg-gray-50 border-b-2 border-gray-100">
                 <th className="p-4 text-sm font-semibold text-gray-600">Nombre</th>
@@ -54,8 +55,8 @@ export function EnlaceRedireccionView() {
             <tbody className="divide-y divide-gray-100">
               {innovacionSites.map(site => (
                 <tr key={site.id} className="hover:bg-gray-50">
-                  <td className="p-4 font-semibold text-sm">{site.title}</td>
-                  <td className="p-4"><a href={site.url} target="_blank" rel="noopener noreferrer" className="text-sm text-[#0778AC] hover:underline">{site.url}</a></td>
+                  <td className="p-4 font-semibold text-sm"><span className="block truncate max-w-full" title={site.title}>{site.title}</span></td>
+                  <td className="p-4"><a href={site.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#0778AC] hover:underline block truncate max-w-full break-all font-mono bg-blue-50/50 px-2 py-1 rounded border border-blue-100" title={site.url}>{site.url}</a></td>
                   <td className="p-4 text-center">
                     <a href={site.url} target="_blank" rel="noopener noreferrer" className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg inline-block"><ExternalLink className="w-4 h-4" /></a>
                   </td>

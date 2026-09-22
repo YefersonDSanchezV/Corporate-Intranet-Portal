@@ -1,22 +1,17 @@
 import {
-  Calendar
+  Globe
 } from "lucide-react";
 import { AppCard } from "./AppCard";
-import { useState } from "react";
-import { RedirectModal } from "./modals/RedirectModal";
+import { useSystem } from "../contexts/SystemContext";
 
 export function AdministrativeAreaPanel() {
-  const [redirectModalOpen, setRedirectModalOpen] = useState(false);
-  const [redirectPortal, setRedirectPortal] = useState("");
+  const { sites } = useSystem();
 
-  const handleAppClick = (appName: string) => {
-    setRedirectPortal(appName);
-    setRedirectModalOpen(true);
+  const handleAppClick = (appName: string, url?: string) => {
+    if (url) window.open(url, "_blank");
   };
 
-  const adminApps = [
-    { title: "Biometric - Agenda del Personal", icon: Calendar, name: "Biometric - Agenda del Personal" }
-  ];
+  const adminApps = sites.filter(s => (s.moduleId === "Area Administrativa" || s.moduleId==="Administrative") && s.active).map(s=> ({ title: s.title, icon: Globe, name: s.title, url: s.url }));
 
   return (
     <>
@@ -30,17 +25,11 @@ export function AdministrativeAreaPanel() {
               key={index} 
               title={app.title} 
               icon={app.icon}
-              onClick={() => handleAppClick(app.name)}
+              onClick={() => handleAppClick(app.name, (app as any).url)}
             />
           ))}
         </div>
       </section>
-
-      <RedirectModal
-        isOpen={redirectModalOpen}
-        onClose={() => setRedirectModalOpen(false)}
-        portalName={redirectPortal}
-      />
     </>
   );
 }

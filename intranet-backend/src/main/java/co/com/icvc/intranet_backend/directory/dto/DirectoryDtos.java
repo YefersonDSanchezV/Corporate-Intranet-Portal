@@ -19,7 +19,8 @@ public final class DirectoryDtos {
             @NotNull @Positive Integer extension,
             @NotNull @Positive Integer areaOid,
             @NotNull @Positive Integer pisoOid,
-            @NotNull Boolean soporte) {
+            @NotNull Boolean soporte,
+            String tipo) {
     }
 
     public record ExtensionResponse(
@@ -30,9 +31,14 @@ public final class DirectoryDtos {
             String areaNombre,
             Integer pisoOid,
             String pisoNombre,
-            boolean soporte) {
+            boolean soporte,
+            String tipo) {
 
         public static ExtensionResponse from(ExtensionDirectorio ext) {
+            String t = ext.getTipo();
+            if (t == null || (!t.equals("asistencial") && !t.equals("administrativo"))) {
+                t = "administrativo";
+            }
             return new ExtensionResponse(
                     ext.getOid(),
                     ext.getNombre(),
@@ -41,7 +47,8 @@ public final class DirectoryDtos {
                     ext.getArea() != null ? ext.getArea().getNombre() : null,
                     ext.getPiso() != null ? ext.getPiso().getOid() : null,
                     ext.getPiso() != null ? ext.getPiso().getNombre() : null,
-                    ext.isSoporte());
+                    ext.isSoporte(),
+                    t);
         }
     }
 
@@ -50,7 +57,8 @@ public final class DirectoryDtos {
             @NotBlank @Email String correo,
             @NotNull @Positive Integer areaOid,
             @NotNull @Positive Integer pisoOid,
-            @NotNull Boolean soporte) {
+            @NotNull Boolean soporte,
+            String cargo) {
     }
 
     public record CorreoResponse(
@@ -61,7 +69,8 @@ public final class DirectoryDtos {
             String areaNombre,
             Integer pisoOid,
             String pisoNombre,
-            boolean soporte) {
+            boolean soporte,
+            String cargo) {
 
         public static CorreoResponse from(CorreoDirectorio correo) {
             return new CorreoResponse(
@@ -72,7 +81,8 @@ public final class DirectoryDtos {
                     correo.getArea() != null ? correo.getArea().getNombre() : null,
                     correo.getPiso() != null ? correo.getPiso().getOid() : null,
                     correo.getPiso() != null ? correo.getPiso().getNombre() : null,
-                    correo.isSoporte());
+                    correo.isSoporte(),
+                    correo.getCargo());
         }
     }
 

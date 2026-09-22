@@ -1,7 +1,6 @@
-import { Calendar,  Globe } from "lucide-react";
+import { Globe } from "lucide-react";
 import { AppCard } from "../AppCard";
-import { useState, useMemo } from "react";
-import { RedirectModal } from "../modals/RedirectModal";
+import { useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSystem } from "../../contexts/SystemContext";
 import { getGreeting } from "../../utils/greetings";
@@ -10,28 +9,14 @@ export function AdministrativeAreaModule() {
   const { user } = useAuth();
   const { sites } = useSystem();
   const greeting = getGreeting();
-  const [redirectModalOpen, setRedirectModalOpen] = useState(false);
-  const [redirectPortal, setRedirectPortal] = useState("");
-  const [redirectUrl, setRedirectUrl] = useState("");
 
   const handleAppClick = (appName: string, url?: string) => {
-    setRedirectPortal(appName);
-    setRedirectUrl(url || "");
-    setRedirectModalOpen(true);
+    if (url) window.open(url, "_blank");
   };
 
   const adminApps = useMemo(() => {
-    const baseApps = [
-      { 
-        title: "Biometric - Agenda del Personal", 
-        icon: Calendar, 
-        name: "Biometric - Agenda del Personal",
-        restricted: false 
-      },
-    ];
-
-    const customSites = sites
-      .filter(s => s.moduleId === "Administrative" && s.active)
+    return sites
+      .filter(s => (s.moduleId === "Area Administrativa" || s.moduleId === "Administrative") && s.active)
       .map(s => ({
         title: s.title,
         icon: Globe,
@@ -39,8 +24,6 @@ export function AdministrativeAreaModule() {
         url: s.url,
         restricted: false
       }));
-
-    return [...baseApps, ...customSites];
   }, [sites]);
 
   return (
@@ -84,12 +67,6 @@ export function AdministrativeAreaModule() {
         </section>
       </div>
 
-      <RedirectModal
-        isOpen={redirectModalOpen}
-        onClose={() => setRedirectModalOpen(false)}
-        portalName={redirectPortal}
-        portalUrl={redirectUrl}
-      />
     </>
   );
 }

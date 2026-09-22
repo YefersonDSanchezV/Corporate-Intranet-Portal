@@ -22,7 +22,7 @@ export function AppCard({ title, icon: Icon, size = "medium", onClick }: AppCard
       <div className="bg-gradient-to-br from-[#CF3438] to-[#e74c3c] rounded-lg p-3 md:p-4 group-hover:scale-110 transition-transform shadow-md">
         <Icon className={`${iconSize} text-white`} />
       </div>
-      <span className="text-sm md:text-base text-gray-800 font-medium group-hover:text-[#0778AC] transition-colors">{title}</span>
+      <span className="text-sm md:text-base text-gray-800 font-medium group-hover:text-[#0778AC] transition-colors block max-w-full truncate px-2 break-all" title={typeof title==='string'? title : undefined}>{title}</span>
     </button>
   );
 }

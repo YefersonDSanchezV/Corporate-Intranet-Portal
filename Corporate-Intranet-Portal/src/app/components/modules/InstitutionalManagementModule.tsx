@@ -1,7 +1,6 @@
-import { ClipboardCheck, Award, Globe } from "lucide-react";
+import { Award, Globe } from "lucide-react";
 import { AppCard } from "../AppCard";
 import { useState, useMemo } from "react";
-import { RedirectModal } from "../modals/RedirectModal";
 import { AccreditationAchievementsModal } from "../modals/AccreditationAchievementsModal";
 import { useSystem } from "../../contexts/SystemContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -11,29 +10,23 @@ export function InstitutionalManagementModule() {
   const { user } = useAuth();
   const { sites } = useSystem();
   const greeting = getGreeting();
-  const [redirectModalOpen, setRedirectModalOpen] = useState(false);
-  const [redirectPortal, setRedirectPortal] = useState("");
-  const [redirectUrl, setRedirectUrl] = useState("");
   const [achievementsModalOpen, setAchievementsModalOpen] = useState(false);
 
   const handleAppClick = (appName: string, url?: string) => {
     if (appName === "Logros") {
       setAchievementsModalOpen(true);
-    } else {
-      setRedirectPortal(appName);
-      setRedirectUrl(url || "");
-      setRedirectModalOpen(true);
+    } else if (url) {
+      window.open(url, "_blank");
     }
   };
 
   const managementApps = useMemo(() => {
     const baseApps = [
-      { title: "Almera - Sistema de Gestión de Calidad", icon: ClipboardCheck, name: "Almera - Sistema de Gestión de Calidad" },
       { title: "Logros obtenidos", icon: Award, name: "Logros" }
     ];
 
     const customSites = sites
-      .filter(s => s.moduleId === "Institutional" && s.active)
+      .filter(s => (s.moduleId === "Gestion Institucional" || s.moduleId === "Institutional") && s.active)
       .map(s => ({
         title: s.title,
         icon: Globe,
@@ -78,13 +71,6 @@ export function InstitutionalManagementModule() {
           </div>
         </section>
       </div>
-
-      <RedirectModal
-        isOpen={redirectModalOpen}
-        onClose={() => setRedirectModalOpen(false)}
-        portalName={redirectPortal}
-        portalUrl={redirectUrl}
-      />
 
       <AccreditationAchievementsModal
         isOpen={achievementsModalOpen}

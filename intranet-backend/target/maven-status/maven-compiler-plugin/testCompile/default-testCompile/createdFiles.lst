@@ -1,0 +1,5 @@
+co\com\icvc\intranet_backend\user\AccessRequestServiceTest.class
+co\com\icvc\intranet_backend\user\UsuarioDtosTest.class
+co\com\icvc\intranet_backend\communication\AnnouncementServiceTest.class
+co\com\icvc\intranet_backend\common\MappersTest.class
+co\com\icvc\intranet_backend\IntranetBackendApplicationTests.class

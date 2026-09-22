@@ -50,6 +50,6 @@ public class SiteController {
 
     @PatchMapping("/{id}/active")
     public PortalDtos.SitioResponse updateActive(@PathVariable Integer id) {
-        return siteService.get(id);
+        return siteService.toggleActive(id);
     }
 }

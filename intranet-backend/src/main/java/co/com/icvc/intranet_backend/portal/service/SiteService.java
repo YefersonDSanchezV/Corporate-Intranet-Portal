@@ -58,6 +58,13 @@ public class SiteService {
     }
 
     @Transactional
+    public PortalDtos.SitioResponse toggleActive(Integer id) {
+        // Actualmente no hay campo estado en gensitredireccion; se retorna el recurso.
+        // Si en el futuro se añade columna de activación, alternar aquí.
+        return PortalDtos.SitioResponse.from(require(id));
+    }
+
+    @Transactional
     public void delete(Integer id) {
         sitioRepository.delete(require(id));
     }

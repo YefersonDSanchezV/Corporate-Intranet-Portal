@@ -12,7 +12,7 @@ interface ITSupportContactsModalProps {
 
 export function ITSupportContactsModal({ isOpen, onClose }: ITSupportContactsModalProps) {
   const { user } = useAuth();
-  const { supportContacts, setSupportContacts } = useSystem() as any;
+  const { supportContacts, setSupportContacts, directory, institutionEmails } = useSystem() as any;
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingContact, setEditingContact] = useState<any | null>(null);
   const [addType, setAddType] = useState<"email" | "extension">("email");
@@ -29,8 +29,10 @@ export function ITSupportContactsModal({ isOpen, onClose }: ITSupportContactsMod
 
   if (!isOpen) return null;
 
-  const emailContacts = (supportContacts || []).filter((c: any) => c.type === "email");
-  const extensionContacts = (supportContacts || []).filter((c: any) => c.type === "extension");
+  const dirSupportEmails = (institutionEmails || []).filter((e: any) => e.isSupport).map((e: any) => ({ id: `dir-email-${e.id}`, type: "email", name: e.employeeName, position: e.position, email: e.email }));
+  const emailContacts = [...(supportContacts || []).filter((c: any) => c.type === "email"), ...dirSupportEmails];
+  const dirSupportExts = (directory || []).filter((d: any) => d.isSupport).map((d: any) => ({ id: `dir-${d.id}`, type: "extension", extName: d.name, extNumber: d.extension }));
+  const extensionContacts = [...(supportContacts || []).filter((c: any) => c.type === "extension"), ...dirSupportExts];
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();

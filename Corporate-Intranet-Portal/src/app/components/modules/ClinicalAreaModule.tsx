@@ -1,8 +1,6 @@
-import { FileText, FlaskConical, Image, BookOpen, Stethoscope, Globe } from "lucide-react";
+import { Stethoscope, Globe } from "lucide-react";
 import { AppCard } from "../AppCard";
 import { useState, useMemo } from "react";
-import { RedirectModal } from "../modals/RedirectModal";
-import { ContingencyFormatsModal } from "../modals/ContingencyFormatsModal";
 import { ExternalConsultationModal } from "../modals/ExternalConsultationModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSystem } from "../../contexts/SystemContext";
@@ -12,45 +10,24 @@ export function ClinicalAreaModule() {
   const { user } = useAuth();
   const { sites } = useSystem();
   const greeting = getGreeting();
-  const [redirectModalOpen, setRedirectModalOpen] = useState(false);
-  const [redirectPortal, setRedirectPortal] = useState("");
-  const [redirectUrl, setRedirectUrl] = useState("");
-  const [contingencyModalOpen, setContingencyModalOpen] = useState(false);
   const [externalConsultationModalOpen, setExternalConsultationModalOpen] = useState(false);
 
   const handleAppClick = (appName: string, url?: string) => {
-    if (appName === "Contingencia") {
-      setContingencyModalOpen(true);
-    } else if (appName === "Consulta Externa") {
+    if (appName === "Consulta Externa") {
       setExternalConsultationModalOpen(true);
-    } else {
-      setRedirectPortal(appName);
-      setRedirectUrl(url || "");
-      setRedirectModalOpen(true);
+    } else if (url) {
+      window.open(url, "_blank");
     }
   };
 
+  // Solo Consulta Externa como base + sitios dinámicos Area Asistencial (visualización en panel público corregida)
   const clinicalApps = useMemo(() => {
-    const baseApps = [
-      { title: "DGH - Dinamica Gestion Hospitalaria", icon: FileText, name: "DGH - Dinámica Gestión Hospitalaria", roles: ["all"] },
-      { title: "Enterprise - Software de Laboratorio", icon: FlaskConical, name: "Enterprise - Software de Laboratorio", roles: ["all"] },
-      { title: "ActualPac - Software de Imagenologia", icon: Image, name: "ActualPac - Software de Imagenología", roles: ["all"] },
-      { title: "Formatos de Contingencia", icon: BookOpen, name: "Contingencia", roles: ["admin", "root", "ti", "coordinador_ti", "asistencial", "coordinador_asistencial"] },
-      { title: "Consulta Externa", icon: Stethoscope, name: "Consulta Externa", roles: ["all"] }
-    ].filter(app => app.roles.includes("all") || app.roles.includes(user?.role || ""));
-
+    const baseApps = [{ title: "Consulta Externa", icon: Stethoscope, name: "Consulta Externa" }];
     const customSites = sites
-      .filter(s => s.moduleId === "Clinical" && s.active)
-      .map(s => ({
-        title: s.title,
-        icon: Globe,
-        name: s.title,
-        url: s.url,
-        isCustom: true
-      }));
-
+      .filter(s => (s.moduleId === "Area Asistencial" || s.moduleId === "Clinical") && s.active)
+      .map(s => ({ title: s.title, icon: Globe, name: s.title, url: s.url }));
     return [...baseApps, ...customSites];
-  }, [user, sites]);
+  }, [sites]);
 
   return (
     <>
@@ -86,18 +63,6 @@ export function ClinicalAreaModule() {
           </div>
         </section>
       </div>
-
-      <RedirectModal
-        isOpen={redirectModalOpen}
-        onClose={() => setRedirectModalOpen(false)}
-        portalName={redirectPortal}
-        portalUrl={redirectUrl}
-      />
-
-      <ContingencyFormatsModal
-        isOpen={contingencyModalOpen}
-        onClose={() => setContingencyModalOpen(false)}
-      />
 
       <ExternalConsultationModal
         isOpen={externalConsultationModalOpen}

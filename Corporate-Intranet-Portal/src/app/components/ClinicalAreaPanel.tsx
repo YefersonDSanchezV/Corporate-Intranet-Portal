@@ -1,33 +1,21 @@
 import { 
-  FileText, 
-  FlaskConical, 
-  Image, 
-  BookOpen 
+  Stethoscope
 } from "lucide-react";
 import { AppCard } from "./AppCard";
 import { useState } from "react";
-import { RedirectModal } from "./modals/RedirectModal";
-import { ContingencyFormatsModal } from "./modals/ContingencyFormatsModal";
+import { ExternalConsultationModal } from "./modals/ExternalConsultationModal";
 
 export function ClinicalAreaPanel() {
-  const [redirectModalOpen, setRedirectModalOpen] = useState(false);
-  const [redirectPortal, setRedirectPortal] = useState("");
-  const [contingencyModalOpen, setContingencyModalOpen] = useState(false);
+  const [externalConsultationModalOpen, setExternalConsultationModalOpen] = useState(false);
 
   const handleAppClick = (appName: string) => {
-    if (appName === "Contingencia") {
-      setContingencyModalOpen(true);
-    } else {
-      setRedirectPortal(appName);
-      setRedirectModalOpen(true);
+    if (appName === "Consulta Externa") {
+      setExternalConsultationModalOpen(true);
     }
   };
 
   const clinicalApps = [
-    { title: "DGH - Dinamica Gestion Hospitalaria", icon: FileText, name: "DGH - Dinámica Gestión Hospitalaria" },
-    { title: "Enterprise - Software de Laboratorio", icon: FlaskConical, name: "Enterprise - Software de Laboratorio" },
-    { title: "ActualPac - Software de Imagenologia", icon: Image, name: "ActualPac - Software de Imagenología" },
-    { title: "Formatos de Contingencia", icon: BookOpen, name: "Contingencia" }
+    { title: "Consulta Externa", icon: Stethoscope, name: "Consulta Externa" }
   ];
 
   return (
@@ -48,15 +36,9 @@ export function ClinicalAreaPanel() {
         </div>
       </section>
 
-      <RedirectModal
-        isOpen={redirectModalOpen}
-        onClose={() => setRedirectModalOpen(false)}
-        portalName={redirectPortal}
-      />
-
-      <ContingencyFormatsModal
-        isOpen={contingencyModalOpen}
-        onClose={() => setContingencyModalOpen(false)}
+      <ExternalConsultationModal
+        isOpen={externalConsultationModalOpen}
+        onClose={() => setExternalConsultationModalOpen(false)}
       />
     </>
   );

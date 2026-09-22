@@ -104,6 +104,7 @@ export interface InstitutionEmail {
   email: string;
   area: string;
   floor?: string;
+  isSupport?: boolean;
 }
 
 export interface DirectoryEntry {
@@ -173,6 +174,15 @@ interface SystemContextType {
 const SystemContext = createContext<SystemContextType | undefined>(undefined);
 
 export function SystemProvider({ children }: { children: React.ReactNode }) {
+  // Limpieza total v10: elimina sitios/eps por defecto para creación manual desde cero (Mejoras y cambios.docx)
+  if (typeof window !== 'undefined' && !localStorage.getItem('intranet_clean_v10')) {
+    localStorage.removeItem('intranet_sites');
+    localStorage.removeItem('intranet_eps');
+    localStorage.removeItem('intranet_directory');
+    localStorage.removeItem('intranet_institution_emails');
+    // epsList = Consulta Externa - dejar vacío para que solo quede la card sin datos
+    localStorage.setItem('intranet_clean_v10', '1');
+  }
   const [sites, setSites] = useState<RedirectSite[]>(() => {
     const saved = localStorage.getItem('intranet_sites');
     return saved ? JSON.parse(saved) : [];
@@ -379,12 +389,14 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
 
   const addDirectoryEntry = async (entry: Omit<DirectoryEntry, 'id' | 'active'>) => {
     const created = await directoryApi.createExtension(entry);
-    setDirectory(prev => [...prev, created]);
+    const merged: DirectoryEntry = { ...created, type: entry.type, area: entry.area, isSupport: entry.isSupport, floor: entry.floor };
+    setDirectory(prev => [...prev, merged]);
   };
 
   const updateDirectoryEntry = async (updatedEntry: DirectoryEntry) => {
     const updated = await directoryApi.updateExtension(updatedEntry);
-    setDirectory(prev => prev.map(e => e.id === updatedEntry.id ? updated : e));
+    const merged: DirectoryEntry = { ...updated, type: updatedEntry.type, area: updatedEntry.area, isSupport: updatedEntry.isSupport, floor: updatedEntry.floor };
+    setDirectory(prev => prev.map(e => e.id === updatedEntry.id ? merged : e));
   };
 
   const removeDirectoryEntry = async (id: string) => {
@@ -488,12 +500,26 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
 
   const addInstitutionEmail = async (email: Omit<InstitutionEmail, 'id'>) => {
     const created = await directoryApi.createEmail(email);
-    setInstitutionEmails(prev => [...prev, created]);
+    const merged: InstitutionEmail = {
+      ...created,
+      position: (email as InstitutionEmail).position ?? (created as InstitutionEmail).position,
+      area: (email as InstitutionEmail).area ?? (created as InstitutionEmail).area,
+      floor: (email as InstitutionEmail).floor ?? (created as InstitutionEmail).floor,
+      isSupport: (email as any).isSupport ?? (created as any).isSupport,
+    } as InstitutionEmail;
+    setInstitutionEmails(prev => [...prev, merged]);
   };
 
   const updateInstitutionEmail = async (updatedEmail: InstitutionEmail) => {
     const updated = await directoryApi.updateEmail(updatedEmail);
-    setInstitutionEmails(prev => prev.map(e => e.id === updatedEmail.id ? updated : e));
+    const merged: InstitutionEmail = {
+      ...updated,
+      position: (updatedEmail as InstitutionEmail).position ?? (updated as InstitutionEmail).position,
+      area: (updatedEmail as InstitutionEmail).area ?? (updated as InstitutionEmail).area,
+      floor: (updatedEmail as InstitutionEmail).floor ?? (updated as InstitutionEmail).floor,
+      isSupport: (updatedEmail as any).isSupport ?? (updated as any).isSupport,
+    } as InstitutionEmail;
+    setInstitutionEmails(prev => prev.map(e => e.id === updatedEmail.id ? merged : e));
   };
 
   const removeInstitutionEmail = async (id: string) => {

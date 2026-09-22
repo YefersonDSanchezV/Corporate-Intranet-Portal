@@ -5,9 +5,9 @@ import { useSystem, DirectoryEntry, InstitutionEmail } from "../../contexts/Syst
 import { getGreeting } from "../../utils/greetings";
 import { hasRole, TI_SUPPORT_ROLES } from "../../utils/roles";
 
-type Floor = "Todos" | "Piso 1" | "Piso 2" | "Piso 3" | "Piso 4" | "Piso 5" | "Piso 6" | "Urgencia" | "Línea de frente";
+type Floor = "Todos" | "Piso 1" | "Piso 2" | "Piso 3" | "Piso 4" | "Piso 5" | "Piso 6" | "Betania";
 
-const FLOORS: Floor[] = ["Todos", "Piso 1", "Piso 2", "Piso 3", "Piso 4", "Piso 5", "Piso 6", "Urgencia", "Línea de frente"];
+const FLOORS: Floor[] = ["Todos", "Piso 1", "Piso 2", "Piso 3", "Piso 4", "Piso 5", "Piso 6", "Betania"];
 const EDITABLE_FLOORS = FLOORS.filter(f => f !== "Todos");
 
 export function DirectoryModule() {
@@ -18,6 +18,8 @@ export function DirectoryModule() {
   const [searchTerm, setSearchTerm] = useState("");
   const [view, setView] = useState<"extensiones" | "correos">("extensiones");
   const [emailSearchTerm, setEmailSearchTerm] = useState("");
+  const [emailAreaFilter, setEmailAreaFilter] = useState("Todos");
+  const [emailCargoFilter, setEmailCargoFilter] = useState("Todos");
 
   // Sub-modales
   const [showAddModal, setShowAddModal] = useState(false);
@@ -43,6 +45,7 @@ export function DirectoryModule() {
   // Formulario nuevo
   const [newType, setNewType] = useState<"asistencial" | "administrativo">("asistencial");
   const [newName, setNewName] = useState("");
+  const [newArea, setNewArea] = useState("");
   const [newExtension, setNewExtension] = useState("");
   const [newFloors, setNewFloors] = useState<Floor[]>([]);
 
@@ -56,7 +59,7 @@ export function DirectoryModule() {
     return matchesFloor && matchesSearch && ext.active;
   });
 
-  const asistencialExtensions = filteredExtensions.filter(ext => ext.type === "asistencial");
+  const asistencialExtensions = filteredExtensions.filter(ext => ext.type === "asistencial" && !ext.isSupport);
   const administrativoExtensions = filteredExtensions.filter(ext => ext.type === "administrativo");
 
   // Editar
@@ -79,16 +82,17 @@ export function DirectoryModule() {
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim() || !newExtension.trim() || newFloors.length === 0) return;
+    if (!newName.trim() || !newExtension.trim() || newFloors.length === 0 || !newArea.trim()) return;
     
     addDirectoryEntry({
       name: newName,
       extension: newExtension,
       floor: newFloors,
-      type: newType
-    });
+      type: newType,
+      area: newArea.trim(),
+    } as any);
 
-    setNewName(""); setNewExtension(""); setNewFloors([]); setNewType("asistencial");
+    setNewName(""); setNewArea(""); setNewExtension(""); setNewFloors([]); setNewType("asistencial");
     setShowAddModal(false);
   };
 
@@ -208,18 +212,21 @@ export function DirectoryModule() {
             <div className="bg-white border-2 border-[#0778AC] border-t-0 rounded-b-lg p-4 space-y-3">
               {asistencialExtensions.length > 0 ? (
                 asistencialExtensions.map((ext) => (
-                  <div key={ext.id} className="bg-gradient-to-r from-[#f0f4f8] to-white border border-gray-200 rounded-lg p-3 md:p-4 hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 flex-1">
+                  <div key={ext.id} className="bg-gradient-to-r from-[#f0f4f8] to-white border border-gray-200 rounded-lg p-3 md:p-4 hover:shadow-md transition-all min-w-0 overflow-hidden">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
                         <Building2 className="w-5 h-5 text-[#0778AC] flex-shrink-0" />
-                        <span className="font-semibold text-gray-800 text-sm md:text-base">{ext.name}</span>
+                        <span className="font-semibold text-gray-800 text-sm md:text-base truncate block" title={ext.name}>{ext.name}</span>
                       </div>
-                      <div className="flex items-center gap-2 bg-[#0778AC] text-white px-3 py-1 rounded-full">
-                        <Phone className="w-4 h-4" />
-                        <span className="font-bold text-sm">{ext.extension}</span>
+                      <div className="flex items-center gap-2 bg-[#0778AC] text-white px-3 py-1 rounded-full flex-shrink-0 max-w-[45%]">
+                        <Phone className="w-4 h-4 flex-shrink-0" />
+                        <span className="font-bold text-sm truncate block break-all" title={ext.extension}>{ext.extension}</span>
                       </div>
                     </div>
-                    <div className="mt-2 text-xs text-gray-600">{ext.floor?.join(", ") || ""}</div>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-600">
+                      <span className="truncate bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5" title={ext.area}>{ext.area || ext.type}</span>
+                      <span className="truncate" title={ext.floor?.join(", ")}>{ext.floor?.join(", ") || ""}</span>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -238,18 +245,21 @@ export function DirectoryModule() {
             <div className="bg-white border-2 border-[#CF3438] border-t-0 rounded-b-lg p-4 space-y-3">
               {administrativoExtensions.length > 0 ? (
                 administrativoExtensions.map((ext) => (
-                  <div key={ext.id} className="bg-gradient-to-r from-[#f0f4f8] to-white border border-gray-200 rounded-lg p-3 md:p-4 hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 flex-1">
+                  <div key={ext.id} className="bg-gradient-to-r from-[#f0f4f8] to-white border border-gray-200 rounded-lg p-3 md:p-4 hover:shadow-md transition-all min-w-0 overflow-hidden">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
                         <Building2 className="w-5 h-5 text-[#CF3438] flex-shrink-0" />
-                        <span className="font-semibold text-gray-800 text-sm md:text-base">{ext.name}</span>
+                        <span className="font-semibold text-gray-800 text-sm md:text-base truncate block" title={ext.name}>{ext.name}</span>
                       </div>
-                      <div className="flex items-center gap-2 bg-[#CF3438] text-white px-3 py-1 rounded-full">
-                        <Phone className="w-4 h-4" />
-                        <span className="font-bold text-sm">{ext.extension}</span>
+                      <div className="flex items-center gap-2 bg-[#CF3438] text-white px-3 py-1 rounded-full flex-shrink-0 max-w-[45%]">
+                        <Phone className="w-4 h-4 flex-shrink-0" />
+                        <span className="font-bold text-sm truncate block break-all" title={ext.extension}>{ext.extension}</span>
                       </div>
                     </div>
-                    <div className="mt-2 text-xs text-gray-600">{ext.floor?.join(", ") || ""}</div>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-600">
+                      <span className="truncate bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5" title={ext.area}>{ext.area || ext.type}</span>
+                      <span className="truncate" title={ext.floor?.join(", ")}>{ext.floor?.join(", ") || ""}</span>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -268,15 +278,17 @@ export function DirectoryModule() {
               <div className="h-1 bg-gradient-to-r from-[#CF3438] to-transparent w-32 md:w-48 rounded-full"></div>
             </div>
             
-            <button
-              onClick={() => {
-                setEmailFormData({ employeeName: "", position: "", email: "", area: "", floor: "" });
-                setShowAddEmailModal(true);
-              }}
-              className="flex items-center gap-2 bg-gradient-to-r from-[#CF3438] to-[#e74c3c] hover:from-[#a01f24] hover:to-[#CF3438] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all"
-            >
-              <Plus className="w-5 h-5" /> Cargar Nuevo Correo
-            </button>
+            {canManage && (
+              <button
+                onClick={() => {
+                  setEmailFormData({ employeeName: "", position: "", email: "", area: "", floor: "" });
+                  setShowAddEmailModal(true);
+                }}
+                className="flex items-center gap-2 bg-gradient-to-r from-[#CF3438] to-[#e74c3c] hover:from-[#a01f24] hover:to-[#CF3438] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all"
+              >
+                <Plus className="w-5 h-5" /> Cargar Nuevo Correo
+              </button>
+            )}
           </div>
 
           <div className="mb-6">
@@ -290,6 +302,16 @@ export function DirectoryModule() {
                 className="w-full bg-white border-2 border-gray-200 rounded-xl pl-10 md:pl-14 pr-4 py-3 text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#CF3438] focus:ring-2 focus:ring-[#CF3438]/20 transition-all shadow-sm"
               />
             </div>
+          </div>
+          <div className="flex flex-wrap gap-3 mb-4">
+            <select value={emailAreaFilter} onChange={e => setEmailAreaFilter(e.target.value)} className="border-2 border-gray-200 rounded-lg px-3 py-2 text-sm bg-white min-w-[160px]">
+              <option value="Todos">Filtrar por área: Todos</option>
+              {Array.from(new Set(institutionEmails.map(e=> e.area).filter(Boolean))).map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+            <select value={emailCargoFilter} onChange={e => setEmailCargoFilter(e.target.value)} className="border-2 border-gray-200 rounded-lg px-3 py-2 text-sm bg-white min-w-[160px]">
+              <option value="Todos">Filtrar por cargo: Todos</option>
+              {Array.from(new Set(institutionEmails.map(e=> e.position).filter(Boolean))).map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
 
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden overflow-x-auto">
@@ -305,16 +327,20 @@ export function DirectoryModule() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {institutionEmails.filter(e => 
-                  e.employeeName.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
+                  (e.employeeName.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
                   e.position.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
                   e.email.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
-                  e.area.toLowerCase().includes(emailSearchTerm.toLowerCase())
+                  e.area.toLowerCase().includes(emailSearchTerm.toLowerCase())) &&
+                  (emailAreaFilter === "Todos" || e.area === emailAreaFilter) &&
+                  (emailCargoFilter === "Todos" || e.position === emailCargoFilter)
                 ).length > 0 ? (
                   institutionEmails.filter(e => 
-                    e.employeeName.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
+                    (e.employeeName.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
                     e.position.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
                     e.email.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
-                    e.area.toLowerCase().includes(emailSearchTerm.toLowerCase())
+                    e.area.toLowerCase().includes(emailSearchTerm.toLowerCase())) &&
+                    (emailAreaFilter === "Todos" || e.area === emailAreaFilter) &&
+                    (emailCargoFilter === "Todos" || e.position === emailCargoFilter)
                   ).map((email) => (
                     <tr key={email.id} className="hover:bg-blue-50/50 transition-colors group">
                       <td className="px-6 py-4">
@@ -341,13 +367,15 @@ export function DirectoryModule() {
                           >
                             <Eye className="w-5 h-5" />
                           </button>
-                          <button
-                            onClick={() => { setSelectedEmail(email); setEmailFormData({ ...email }); setShowEditEmailModal(true); }}
-                            className="p-2 text-amber-600 hover:bg-amber-100 rounded-lg transition-colors"
-                            title="Editar"
-                          >
-                            <Pencil className="w-5 h-5" />
-                          </button>
+                          {canManage && (
+                            <button
+                              onClick={() => { setSelectedEmail(email); setEmailFormData({ ...email }); setShowEditEmailModal(true); }}
+                              className="p-2 text-amber-600 hover:bg-amber-100 rounded-lg transition-colors"
+                              title="Editar"
+                            >
+                              <Pencil className="w-5 h-5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -393,9 +421,14 @@ export function DirectoryModule() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Área de Trabajo *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre de la extensión *</label>
                 <input type="text" value={newName} onChange={e => setNewName(e.target.value)} required
                   className="w-full border-2 border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#CF3438] transition-all" placeholder="Ej: Laboratorio Clínico" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Área *</label>
+                <input type="text" value={newArea} onChange={e => setNewArea(e.target.value)} required
+                  className="w-full border-2 border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#CF3438] transition-all" placeholder="Ej: Sistemas, Comunicaciones, Cartera" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Número de Extensión *</label>
@@ -477,9 +510,14 @@ export function DirectoryModule() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Área de Trabajo *</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre de la extensión *</label>
                     <input type="text" value={editingEntry.name} onChange={e => setEditingEntry({ ...editingEntry, name: e.target.value })}
                       className="w-full border-2 border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#0778AC] transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Área *</label>
+                    <input type="text" value={editingEntry.area || ""} onChange={e => setEditingEntry({ ...editingEntry, area: e.target.value })}
+                      className="w-full border-2 border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#0778AC] transition-all" placeholder="Ej: Sistemas" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Número de Extensión *</label>
@@ -660,11 +698,11 @@ export function DirectoryModule() {
                 </div>
                 <div className="flex items-center gap-4 group">
                   <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-green-600 group-hover:bg-green-600 group-hover:text-white transition-all">
-                    <MapPin className="w-5 h-5" />
+                    <Briefcase className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ubicación / Piso</p>
-                    <p className="text-sm font-bold text-gray-800">{selectedEmail.floor}</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cargo</p>
+                    <p className="text-sm font-bold text-gray-800">{selectedEmail.position}</p>
                   </div>
                 </div>
               </div>
