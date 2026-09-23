@@ -1,4 +1,4 @@
-import { X, Plus, Send, Lock, User } from "lucide-react";
+import { X, Plus, Send, Lock, User, Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAnnouncements } from "../../contexts/AnnouncementsContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -21,6 +21,7 @@ export function RegisterAnnouncementModal({
   const [step, setStep] = useState<"auth" | "form">(requirePassword ? "auth" : "form");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
 
   const [title, setTitle] = useState("");
@@ -179,13 +180,21 @@ export function RegisterAnnouncementModal({
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0778AC]" />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full border-2 border-gray-200 rounded-lg pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-[#CF3438] focus:ring-2 focus:ring-[#CF3438]/20 transition-all"
+                    className="w-full border-2 border-gray-200 rounded-lg pl-11 pr-11 py-3 text-sm focus:outline-none focus:border-[#CF3438] focus:ring-2 focus:ring-[#CF3438]/20 transition-all"
                     required
                     placeholder="Ingrese su contraseña"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-[#0778AC] transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
               </div>
 

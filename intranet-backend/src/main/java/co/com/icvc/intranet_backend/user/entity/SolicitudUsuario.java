@@ -39,11 +39,29 @@ public class SolicitudUsuario {
     @Column(name = "gensolusunomb", nullable = false, length = 255)
     private String nombre;
 
+    @Column(name = "gensolusuprinom", length = 255)
+    private String primerNombre;
+
+    @Column(name = "gensolusegnom", length = 255)
+    private String segundoNombre;
+
+    @Column(name = "gensoluspriapell", length = 255)
+    private String primerApellido;
+
+    @Column(name = "gensolusegapell", length = 255)
+    private String segundoApellido;
+
     @Column(name = "gensolusucarg", nullable = false, length = 255)
     private String cargo;
 
     @Column(name = "gensolusumail", nullable = false, length = 255)
     private String correo;
+
+    @Column(name = "gensoluscel", length = 50)
+    private String celular;
+
+    @Column(name = "gensolusfecnac")
+    private java.time.LocalDate fechaNacimiento;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)

@@ -540,7 +540,7 @@ export function DirectoryModule() {
                   <div className="flex gap-3 pt-2">
                     <button onClick={() => setEditingEntry(null)} className="flex-1 border-2 border-gray-200 text-gray-600 py-2.5 rounded-lg font-semibold text-sm">← Volver</button>
                     <button onClick={handleSaveEdit} className="flex-1 bg-gradient-to-r from-[#0778AC] to-[#0996d3] text-white py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2">
-                      <Check className="w-4 h-4" /> Guardar Cambios
+                      <Check className="w-4 h-4" /> Actualizar
                     </button>
                   </div>
                 </div>
@@ -656,7 +656,7 @@ export function DirectoryModule() {
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowEditEmailModal(false)} className="flex-1 border-2 border-gray-200 text-gray-600 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors">Cancelar</button>
-                <button type="submit" className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all">Guardar Cambios</button>
+                <button type="submit" className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all">Actualizar</button>
               </div>
             </form>
           </div>

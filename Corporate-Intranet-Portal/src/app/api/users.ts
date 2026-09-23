@@ -22,6 +22,7 @@ export const usersApi = {
       nombreCompleto: user.fullName,
       fechaNacimiento: (user as User).birthDate || "1990-01-01",
       correoInstitucional: user.email || `${user.username}@icvc.local`,
+      telefono: (user as any).phone || user.phone || "",
       cargoOid,
     };
     const dto = await apiFetch<BackendUsuarioResponse>("/users", { method: "POST", body });
@@ -35,7 +36,7 @@ export const usersApi = {
       const found = (cargos as unknown as { oid: number; nombre: string }[]).find(c => c.nombre.toLowerCase() === roleName);
       if (found) cargoOid = found.oid;
     } catch {}
-    const body: Record<string, unknown> = { nombreCompleto: user.fullName, correoInstitucional: user.email, cargoOid, estado: user.status === "active" };
+    const body: Record<string, unknown> = { nombreCompleto: user.fullName, correoInstitucional: user.email, telefono: (user as any).phone || user.phone || "", cargoOid, estado: user.status === "active" };
     if ((user as User).birthDate) body.fechaNacimiento = (user as User).birthDate;
     const dto = await apiFetch<BackendUsuarioResponse>(`/users/${user.username}`, { method: "PUT", body });
     return mapUsuarioToFE(dto);
@@ -45,12 +46,14 @@ export const usersApi = {
     const dto = await apiFetch<BackendUsuarioResponse>(`/users/${username}/status`, { method: "PATCH", body: { estado: nuevoEstado } });
     return mapUsuarioToFE(dto);
   },
-  resetPassword: (id: string) => apiFetch<void>(`/users/${id}/password`, { method: "PATCH", body: { password: null } }),
-  accessRequests: () => apiFetch<AccessRequest[]>("/access-requests"),
+  resetPassword: (id: string, newPassword?: string) => apiFetch<void>(`/users/${id}/password`, { method: "PATCH", body: { password: newPassword ?? null } }),
+  accessRequests: () => apiFetch<any[]>("/access-requests"),
   createAccessRequest: (request: Omit<AccessRequest, "id" | "requestDate" | "status">) =>
     apiFetch<AccessRequest>("/access-requests", { method: "POST", body: request }),
-  approveAccessRequest: (id: string) => apiFetch<void>(`/access-requests/${id}/approve`, { method: "POST" }),
-  rejectAccessRequest: (id: string) => apiFetch<void>(`/access-requests/${id}/reject`, { method: "POST" }),
+  createAccessRequestRaw: (payload: { primerNombre: string; segundoNombre?: string | null; primerApellido: string; segundoApellido: string; identificacion: number; correo: string; celular: string; cargo: string; fechaNacimiento: string }) =>
+    apiFetch<any>("/access-requests", { method: "POST", body: payload }),
+  approveAccessRequest: (id: string, motivo?: string) => apiFetch<void>(`/access-requests/${id}/approve`, { method: "POST", body: motivo ? { observaciones: motivo } : {} }),
+  rejectAccessRequest: (id: string, motivo?: string) => apiFetch<void>(`/access-requests/${id}/reject`, { method: "POST", body: motivo ? { observaciones: motivo } : {} }),
   passwordResetRequests: () => apiFetch<PasswordResetRequest[]>("/password-reset-requests"),
   createPasswordResetRequest: (request: Omit<PasswordResetRequest, "id" | "requestDate" | "status">) =>
     apiFetch<PasswordResetRequest>("/password-reset-requests", { method: "POST", body: request }),

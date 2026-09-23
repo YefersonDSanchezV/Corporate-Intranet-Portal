@@ -53,6 +53,9 @@ public class Usuario {
     @Column(name = "genusuemacor", nullable = false, length = 255)
     private String correoInstitucional;
 
+    @Column(name = "genusutel", length = 50)
+    private String telefono;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "gencargointra", nullable = false)
     private CargoIntra cargo;

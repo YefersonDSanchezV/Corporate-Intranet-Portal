@@ -34,12 +34,16 @@ public class AccessRequestController {
     }
 
     @PostMapping("/{id}/approve")
-    public SolicitudUsuarioDtos.Response approve(@PathVariable Integer id) {
-        return accessRequestService.approve(id);
+    public SolicitudUsuarioDtos.Response approve(@PathVariable Integer id,
+            @RequestBody(required = false) SolicitudUsuarioDtos.ApproveRequest body) {
+        String motivo = body != null ? body.observaciones() : null;
+        return accessRequestService.approve(id, motivo);
     }
 
     @PostMapping("/{id}/reject")
-    public SolicitudUsuarioDtos.Response reject(@PathVariable Integer id) {
-        return accessRequestService.reject(id);
+    public SolicitudUsuarioDtos.Response reject(@PathVariable Integer id,
+            @RequestBody(required = false) SolicitudUsuarioDtos.RejectRequest body) {
+        String motivo = body != null ? body.observaciones() : null;
+        return accessRequestService.reject(id, motivo);
     }
 }

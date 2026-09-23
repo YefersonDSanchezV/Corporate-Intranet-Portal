@@ -20,12 +20,14 @@ public final class UsuarioDtos {
             @NotBlank String nombreCompleto,
             @NotNull LocalDate fechaNacimiento,
             @NotBlank @Email String correoInstitucional,
+            @NotBlank String telefono,
             @NotNull @Positive Integer cargoOid) {
     }
 
     public record UpdateRequest(
             @NotBlank String nombreCompleto,
             @NotBlank @Email String correoInstitucional,
+            String telefono,
             @NotNull @Positive Integer cargoOid,
             @NotNull Boolean estado,
             LocalDate fechaNacimiento) {
@@ -44,6 +46,7 @@ public final class UsuarioDtos {
             String nombreCompleto,
             LocalDate fechaNacimiento,
             String correoInstitucional,
+            String telefono,
             Integer cargoOid,
             String cargoNombre,
             boolean estado,
@@ -57,6 +60,7 @@ public final class UsuarioDtos {
                     usuario.getNombreCompleto(),
                     usuario.getFechaNacimiento(),
                     usuario.getCorreoInstitucional(),
+                    usuario.getTelefono(),
                     usuario.getCargo() != null ? usuario.getCargo().getOid() : null,
                     usuario.getCargo() != null ? usuario.getCargo().getNombre() : null,
                     usuario.isEstado(),

@@ -52,9 +52,9 @@ public class UserService {
         try {
             Integer nextOid = jdbcTemplate.queryForObject("SELECT COALESCE(MAX(oid),0)+1 FROM genusuario", Integer.class);
             jdbcTemplate.update(
-                    "INSERT INTO genusuario (oid, genusunom, genusuclahash, genususta, genusuide, genusunomcom, genusufecnam, genusuemacor, gencargointra, genusufechcrea) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO genusuario (oid, genusunom, genusuclahash, genususta, genusuide, genusunomcom, genusufecnam, genusuemacor, genusutel, gencargointra, genusufechcrea) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                     nextOid, request.username(), hash, true, request.identificacion(), request.nombreCompleto(),
-                    Date.valueOf(request.fechaNacimiento()), request.correoInstitucional(), request.cargoOid(), Timestamp.valueOf(now));
+                    Date.valueOf(request.fechaNacimiento()), request.correoInstitucional(), request.telefono(), request.cargoOid(), Timestamp.valueOf(now));
             Usuario saved = usuarioRepository.findByUsername(request.username()).orElseThrow();
             return UsuarioDtos.Response.from(saved);
         } catch (Exception ex) {
@@ -68,6 +68,7 @@ public class UserService {
                     .nombreCompleto(request.nombreCompleto())
                     .fechaNacimiento(request.fechaNacimiento())
                     .correoInstitucional(request.correoInstitucional())
+                    .telefono(request.telefono())
                     .cargo(cargo)
                     .fechaCreacion(now)
                     .build();
@@ -82,6 +83,9 @@ public class UserService {
                 .orElseThrow(() -> NotFoundException.of("Cargo", request.cargoOid()));
         usuario.setNombreCompleto(request.nombreCompleto());
         usuario.setCorreoInstitucional(request.correoInstitucional());
+        if (request.telefono() != null && !request.telefono().isBlank()) {
+            usuario.setTelefono(request.telefono());
+        }
         usuario.setCargo(cargo);
         usuario.setEstado(request.estado());
         if (request.fechaNacimiento() != null) {

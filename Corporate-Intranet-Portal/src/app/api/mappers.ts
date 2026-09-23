@@ -106,7 +106,7 @@ export function mapLogroToFE(dto: BackendLogroResponse): Achievement {
 
 // --- Users ---
 import type { User } from "../contexts/AuthContext";
-export interface BackendUsuarioResponse { oid: number; username: string; identificacion: number; nombreCompleto: string; fechaNacimiento: string; correoInstitucional: string; cargoOid: number | null; cargoNombre: string | null; estado: boolean; fechaCreacion: string; }
+export interface BackendUsuarioResponse { oid: number; username: string; identificacion: number; nombreCompleto: string; fechaNacimiento: string; correoInstitucional: string; telefono?: string | null; cargoOid: number | null; cargoNombre: string | null; estado: boolean; fechaCreacion: string; }
 export function mapUsuarioToFE(dto: BackendUsuarioResponse): User {
   return {
     id: String(dto.oid),
@@ -114,6 +114,7 @@ export function mapUsuarioToFE(dto: BackendUsuarioResponse): User {
     fullName: dto.nombreCompleto,
     identification: String(dto.identificacion),
     email: dto.correoInstitucional,
+    phone: (dto as any).telefono ?? "",
     position: dto.cargoNombre ?? "",
     department: "",
     role: (dto.cargoNombre?.toLowerCase().replace(/\s+/g, "_") as User["role"]) || "admin",

@@ -25,6 +25,9 @@ class AccessRequestServiceTest {
     @Mock
     private SolicitudUsuarioRepository solicitudRepository;
 
+    @Mock
+    private co.com.icvc.intranet_backend.user.repository.UsuarioRepository usuarioRepository;
+
     @InjectMocks
     private AccessRequestService accessRequestService;
 
@@ -36,11 +39,12 @@ class AccessRequestServiceTest {
                 .estado(EstadoSolicitud.PENDIENTE)
                 .fechaSolicitud(LocalDateTime.now())
                 .build();
+        when(usuarioRepository.existsByIdentificacion(100L)).thenReturn(false);
         when(solicitudRepository.save(any())).thenReturn(guardada);
 
         var response = accessRequestService.create(
                 new co.com.icvc.intranet_backend.user.dto.SolicitudUsuarioDtos.CreateRequest(
-                        100L, "Ana", "Enfermera", "ana@icvc.gov.co", "nueva"));
+                        100L, "Ana", null, "Perez", "Gomez", "Enfermera", "ana@icvc.gov.co", "3001234567", java.time.LocalDate.of(1995,5,20), null, "nueva"));
 
         assertThat(response.estado()).isEqualTo("PENDIENTE");
         assertThat(response.identificacion()).isEqualTo(100L);
@@ -72,7 +76,7 @@ class AccessRequestServiceTest {
 
         assertThatThrownBy(() -> accessRequestService.approve(1))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("pendientes");
+                .hasMessageContaining("aprobada");
     }
 
     @Test

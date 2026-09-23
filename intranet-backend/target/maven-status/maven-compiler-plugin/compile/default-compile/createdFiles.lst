@@ -55,6 +55,7 @@ co\com\icvc\intranet_backend\user\service\AuthService.class
 co\com\icvc\intranet_backend\assistance\entity\ArchivoFormato$ArchivoFormatoBuilder.class
 co\com\icvc\intranet_backend\directory\repository\PisoRepository.class
 co\com\icvc\intranet_backend\user\controller\LogController.class
+co\com\icvc\intranet_backend\user\dto\SolicitudUsuarioDtos$ApproveRequest.class
 co\com\icvc\intranet_backend\user\entity\Usuario$UsuarioBuilder.class
 co\com\icvc\intranet_backend\directory\controller\DirectoryController.class
 co\com\icvc\intranet_backend\assistance\entity\FormatoContingencia.class
@@ -124,6 +125,7 @@ co\com\icvc\intranet_backend\user\dto\UsuarioDtos$UpdatePasswordRequest.class
 co\com\icvc\intranet_backend\directory\entity\Area.class
 co\com\icvc\intranet_backend\assistance\dto\AssistanceDtos$FormatoRequest.class
 co\com\icvc\intranet_backend\communication\entity\ArchivoLogro$ArchivoLogroBuilder.class
+co\com\icvc\intranet_backend\user\dto\SolicitudUsuarioDtos$RejectRequest.class
 co\com\icvc\intranet_backend\portal\controller\FileController.class
 co\com\icvc\intranet_backend\portal\dto\PortalDtos$ArchivoResponse.class
 co\com\icvc\intranet_backend\communication\entity\Rol.class

@@ -222,11 +222,15 @@ useEffect(() => localStorage.setItem("intranet_users", JSON.stringify(users)), [
   const addUser = useCallback(async (userData: Omit<User, "id" | "status" | "createdDate">) => {
     try {
       const created = await usersApi.create(userData);
-      // Preservar phone localmente porque backend no lo persiste (genusuario no tiene campo teléfono)
       const merged = { ...created, phone: (userData as any).phone ?? (created as any).phone } as User;
       setUsers(prev => ({ ...prev, [merged.username.toLowerCase()]: merged }));
-    } catch {
-      // Fallback offline: guarda en localStorage
+    } catch (e) {
+      const apiErr = e as any;
+      // No crear usuario local si es error de validación (400/409) — mostrar error al caller
+      if (apiErr && typeof apiErr.status === "number" && apiErr.status >= 400 && apiErr.status < 500) {
+        throw e;
+      }
+      // Fallback offline solo para errores de red/servidor
       const newUser: User = {
         ...userData,
         id: Date.now().toString(),

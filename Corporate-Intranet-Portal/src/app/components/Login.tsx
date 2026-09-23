@@ -1,4 +1,4 @@
-import { User, Lock, LogIn, AlertCircle } from "lucide-react";
+import { User, Lock, LogIn, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useState } from "react";
 import { AccessRequestModal } from "./modals/AccessRequestModal";
@@ -18,6 +18,7 @@ export function Login() {
   });
   const [showAccessRequestModal, setShowAccessRequestModal] = useState(false);
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
 
@@ -94,13 +95,22 @@ export function Login() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0778AC]" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Ingrese su contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg pl-12 pr-4 py-3 text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#CF3438] focus:ring-2 focus:ring-[#CF3438]/20 transition-all"
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg pl-12 pr-12 py-3 text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#CF3438] focus:ring-2 focus:ring-[#CF3438]/20 transition-all"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-[#0778AC] transition-colors"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
             </div>
 
@@ -125,9 +135,9 @@ export function Login() {
             </button>
             <button
               onClick={() => setShowAccessRequestModal(true)}
-              className="text-sm text-[#0778AC] hover:text-[#CF3438] transition-colors block w-full"
+              className="text-sm text-[#0778AC] hover:text-[#CF3438] transition-colors block w-full font-medium"
             >
-              Solicitar acceso al portal
+              Solicitar Acceso
             </button>
           </div>
         </div>

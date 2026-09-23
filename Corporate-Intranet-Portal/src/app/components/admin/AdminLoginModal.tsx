@@ -1,6 +1,7 @@
-import { User, Lock, LogIn, AlertCircle, X } from "lucide-react";
+import { User, Lock, LogIn, AlertCircle, X, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useAdminAuth } from "../../contexts/AdminAuthContext";
+import { AccessRequestModal } from "../modals/AccessRequestModal";
 
 interface AdminLoginModalProps {
   isOpen: boolean;
@@ -14,6 +15,8 @@ export function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProps) {
   const [error, setError] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [showAccessRequest, setShowAccessRequest] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   if (!isOpen) return null;
 
@@ -114,14 +117,23 @@ export function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProps) {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0778AC]" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Ingrese su contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg pl-12 pr-4 py-3 text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#CF3438] focus:ring-2 focus:ring-[#CF3438]/20 transition-all"
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg pl-12 pr-12 py-3 text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#CF3438] focus:ring-2 focus:ring-[#CF3438]/20 transition-all"
                   required
                   autoComplete="current-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-[#0778AC] transition-colors"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
             </div>
 
@@ -135,8 +147,18 @@ export function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProps) {
               <span className="text-base md:text-lg">{loading ? "INGRESANDO..." : "INGRESAR"}</span>
             </button>
           </form>
+
+          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
+            <button
+              onClick={() => setShowAccessRequest(true)}
+              className="text-sm text-[#0778AC] hover:text-[#CF3438] transition-colors font-medium"
+            >
+              Solicitar Acceso
+            </button>
+          </div>
         </div>
       </div>
+      <AccessRequestModal isOpen={showAccessRequest} onClose={() => setShowAccessRequest(false)} />
     </div>
   );
 }

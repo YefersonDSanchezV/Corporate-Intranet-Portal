@@ -218,7 +218,7 @@ export function GeneralesSitiosView() {
               </div>
               <div className="md:col-span-2 flex justify-end gap-3 pt-2 border-t border-gray-100">
                 <button type="button" onClick={() => { setShowForm(false); reset(); }} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50">Cancelar</button>
-                <button type="submit" className="bg-[#CF3438] hover:bg-[#a01f24] text-white px-6 py-3 rounded-lg font-semibold">Grabar</button>
+                <button type="submit" className="bg-[#CF3438] hover:bg-[#a01f24] text-white px-6 py-3 rounded-lg font-semibold">{editing ? "Actualizar" : "Grabar"}</button>
               </div>
             </form>
           </div>
