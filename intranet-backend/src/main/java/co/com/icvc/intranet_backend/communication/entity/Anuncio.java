@@ -69,4 +69,10 @@ public class Anuncio {
 
     @Column(name = "comanueliminado", nullable = false)
     private boolean eliminado;
+
+    @Column(name = "comanucodigo", length = 20, unique = true)
+    private String codigo;
+
+    @Column(name = "comanuarea", length = 255)
+    private String areaInforma;
 }

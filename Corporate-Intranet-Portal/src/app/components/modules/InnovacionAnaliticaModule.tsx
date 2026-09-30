@@ -1,11 +1,9 @@
 import { BarChart2, ExternalLink, Globe } from "lucide-react";
 import { useMemo } from "react";
 import { useSystem } from "../../contexts/SystemContext";
-import { getGreeting } from "../../utils/greetings";
 
 export function InnovacionAnaliticaModule() {
   const { sites } = useSystem();
-  const greeting = getGreeting();
 
   // Solo los sitios asociados al módulo "InnovacionAnalitica"
   const iaLinks = useMemo(
@@ -19,23 +17,6 @@ export function InnovacionAnaliticaModule() {
 
   return (
     <div className="space-y-6">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-[#0778AC] mb-2">
-          Innovación Analítica
-        </h1>
-        <div className="h-1 bg-gradient-to-r from-[#CF3438] to-transparent w-32 md:w-48 rounded-full" />
-      </div>
-
-      <div className="mb-8 bg-white p-6 rounded-xl shadow-sm border-l-4 border-[#0778AC]">
-        <p className="text-gray-700 font-bold text-sm md:text-base mb-1">
-          ¡{greeting}!
-        </p>
-        <p className="text-gray-600 text-sm md:text-base">
-          En este módulo encontrarás los recursos y plataformas de análisis de
-          datos disponibles para el equipo de Innovación Analítica.
-        </p>
-      </div>
-
       {/* Enlaces disponibles */}
       <section>
         <h2 className="text-lg md:text-xl font-semibold text-[#0778AC] mb-4 pb-2 border-b-2 border-[#CF3438]/30">

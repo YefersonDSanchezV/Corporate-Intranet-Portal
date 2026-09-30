@@ -11,4 +11,8 @@ public interface AnuncioRepository extends JpaRepository<Anuncio, Integer> {
     List<Anuncio> findAllByEliminadoFalseOrderByFechaCreacionDesc();
 
     List<Anuncio> findAllByEliminadoFalseAndEstadoOrderByFechaCreacionDesc(EstadoAnuncio estado);
+
+    boolean existsByCodigo(String codigo);
+
+    java.util.Optional<Anuncio> findTopByOrderByOidDesc();
 }

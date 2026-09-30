@@ -14,6 +14,7 @@ export interface RedirectSite {
   ref: string;
   moduleId: string;
   active: boolean;
+  accesoRapido?: boolean;
 }
 
 export interface Role {
@@ -125,6 +126,7 @@ interface SystemContextType {
   updateSite: (site: RedirectSite) => Promise<void>;
   removeSite: (id: string) => Promise<void>;
   toggleSiteActive: (id: string) => Promise<void>;
+  toggleSiteAccesoRapido: (id: string) => Promise<void>;
   
   roles: Role[];
   addRole: (role: Omit<Role, 'id'>) => Promise<void>;
@@ -132,6 +134,8 @@ interface SystemContextType {
   rolePermissions: RolePermission[];
   updateRoleModulePermissions: (roleId: string, modules: string[]) => void;
   updateRoleActionPermissions: (roleId: string, actions: string[]) => void;
+  comUserPermissions: Record<string, string[]>;
+  updateComUserPermissions: (userId: string, actions: string[]) => void;
   
   directory: DirectoryEntry[];
   addDirectoryEntry: (entry: Omit<DirectoryEntry, 'id' | 'active'>) => Promise<void>;
@@ -206,6 +210,19 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
     return [];
   });
 
+  const [comUserPermissions, setComUserPermissions] = useState<Record<string, string[]>>(() => {
+    const saved = localStorage.getItem('intranet_com_user_permissions');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      } catch (e) {
+        console.error("Error parsing com user permissions", e);
+      }
+    }
+    return {};
+  });
+
   const [directory, setDirectory] = useState<DirectoryEntry[]>(() => {
     const saved = localStorage.getItem('intranet_directory');
     return saved ? JSON.parse(saved) : [];
@@ -250,6 +267,7 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('intranet_sites', JSON.stringify(sites));
     localStorage.setItem('intranet_roles', JSON.stringify(roles));
     localStorage.setItem('intranet_role_permissions', JSON.stringify(rolePermissions));
+    localStorage.setItem('intranet_com_user_permissions', JSON.stringify(comUserPermissions));
     localStorage.setItem('intranet_directory', JSON.stringify(directory));
     localStorage.setItem('intranet_eps', JSON.stringify(epsList));
     localStorage.setItem('intranet_contracts', JSON.stringify(contracts));
@@ -258,57 +276,93 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('intranet_achievements', JSON.stringify(achievements));
     localStorage.setItem('intranet_tasks', JSON.stringify(tasks));
     localStorage.setItem('intranet_institution_emails', JSON.stringify(institutionEmails));
-  }, [sites, roles, rolePermissions, directory, epsList, contracts, supportContacts, contingencyFormats, achievements, tasks, institutionEmails]);
+  }, [sites, roles, rolePermissions, comUserPermissions, directory, epsList, contracts, supportContacts, contingencyFormats, achievements, tasks, institutionEmails]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!(await apiAvailable())) return;
       try {
-        const [siteData, extData, emailData, taskData, achData, cargoData] = await Promise.all([
+        const [siteData, extData, emailData, taskData, achData, cargoData, permisosData, comUserPermsData] = await Promise.all([
           sitesApi.list().catch(() => null),
           directoryApi.extensions().catch(() => null),
           directoryApi.emails().catch(() => null),
           tasksApi.list().catch(() => null),
           achievementsApi.list().catch(() => null),
           apiFetch<{ oid: number; nombre: string; estado: boolean }[]>("/cargos").catch(() => null),
+          apiFetch<{ cargoOid: number; modulos: string[]; acciones: string[] }[]>("/cargos/permisos").catch(() => null),
+          apiFetch<Record<string, string[]>>("/communication/user-permissions").catch(() => null),
         ]);
         if (cancelled) return;
-        // Si el backend responde (aunque sea []), sincroniza y limpia localStorage viejo
-        if (Array.isArray(siteData)) setSites(siteData);
-        if (Array.isArray(extData)) setDirectory(extData);
-        if (Array.isArray(emailData)) setInstitutionEmails(emailData);
-        if (Array.isArray(taskData)) setTasks(taskData);
-        if (Array.isArray(achData)) setAchievements(achData);
+        // Solo sincronizar si backend retorna datos no vacíos para no borrar localStorage en recargas
+        if (Array.isArray(siteData) && siteData.length > 0) setSites(siteData);
+        if (Array.isArray(extData) && extData.length > 0) setDirectory(extData);
+        if (Array.isArray(emailData) && emailData.length > 0) setInstitutionEmails(emailData);
+        if (Array.isArray(taskData) && taskData.length > 0) setTasks(taskData);
+        if (Array.isArray(achData) && achData.length > 0) setAchievements(achData);
+        if (comUserPermsData && typeof comUserPermsData === 'object' && Object.keys(comUserPermsData).length > 0) {
+          setComUserPermissions(comUserPermsData as Record<string, string[]>);
+        }
         if (Array.isArray(cargoData)) {
           const mappedRoles: Role[] = cargoData.map(c => ({ id: String(c.oid), name: c.nombre, description: c.nombre, estado: c.estado }));
           setRoles(mappedRoles);
-          setRolePermissions(curr => {
-            const next = [...curr];
-            let updated = false;
+          if (Array.isArray(permisosData) && permisosData.length > 0) {
+            // Backend es fuente de verdad: hidratar rolePermissions desde BD
+            const fromBackend: RolePermission[] = permisosData.map(p => ({
+              roleId: String(p.cargoOid),
+              modules: p.modulos || [],
+              actions: p.acciones || [],
+            }));
+            // Asegurar que administrador tenga todos los permisos
+            const adminIds = new Set(mappedRoles.filter(r => r.name.toLowerCase() === 'administrador').map(r => r.id));
+            const adminActions = ["Registrar Directorio", "Editar Solicitudes de registros de anuncios", "Aprobar y Rechazar solicitudes de Anuncios", "Listar Usuarios", "Crear usuarios", "Solicitudes de Usuarios", "Editar Usuarios", "Reinicio de Contraseña", "Consultar Logs", "Registrar Sitios de redirección", "Actualizar sitios de redirección", "Consultar sitios de redirección", "Autorizar módulos a Usuarios", "Autorizar Acciones de Módulos a Usuarios"];
+            fromBackend.forEach(rp => {
+              if (adminIds.has(rp.roleId)) {
+                rp.modules = [...new Set([...rp.modules, ...CONTROL_PANEL_ALL_PERMISSION_IDS])];
+                if (rp.actions.length === 0) rp.actions = adminActions;
+              }
+              if (rp.modules.length === 0) rp.modules = ["Inicio"];
+            });
+            // Añadir roles sin entrada en backend (nuevos)
             mappedRoles.forEach(r => {
-              const existing = next.find(p => p.roleId === r.id);
-              const isAdmin = r.name.toLowerCase() === 'administrador';
-              if (!existing) {
-                next.push({
+              if (!fromBackend.some(p => p.roleId === r.id)) {
+                const isAdmin = r.name.toLowerCase() === 'administrador';
+                fromBackend.push({
                   roleId: r.id,
                   modules: isAdmin ? CONTROL_PANEL_ALL_PERMISSION_IDS : ["Inicio"],
-                  actions: isAdmin ? ["Registrar Directorio", "Editar Solicitudes de registros de anuncios", "Aprobar y Rechazar solicitudes de Anuncios", "Listar Usuarios", "Crear usuarios", "Solicitudes de Usuarios", "Editar Usuarios", "Reinicio de Contraseña", "Consultar Logs", "Registrar Sitios de redirección", "Actualizar sitios de redirección", "Consultar sitios de redirección", "Autorizar módulos a Usuarios", "Autorizar Acciones de Módulos a Usuarios"] : []
+                  actions: isAdmin ? adminActions : []
                 });
-                updated = true;
-              } else if (isAdmin) {
-                const merged = [...new Set([...existing.modules, ...CONTROL_PANEL_ALL_PERMISSION_IDS])];
-                if (merged.length !== existing.modules.length) {
-                  existing.modules = merged;
-                  updated = true;
-                }
-                existing.actions = ["Registrar Directorio", "Editar Solicitudes de registros de anuncios", "Aprobar y Rechazar solicitudes de Anuncios", "Listar Usuarios", "Crear usuarios", "Solicitudes de Usuarios", "Editar Usuarios", "Reinicio de Contraseña", "Consultar Logs", "Registrar Sitios de redirección", "Actualizar sitios de redirección", "Consultar sitios de redirección", "Autorizar módulos a Usuarios", "Autorizar Acciones de Módulos a Usuarios"];
               }
             });
-            // Limpiar permisos de roles que ya no existen
-            const filtered = next.filter(p => mappedRoles.some(r => r.id === p.roleId));
-            return filtered.length !== next.length || updated ? filtered : next;
-          });
+            setRolePermissions(fromBackend);
+          } else {
+            // Fallback legacy: usar localStorage existente y completar nuevos roles
+            setRolePermissions(curr => {
+              const next = [...curr];
+              let updated = false;
+              mappedRoles.forEach(r => {
+                const existing = next.find(p => p.roleId === r.id);
+                const isAdmin = r.name.toLowerCase() === 'administrador';
+                if (!existing) {
+                  next.push({
+                    roleId: r.id,
+                    modules: isAdmin ? CONTROL_PANEL_ALL_PERMISSION_IDS : ["Inicio"],
+                    actions: isAdmin ? ["Registrar Directorio", "Editar Solicitudes de registros de anuncios", "Aprobar y Rechazar solicitudes de Anuncios", "Listar Usuarios", "Crear usuarios", "Solicitudes de Usuarios", "Editar Usuarios", "Reinicio de Contraseña", "Consultar Logs", "Registrar Sitios de redirección", "Actualizar sitios de redirección", "Consultar sitios de redirección", "Autorizar módulos a Usuarios", "Autorizar Acciones de Módulos a Usuarios"] : []
+                  });
+                  updated = true;
+                } else if (isAdmin) {
+                  const merged = [...new Set([...existing.modules, ...CONTROL_PANEL_ALL_PERMISSION_IDS])];
+                  if (merged.length !== existing.modules.length) {
+                    existing.modules = merged;
+                    updated = true;
+                  }
+                  existing.actions = ["Registrar Directorio", "Editar Solicitudes de registros de anuncios", "Aprobar y Rechazar solicitudes de Anuncios", "Listar Usuarios", "Crear usuarios", "Solicitudes de Usuarios", "Editar Usuarios", "Reinicio de Contraseña", "Consultar Logs", "Registrar Sitios de redirección", "Actualizar sitios de redirección", "Consultar sitios de redirección", "Autorizar módulos a Usuarios", "Autorizar Acciones de Módulos a Usuarios"];
+                }
+              });
+              const filtered = next.filter(p => mappedRoles.some(r => r.id === p.roleId));
+              return filtered.length !== next.length || updated ? filtered : next;
+            });
+          }
         }
       } catch {
         // Backend no disponible: se mantienen los datos mock/localStorage
@@ -334,6 +388,11 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
     setSites(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
   };
 
+  const toggleSiteAccesoRapido = async (id: string) => {
+    const updated = await sitesApi.toggleAccesoRapido(id);
+    setSites(prev => prev.map(s => s.id === id ? updated : s));
+  };
+
   const removeSite = async (id: string) => {
     await sitesApi.remove(id);
     setSites(prev => prev.filter(s => s.id !== id));
@@ -346,6 +405,8 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
       const newRole: Role = { id: String(created.oid), name: created.nombre, description: created.nombre, estado: created.estado };
       setRoles(prev => [...prev, newRole]);
       setRolePermissions(prev => [...prev, { roleId: newRole.id, modules: ["Inicio"], actions: [] }]);
+      // Persistir permisos iniciales en backend para que no se pierdan al recrear contenedor
+      persistPermisos(String(created.oid), ["Inicio"], []);
     } catch {
       const newId = `r-${Date.now()}`;
       setRoles(prev => [...prev, { ...role, id: newId, estado: true }]);
@@ -367,23 +428,53 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const persistPermisos = async (roleId: string, modules: string[], actions: string[]) => {
+    try {
+      await apiFetch(`/cargos/${roleId}/permisos`, { method: "PUT", body: { modulos: modules, acciones: actions } });
+    } catch (e) {
+      console.warn("No se pudo persistir permisos en backend, se mantiene en localStorage", e);
+    }
+  };
+
   const updateRoleModulePermissions = (roleId: string, modules: string[]) => {
+    let actionsToPersist: string[] = [];
     setRolePermissions(prev => {
       const existing = prev.find(p => p.roleId === roleId);
+      let next: RolePermission[];
       if (existing) {
-        return prev.map(p => p.roleId === roleId ? { ...p, modules } : p);
+        actionsToPersist = existing.actions;
+        next = prev.map(p => p.roleId === roleId ? { ...p, modules } : p);
+      } else {
+        next = [...prev, { roleId, modules, actions: [] }];
       }
-      return [...prev, { roleId, modules, actions: [] }];
+      // persistir en backend sin bloquear UI
+      persistPermisos(roleId, modules, actionsToPersist);
+      return next;
     });
   };
 
   const updateRoleActionPermissions = (roleId: string, actions: string[]) => {
+    let modulesToPersist: string[] = [];
     setRolePermissions(prev => {
       const existing = prev.find(p => p.roleId === roleId);
+      let next: RolePermission[];
       if (existing) {
-        return prev.map(p => p.roleId === roleId ? { ...p, actions } : p);
+        modulesToPersist = existing.modules;
+        next = prev.map(p => p.roleId === roleId ? { ...p, actions } : p);
+      } else {
+        next = [...prev, { roleId, modules: [], actions }];
       }
-      return [...prev, { roleId, modules: [], actions }];
+      persistPermisos(roleId, modulesToPersist, actions);
+      return next;
+    });
+  };
+
+  const updateComUserPermissions = (userId: string, actions: string[]) => {
+    setComUserPermissions(prev => {
+      const next = { ...prev, [userId]: actions };
+      // intento de persistencia backend opcional
+      apiFetch(`/communication/user-permissions/${userId}`, { method: "PUT", body: { acciones: actions } }).catch(() => {});
+      return next;
     });
   };
 
@@ -529,8 +620,9 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <SystemContext.Provider value={{
-      sites, setSites, addSite, updateSite, removeSite, toggleSiteActive,
+      sites, setSites, addSite, updateSite, removeSite, toggleSiteActive, toggleSiteAccesoRapido,
       roles, addRole, toggleRoleEstado, rolePermissions, updateRoleModulePermissions, updateRoleActionPermissions,
+      comUserPermissions, updateComUserPermissions,
       directory, addDirectoryEntry, updateDirectoryEntry, removeDirectoryEntry,
       epsList, setEpsList, addEps, removeEps,
       contracts, addContract, updateContract,

@@ -52,4 +52,9 @@ public class SiteController {
     public PortalDtos.SitioResponse updateActive(@PathVariable Integer id) {
         return siteService.toggleActive(id);
     }
+
+    @PatchMapping("/{id}/acceso-rapido")
+    public PortalDtos.SitioResponse toggleAccesoRapido(@PathVariable Integer id) {
+        return siteService.toggleAccesoRapido(id);
+    }
 }

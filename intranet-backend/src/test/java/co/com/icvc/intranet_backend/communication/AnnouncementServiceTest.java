@@ -54,7 +54,7 @@ class AnnouncementServiceTest {
         when(anuncioRepository.save(any())).thenReturn(anuncio);
 
         AnuncioDtos.Response response = announcementService.create(
-                new AnuncioDtos.CreateRequest("Nuevo anuncio", "desc", 1, null, null, null), null);
+                new AnuncioDtos.CreateRequest("Nuevo anuncio", "desc", 1, null, null, null, null), null);
 
         assertThat(response.estado()).isEqualTo("PENDIENTE");
         verify(anuncioRepository).save(any());

@@ -1,22 +1,17 @@
-import { 
-  Stethoscope
-} from "lucide-react";
+import { Globe } from "lucide-react";
 import { AppCard } from "./AppCard";
-import { useState } from "react";
-import { ExternalConsultationModal } from "./modals/ExternalConsultationModal";
+import { useSystem } from "../contexts/SystemContext";
 
 export function ClinicalAreaPanel() {
-  const [externalConsultationModalOpen, setExternalConsultationModalOpen] = useState(false);
+  const { sites } = useSystem();
 
-  const handleAppClick = (appName: string) => {
-    if (appName === "Consulta Externa") {
-      setExternalConsultationModalOpen(true);
-    }
+  const handleAppClick = (_appName: string, url?: string) => {
+    if (url) window.open(url, "_blank");
   };
 
-  const clinicalApps = [
-    { title: "Consulta Externa", icon: Stethoscope, name: "Consulta Externa" }
-  ];
+  const clinicalApps = sites
+    .filter((s) => (s.moduleId === "Area Asistencial" || s.moduleId === "Clinical") && s.active)
+    .map((s) => ({ title: s.title, icon: Globe, name: s.title, url: s.url }));
 
   return (
     <>
@@ -24,22 +19,21 @@ export function ClinicalAreaPanel() {
         <h2 className="text-lg md:text-xl font-semibold text-[#0778AC] mb-4 pb-2 border-b-2 border-[#CF3438]/30">
           Área Asistencial
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-          {clinicalApps.map((app, index) => (
-            <AppCard 
-              key={index} 
-              title={app.title} 
-              icon={app.icon}
-              onClick={() => handleAppClick(app.name)}
-            />
-          ))}
-        </div>
+        {clinicalApps.length === 0 ? (
+          <p className="text-sm text-gray-400 italic">No hay sitios habilitados. Configure en Módulo → Sitio de Redirección.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+            {clinicalApps.map((app, index) => (
+              <AppCard
+                key={index}
+                title={app.title}
+                icon={app.icon}
+                onClick={() => handleAppClick(app.name, (app as any).url)}
+              />
+            ))}
+          </div>
+        )}
       </section>
-
-      <ExternalConsultationModal
-        isOpen={externalConsultationModalOpen}
-        onClose={() => setExternalConsultationModalOpen(false)}
-      />
     </>
   );
 }

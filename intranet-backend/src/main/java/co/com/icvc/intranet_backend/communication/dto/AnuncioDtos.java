@@ -19,7 +19,8 @@ public final class AnuncioDtos {
             @NotNull @Positive Integer tipoOid,
             LocalDateTime fechaInicio,
             LocalDateTime fechaFin,
-            LocalDateTime fechaVencimiento) {
+            LocalDateTime fechaVencimiento,
+            String areaInforma) {
     }
 
     public record Response(
@@ -35,7 +36,9 @@ public final class AnuncioDtos {
             String estado,
             LocalDateTime fechaCreacion,
             LocalDateTime fechaVencimiento,
-            boolean eliminado) {
+            boolean eliminado,
+            String codigo,
+            String areaInforma) {
 
         public static Response from(Anuncio anuncio) {
             return new Response(
@@ -53,7 +56,9 @@ public final class AnuncioDtos {
                     anuncio.getEstado() != null ? anuncio.getEstado().name() : null,
                     anuncio.getFechaCreacion(),
                     anuncio.getFechaVencimiento(),
-                    anuncio.isEliminado());
+                    anuncio.isEliminado(),
+                    anuncio.getCodigo(),
+                    anuncio.getAreaInforma());
         }
     }
 

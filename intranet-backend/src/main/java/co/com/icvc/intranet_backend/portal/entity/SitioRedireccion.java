@@ -41,4 +41,8 @@ public class SitioRedireccion {
 
     @Column(name = "gensitredicon", nullable = false, length = 255)
     private String icono;
+
+    @Column(name = "gensitaccesorapido", nullable = false)
+    @Builder.Default
+    private Boolean accesoRapido = false;
 }

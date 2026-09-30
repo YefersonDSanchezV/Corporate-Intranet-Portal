@@ -29,6 +29,7 @@ C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intrane
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\entity\ArchivoLogro.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\entity\ArchivoTarea.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\entity\ComentarioTarea.java
+C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\entity\ComUsuarioAccion.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\entity\LogroAcreditacion.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\entity\Permiso.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\entity\Rol.java
@@ -44,6 +45,7 @@ C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intrane
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\repository\ArchivoLogroRepository.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\repository\ArchivoTareaRepository.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\repository\ComentarioTareaRepository.java
+C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\repository\ComUsuarioAccionRepository.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\repository\LogroAcreditacionRepository.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\repository\PermisoRepository.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\communication\repository\RolPermisoRepository.java
@@ -107,11 +109,13 @@ C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intrane
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\user\dto\SolicitudUsuarioDtos.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\user\dto\UsuarioDtos.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\user\entity\CargoIntra.java
+C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\user\entity\CargoPermiso.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\user\entity\LogAuditoria.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\user\entity\SolicitudUsuario.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\user\entity\Usuario.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\user\enums\EstadoSolicitud.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\user\repository\CargoIntraRepository.java
+C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\user\repository\CargoPermisoRepository.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\user\repository\LogAuditoriaRepository.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\user\repository\SolicitudUsuarioRepository.java
 C:\Users\PRACTICANTE.SISTEMAS\Documents\Proyectos\Intranet Institucional\intranet-backend\src\main\java\co\com\icvc\intranet_backend\user\repository\UsuarioRepository.java

@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -51,9 +52,14 @@ public class AnnouncementService {
     public AnuncioDtos.Response create(AnuncioDtos.CreateRequest request, Integer creadorOid) {
         TipoAnuncio tipo = tipoRepository.findById(request.tipoOid())
                 .orElseThrow(() -> NotFoundException.of("Tipo de anuncio", request.tipoOid()));
-        UsuarioComunicacion creador = creadorOid != null
-                ? usuarioComunicacionRepository.findById(creadorOid).orElse(null)
-                : null;
+        UsuarioComunicacion creador = null;
+        if (creadorOid != null) {
+            creador = usuarioComunicacionRepository.findByUsuarioOid(creadorOid).orElse(null);
+            if (creador == null) {
+                creador = usuarioComunicacionRepository.findById(creadorOid).orElse(null);
+            }
+        }
+        String codigo = generateCodigo();
         Anuncio anuncio = Anuncio.builder()
                 .titulo(request.titulo())
                 .descripcion(request.descripcion())
@@ -65,8 +71,32 @@ public class AnnouncementService {
                 .estado(EstadoAnuncio.PENDIENTE)
                 .fechaCreacion(LocalDateTime.now())
                 .eliminado(false)
+                .codigo(codigo)
+                .areaInforma(request.areaInforma())
                 .build();
         return AnuncioDtos.Response.from(anuncioRepository.save(anuncio));
+    }
+
+    private String generateCodigo() {
+        LocalDate now = LocalDate.now();
+        int year = now.getYear();
+        int month = now.getMonthValue();
+        // Secuencia global autoincremental que continúa aunque cambie el mes
+        long baseSeq = anuncioRepository.count() + 1;
+        // Asegurar que no colisione si hubo borrados físicos
+        String codigo;
+        long seq = baseSeq;
+        do {
+            codigo = String.format("SOLANU-%04d-%02d-%04d", year, month, seq);
+            seq++;
+            if (seq > baseSeq + 10000) break; // salvaguarda
+        } while (anuncioRepository.existsByCodigo(codigo) && seq < baseSeq + 10000);
+        // Si colisionó, usar max oid +1 como fallback
+        if (anuncioRepository.existsByCodigo(codigo)) {
+            long maxOid = anuncioRepository.findTopByOrderByOidDesc().map(a -> (long) a.getOid()).orElse(baseSeq);
+            codigo = String.format("SOLANU-%04d-%02d-%04d", year, month, maxOid + 1);
+        }
+        return codigo;
     }
 
     @Transactional
@@ -80,6 +110,7 @@ public class AnnouncementService {
         anuncio.setFechaInicio(request.fechaInicio());
         anuncio.setFechaFin(request.fechaFin());
         anuncio.setFechaVencimiento(request.fechaVencimiento());
+        anuncio.setAreaInforma(request.areaInforma());
         return AnuncioDtos.Response.from(anuncioRepository.save(anuncio));
     }
 
@@ -97,6 +128,18 @@ public class AnnouncementService {
             throw new ConflictException("El anuncio ya está publicado");
         }
         anuncio.setEstado(EstadoAnuncio.PUBLICADO);
+        return AnuncioDtos.Response.from(anuncioRepository.save(anuncio));
+    }
+
+    @Transactional
+    public AnuncioDtos.Response reject(Integer id, String observation) {
+        Anuncio anuncio = require(id);
+        anuncio.setEstado(EstadoAnuncio.RECHAZADO);
+        if (observation != null && !observation.isBlank()) {
+            String desc = anuncio.getDescripcion() == null ? "" : anuncio.getDescripcion();
+            // append observation for audit, keep original
+            anuncio.setDescripcion(desc + "\n[Rechazo: " + observation.trim() + "]");
+        }
         return AnuncioDtos.Response.from(anuncioRepository.save(anuncio));
     }
 

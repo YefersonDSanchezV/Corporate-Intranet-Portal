@@ -19,6 +19,7 @@ import { FormatosContingenciaView } from "./views/FormatosContingenciaView";
 import { ConsultaExternaView } from "./views/ConsultaExternaView";
 import { EnlaceRedireccionView } from "./views/EnlaceRedireccionView";
 import { LogsView } from "./views/LogsView";
+import { AccesoRapidoView } from "./views/AccesoRapidoView";
 import { useAdminAuth } from "../../contexts/AdminAuthContext";
 import { useSystem } from "../../contexts/SystemContext";
 import { getAllowedAdminViews, getUserAdminPermissions } from "./rbac";
@@ -98,6 +99,8 @@ export function AdminPanel() {
         return <EnlaceRedireccionView />;
       case "logs":
         return <LogsView />;
+      case "accesos-rapidos":
+        return <AccesoRapidoView />;
       default:
         return (
           <div className="flex items-center justify-center h-full">

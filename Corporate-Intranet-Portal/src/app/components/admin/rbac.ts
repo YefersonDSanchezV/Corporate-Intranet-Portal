@@ -14,10 +14,23 @@ export const CONTROL_PANEL_MODULES: Array<{
       { id: "crear-usuario", label: "Crear Usuario" },
       { id: "solicitudes", label: "Solicitudes" },
       { id: "cargos", label: "Cargo" },
-      { id: "sitios", label: "Sitio de Redirección" },
-      { id: "directorio-extensiones", label: "Directorio de Extensiones" },
-      { id: "directorio-correos", label: "Directorio de Correos" },
       { id: "logs", label: "Logs" },
+    ],
+  },
+  {
+    id: "directorio",
+    label: "Directorio",
+    children: [
+      { id: "directorio-extensiones", label: "Extensiones Telefónicas" },
+      { id: "directorio-correos", label: "Correos Electrónicos" },
+    ],
+  },
+  {
+    id: "modulo",
+    label: "Sitios",
+    children: [
+      { id: "sitios", label: "Sitio de Redirección" },
+      { id: "accesos-rapidos", label: "Sitios de Acceso Rápido" },
     ],
   },
   {
@@ -30,7 +43,7 @@ export const CONTROL_PANEL_MODULES: Array<{
       { id: "crear-anuncio", label: "Crear Anuncio" },
       { id: "calendario-anuncios", label: "Calendario de Anuncios" },
       { id: "anuncios-pendientes", label: "Anuncios Pendientes" },
-      { id: "anuncios-historial", label: "Historial de Anuncios" },
+      { id: "anuncios-historial", label: "Histórico de Anuncios" },
       { id: "calendario-cumpleanios", label: "Calendario de Cumpleaños" },
       { id: "calendario-eventos", label: "Calendario de Eventos" },
       { id: "logros-acreditaciones", label: "Logros y Acreditaciones" },
@@ -76,6 +89,7 @@ export type PermissionBasedAdminView =
   | "directorio-extensiones"
   | "directorio-correos"
   | "logs"
+  | "accesos-rapidos"
   | "crear-anuncio"
   | "calendario-anuncios"
   | "anuncios-pendientes"

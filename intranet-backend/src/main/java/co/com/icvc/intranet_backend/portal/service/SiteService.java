@@ -36,6 +36,7 @@ public class SiteService {
                 .url(request.url())
                 .modulo(modulo)
                 .icono(request.icono())
+                .accesoRapido(request.accesoRapido() != null ? request.accesoRapido() : false)
                 .build();
         return PortalDtos.SitioResponse.from(sitioRepository.save(sitio));
     }
@@ -49,6 +50,14 @@ public class SiteService {
         sitio.setUrl(request.url());
         sitio.setModulo(modulo);
         sitio.setIcono(request.icono());
+        if (request.accesoRapido() != null) sitio.setAccesoRapido(request.accesoRapido());
+        return PortalDtos.SitioResponse.from(sitioRepository.save(sitio));
+    }
+
+    @Transactional
+    public PortalDtos.SitioResponse toggleAccesoRapido(Integer id) {
+        SitioRedireccion sitio = require(id);
+        sitio.setAccesoRapido(!Boolean.TRUE.equals(sitio.getAccesoRapido()));
         return PortalDtos.SitioResponse.from(sitioRepository.save(sitio));
     }
 

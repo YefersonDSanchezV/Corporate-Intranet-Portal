@@ -89,4 +89,22 @@ public class CommunicationRoleController {
                 id, request.rolOid(), request.estado());
         return roleService.assignRole(ajustado);
     }
+
+    @GetMapping("/user-permissions")
+    public java.util.Map<String, java.util.List<String>> listComUserPermissions() {
+        return roleService.listComUserPermissions();
+    }
+
+    @GetMapping("/user-permissions/{userId}")
+    public java.util.List<String> getComUserPermissions(@PathVariable Integer userId) {
+        return roleService.getComUserPermissions(userId);
+    }
+
+    @PutMapping("/user-permissions/{userId}")
+    public java.util.List<String> replaceComUserPermissions(@PathVariable Integer userId,
+            @RequestBody java.util.Map<String, java.util.List<String>> body) {
+        java.util.List<String> acciones = body.get("acciones");
+        if (acciones == null) acciones = body.get("acciones");
+        return roleService.replaceComUserPermissions(userId, acciones);
+    }
 }

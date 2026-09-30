@@ -1,8 +1,7 @@
-import { Search, Phone, Building2, Users, Plus, Pencil, X, Check, Mail, Briefcase, MapPin, Eye } from "lucide-react";
+import { Search, Phone, Building2, Users, Plus, Pencil, X, Check, Mail, Briefcase, Eye } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSystem, DirectoryEntry, InstitutionEmail } from "../../contexts/SystemContext";
-import { getGreeting } from "../../utils/greetings";
 import { hasRole, TI_SUPPORT_ROLES } from "../../utils/roles";
 
 type Floor = "Todos" | "Piso 1" | "Piso 2" | "Piso 3" | "Piso 4" | "Piso 5" | "Piso 6" | "Betania";
@@ -13,11 +12,8 @@ const EDITABLE_FLOORS = FLOORS.filter(f => f !== "Todos");
 export function DirectoryModule() {
   const { user } = useAuth();
   const { directory, addDirectoryEntry, updateDirectoryEntry, institutionEmails, addInstitutionEmail, updateInstitutionEmail } = useSystem();
-  const greeting = getGreeting();
   const [selectedFloor, setSelectedFloor] = useState<Floor>("Todos");
-  const [searchTerm, setSearchTerm] = useState("");
   const [view, setView] = useState<"extensiones" | "correos">("extensiones");
-  const [emailSearchTerm, setEmailSearchTerm] = useState("");
   const [emailAreaFilter, setEmailAreaFilter] = useState("Todos");
   const [emailCargoFilter, setEmailCargoFilter] = useState("Todos");
 
@@ -54,9 +50,7 @@ export function DirectoryModule() {
   const filteredExtensions = directory.filter(ext => {
     const currentFloors = ext.floor || [];
     const matchesFloor = selectedFloor === "Todos" || currentFloors.includes(selectedFloor);
-    const matchesSearch = ext.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ext.extension.includes(searchTerm);
-    return matchesFloor && matchesSearch && ext.active;
+    return matchesFloor && ext.active;
   });
 
   const asistencialExtensions = filteredExtensions.filter(ext => ext.type === "asistencial" && !ext.isSupport);
@@ -105,20 +99,6 @@ export function DirectoryModule() {
   return (
     <>
       <div className="space-y-6">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-[#0778AC] mb-2">Directorio Institucional</h1>
-        <div className="h-1 bg-gradient-to-r from-[#CF3438] to-transparent w-32 md:w-48 rounded-full"></div>
-      </div>
-
-      <div className="mb-8 bg-white p-6 rounded-xl shadow-sm border-l-4 border-[#0778AC]">
-        <p className="text-gray-700 font-bold text-sm md:text-base mb-1">
-          ¡{greeting}, {user?.fullName.split(' ')[0]}!
-        </p>
-        <p className="text-gray-600 text-sm md:text-base">
-          En este módulo encontrarás el directorio de extensiones telefónicas y correos institucionales.
-        </p>
-      </div>
-
       <div className="mb-6 flex gap-4 border-b-2 border-gray-100 pb-1">
         <button
           onClick={() => setView("extensiones")}
@@ -165,20 +145,6 @@ export function DirectoryModule() {
             </button>
           </div>
         )}
-
-        {/* Barra de búsqueda */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-[#0778AC]" />
-            <input
-              type="text"
-              placeholder="Buscar área o extensión..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white border-2 border-gray-200 rounded-lg pl-10 md:pl-14 pr-4 py-3 text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#CF3438] focus:ring-2 focus:ring-[#CF3438]/20 transition-all shadow-sm text-sm md:text-base"
-            />
-          </div>
-        </div>
 
         {/* Filtros por piso */}
         <div className="mb-6 md:mb-8">
@@ -272,13 +238,8 @@ export function DirectoryModule() {
     ) : (
         /* VISTA CORREOS */
         <div>
-          <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-[#0778AC] mb-2">Correos Institucionales</h1>
-              <div className="h-1 bg-gradient-to-r from-[#CF3438] to-transparent w-32 md:w-48 rounded-full"></div>
-            </div>
-            
-            {canManage && (
+          {canManage && (
+            <div className="mb-6 flex justify-end">
               <button
                 onClick={() => {
                   setEmailFormData({ employeeName: "", position: "", email: "", area: "", floor: "" });
@@ -288,21 +249,8 @@ export function DirectoryModule() {
               >
                 <Plus className="w-5 h-5" /> Cargar Nuevo Correo
               </button>
-            )}
-          </div>
-
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-[#0778AC]" />
-              <input
-                type="text"
-                placeholder="Buscar por nombre, cargo, correo o área..."
-                value={emailSearchTerm}
-                onChange={(e) => setEmailSearchTerm(e.target.value)}
-                className="w-full bg-white border-2 border-gray-200 rounded-xl pl-10 md:pl-14 pr-4 py-3 text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#CF3438] focus:ring-2 focus:ring-[#CF3438]/20 transition-all shadow-sm"
-              />
             </div>
-          </div>
+          )}
           <div className="flex flex-wrap gap-3 mb-4">
             <select value={emailAreaFilter} onChange={e => setEmailAreaFilter(e.target.value)} className="border-2 border-gray-200 rounded-lg px-3 py-2 text-sm bg-white min-w-[160px]">
               <option value="Todos">Filtrar por área: Todos</option>
@@ -327,18 +275,10 @@ export function DirectoryModule() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {institutionEmails.filter(e => 
-                  (e.employeeName.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
-                  e.position.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
-                  e.email.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
-                  e.area.toLowerCase().includes(emailSearchTerm.toLowerCase())) &&
                   (emailAreaFilter === "Todos" || e.area === emailAreaFilter) &&
                   (emailCargoFilter === "Todos" || e.position === emailCargoFilter)
                 ).length > 0 ? (
                   institutionEmails.filter(e => 
-                    (e.employeeName.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
-                    e.position.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
-                    e.email.toLowerCase().includes(emailSearchTerm.toLowerCase()) ||
-                    e.area.toLowerCase().includes(emailSearchTerm.toLowerCase())) &&
                     (emailAreaFilter === "Todos" || e.area === emailAreaFilter) &&
                     (emailCargoFilter === "Todos" || e.position === emailCargoFilter)
                   ).map((email) => (

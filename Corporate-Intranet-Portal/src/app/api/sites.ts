@@ -56,4 +56,8 @@ export const sitesApi = {
     const dto = await apiFetch<BackendSitioResponse>(`/sites/${id}/active`, { method: "PATCH" });
     return mapSitioToFE(dto);
   },
+  toggleAccesoRapido: async (id: string) => {
+    const dto = await apiFetch<BackendSitioResponse>(`/sites/${id}/acceso-rapido`, { method: "PATCH" });
+    return mapSitioToFE(dto);
+  },
 };

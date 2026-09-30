@@ -2,12 +2,12 @@ import type { RedirectSite, DirectoryEntry, InstitutionEmail, Task, Achievement 
 import type { Announcement } from "../contexts/AnnouncementsContext";
 
 // --- Backend DTOs (shape from Java) ---
-export interface BackendSitioResponse { oid: number; nombre: string; url: string; moduloOid: number; moduloNombre: string; icono: string; }
-export interface BackendSitioRequest { nombre: string; url: string; moduloOid: number; icono: string; }
+export interface BackendSitioResponse { oid: number; nombre: string; url: string; moduloOid: number; moduloNombre: string; icono: string; accesoRapido?: boolean; }
+export interface BackendSitioRequest { nombre: string; url: string; moduloOid: number; icono: string; accesoRapido?: boolean; }
 export interface BackendModuloResponse { oid: number; nombre: string; estado: boolean; }
 export interface BackendExtensionResponse { oid: number; nombre: string; extension: string; areaOid: number; areaNombre: string; pisoOid: number; pisoNombre: string; soporte: boolean; tipo?: string; }
 export interface BackendCorreoResponse { oid: number; nombre: string; correo: string; areaOid: number; areaNombre: string; pisoOid: number; pisoNombre: string; soporte: boolean; cargo?: string | null; }
-export interface BackendAnuncioResponse { oid: number; titulo: string; descripcion: string; tipoOid: number; tipoNombre: string; fechaInicio: string; fechaFin: string; creadorOid: number | null; creadorNombre: string | null; estado: string; fechaCreacion: string; fechaVencimiento: string | null; eliminado: boolean; }
+export interface BackendAnuncioResponse { oid: number; titulo: string; descripcion: string; tipoOid: number; tipoNombre: string; fechaInicio: string; fechaFin: string; creadorOid: number | null; creadorNombre: string | null; estado: string; fechaCreacion: string; fechaVencimiento: string | null; eliminado: boolean; codigo?: string | null; areaInforma?: string | null; }
 export interface BackendTareaResponse { oid: number; titulo: string; descripcion: string; asignadaAOid: number | null; asignadaANombre: string | null; asignadaPorOid: number | null; asignadaPorNombre: string | null; estado: string; fechaInicio: string | null; fechaLimite: string | null; prioridad: string; }
 export interface BackendLogroResponse { oid: number; titulo: string; descripcion: string; urlImagen: string | null; fechaCreacion: string; }
 
@@ -21,7 +21,8 @@ export function mapSitioToFE(dto: BackendSitioResponse): RedirectSite {
     ref: dto.icono || "Globe",
     moduleId: dto.moduloNombre || String(dto.moduloOid),
     active: true,
-  };
+    accesoRapido: dto.accesoRapido ?? false,
+  } as RedirectSite;
 }
 export function mapSitioToBE(fe: Omit<RedirectSite, "id" | "active">, moduloOid: number): BackendSitioRequest {
   return { nombre: fe.title, url: fe.url, moduloOid, icono: fe.ref || "Globe" };
@@ -65,6 +66,8 @@ export function mapAnuncioToFE(dto: BackendAnuncioResponse): Announcement {
     createdBy: dto.creadorNombre || "",
     published: dto.estado === "PUBLICADO",
     createdAt: new Date(dto.fechaCreacion),
+    codigo: dto.codigo || undefined,
+    areaInforma: dto.areaInforma || undefined,
   };
 }
 export function mapAnuncioToBE(fe: Omit<Announcement, "id" | "published" | "createdAt">): Record<string, unknown> {

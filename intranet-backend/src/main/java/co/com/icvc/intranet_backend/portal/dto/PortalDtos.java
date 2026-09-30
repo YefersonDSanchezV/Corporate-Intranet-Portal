@@ -25,7 +25,8 @@ public final class PortalDtos {
             @NotBlank String nombre,
             @NotBlank String url,
             @NotNull @Positive Integer moduloOid,
-            @NotBlank String icono) {
+            @NotBlank String icono,
+            Boolean accesoRapido) {
     }
 
     public record SitioResponse(
@@ -34,7 +35,8 @@ public final class PortalDtos {
             String url,
             Integer moduloOid,
             String moduloNombre,
-            String icono) {
+            String icono,
+            Boolean accesoRapido) {
 
         public static SitioResponse from(SitioRedireccion sitio) {
             return new SitioResponse(
@@ -43,7 +45,8 @@ public final class PortalDtos {
                     sitio.getUrl(),
                     sitio.getModulo() != null ? sitio.getModulo().getOid() : null,
                     sitio.getModulo() != null ? sitio.getModulo().getNombre() : null,
-                    sitio.getIcono());
+                    sitio.getIcono(),
+                    sitio.getAccesoRapido() != null ? sitio.getAccesoRapido() : false);
         }
     }
 

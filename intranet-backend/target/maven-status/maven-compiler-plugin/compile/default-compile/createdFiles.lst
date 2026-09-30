@@ -45,8 +45,10 @@ co\com\icvc\intranet_backend\user\dto\SolicitudUsuarioDtos$CreateRequest.class
 co\com\icvc\intranet_backend\communication\repository\TareaSeguimientoRepository.class
 co\com\icvc\intranet_backend\innovation\dto\InnovationDtos$Response.class
 co\com\icvc\intranet_backend\user\controller\AccessRequestController.class
+co\com\icvc\intranet_backend\user\dto\CargoDtos$PermisosRequest.class
 co\com\icvc\intranet_backend\common\exception\ValidationException.class
 co\com\icvc\intranet_backend\communication\dto\TareaDtos.class
+co\com\icvc\intranet_backend\communication\entity\ComUsuarioAccion.class
 co\com\icvc\intranet_backend\communication\entity\ArchivoAnuncio.class
 co\com\icvc\intranet_backend\communication\repository\PermisoRepository.class
 co\com\icvc\intranet_backend\communication\entity\LogroAcreditacion$LogroAcreditacionBuilder.class
@@ -59,6 +61,7 @@ co\com\icvc\intranet_backend\user\dto\SolicitudUsuarioDtos$ApproveRequest.class
 co\com\icvc\intranet_backend\user\entity\Usuario$UsuarioBuilder.class
 co\com\icvc\intranet_backend\directory\controller\DirectoryController.class
 co\com\icvc\intranet_backend\assistance\entity\FormatoContingencia.class
+co\com\icvc\intranet_backend\user\entity\CargoPermiso.class
 co\com\icvc\intranet_backend\directory\dto\DirectoryDtos$CorreoRequest.class
 co\com\icvc\intranet_backend\communication\dto\RolPermisoDtos$PermisoRequest.class
 co\com\icvc\intranet_backend\user\controller\AuthController.class
@@ -78,6 +81,7 @@ co\com\icvc\intranet_backend\communication\entity\UsuarioComunicacion$UsuarioCom
 co\com\icvc\intranet_backend\communication\controller\CommunicationRoleController.class
 co\com\icvc\intranet_backend\communication\entity\TareaSeguimiento$TareaSeguimientoBuilder.class
 co\com\icvc\intranet_backend\communication\entity\ArchivoTarea$ArchivoTareaBuilder.class
+co\com\icvc\intranet_backend\communication\repository\ComUsuarioAccionRepository.class
 co\com\icvc\intranet_backend\directory\controller\AreaController.class
 co\com\icvc\intranet_backend\portal\entity\SitioRedireccion.class
 co\com\icvc\intranet_backend\common\web\GlobalExceptionHandler.class
@@ -97,6 +101,7 @@ co\com\icvc\intranet_backend\portal\dto\PortalDtos.class
 co\com\icvc\intranet_backend\portal\entity\Modulo$ModuloBuilder.class
 co\com\icvc\intranet_backend\directory\entity\ExtensionDirectorio$ExtensionDirectorioBuilder.class
 co\com\icvc\intranet_backend\user\dto\AuthDtos$LoginResponse.class
+co\com\icvc\intranet_backend\user\entity\CargoPermiso$CargoPermisoBuilder.class
 co\com\icvc\intranet_backend\assistance\controller\ExternalSiteController.class
 co\com\icvc\intranet_backend\communication\service\CommunicationRoleService.class
 co\com\icvc\intranet_backend\communication\dto\TareaDtos$ComentarioRequest.class
@@ -121,6 +126,7 @@ co\com\icvc\intranet_backend\communication\repository\ArchivoTareaRepository.cla
 co\com\icvc\intranet_backend\user\enums\EstadoSolicitud.class
 co\com\icvc\intranet_backend\innovation\entity\EnlaceInnovacion.class
 co\com\icvc\intranet_backend\user\service\AccessRequestService.class
+co\com\icvc\intranet_backend\user\dto\CargoDtos$PermisosResponse.class
 co\com\icvc\intranet_backend\user\dto\UsuarioDtos$UpdatePasswordRequest.class
 co\com\icvc\intranet_backend\directory\entity\Area.class
 co\com\icvc\intranet_backend\assistance\dto\AssistanceDtos$FormatoRequest.class
@@ -142,6 +148,7 @@ co\com\icvc\intranet_backend\portal\repository\SitioRedireccionRepository.class
 co\com\icvc\intranet_backend\directory\dto\DirectoryDtos$PisoResponse.class
 co\com\icvc\intranet_backend\user\controller\PasswordResetController.class
 co\com\icvc\intranet_backend\config\CorsConfig.class
+co\com\icvc\intranet_backend\communication\entity\ComUsuarioAccion$ComUsuarioAccionBuilder.class
 co\com\icvc\intranet_backend\communication\dto\AnuncioDtos$Response.class
 co\com\icvc\intranet_backend\communication\dto\LogroDtos$CreateRequest.class
 co\com\icvc\intranet_backend\config\AdminSeeder.class
@@ -160,6 +167,7 @@ co\com\icvc\intranet_backend\common\mapper\Mappers.class
 co\com\icvc\intranet_backend\communication\repository\LogroAcreditacionRepository.class
 co\com\icvc\intranet_backend\innovation\dto\InnovationDtos.class
 co\com\icvc\intranet_backend\communication\dto\LogroDtos$Response.class
+co\com\icvc\intranet_backend\user\repository\CargoPermisoRepository.class
 co\com\icvc\intranet_backend\directory\dto\DirectoryDtos$ExtensionResponse.class
 co\com\icvc\intranet_backend\portal\service\FileService.class
 co\com\icvc\intranet_backend\user\dto\SolicitudUsuarioDtos.class

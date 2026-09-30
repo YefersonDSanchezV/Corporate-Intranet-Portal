@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,5 +42,20 @@ public class CargoController {
     @PatchMapping("/{id}")
     public CargoDtos.Response updateEstado(@PathVariable Integer id, @Valid @RequestBody CargoDtos.UpdateStatusRequest request) {
         return cargoService.updateEstado(id, request.estado());
+    }
+
+    @GetMapping("/{id}/permisos")
+    public CargoDtos.PermisosResponse getPermisos(@PathVariable Integer id) {
+        return cargoService.getPermisos(id);
+    }
+
+    @GetMapping("/permisos")
+    public List<CargoDtos.PermisosResponse> listPermisos() {
+        return cargoService.listAllPermisos();
+    }
+
+    @PutMapping("/{id}/permisos")
+    public CargoDtos.PermisosResponse replacePermisos(@PathVariable Integer id, @RequestBody CargoDtos.PermisosRequest request) {
+        return cargoService.replacePermisos(id, request);
     }
 }

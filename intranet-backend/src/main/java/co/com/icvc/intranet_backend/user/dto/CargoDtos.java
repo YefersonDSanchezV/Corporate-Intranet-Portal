@@ -21,4 +21,10 @@ public final class CargoDtos {
             return new Response(cargo.getOid(), cargo.getNombre(), cargo.isEstado());
         }
     }
+
+    public record PermisosResponse(Integer cargoOid, java.util.List<String> modulos, java.util.List<String> acciones) {
+    }
+
+    public record PermisosRequest(java.util.List<String> modulos, java.util.List<String> acciones) {
+    }
 }

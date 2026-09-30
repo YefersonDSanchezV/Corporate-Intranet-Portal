@@ -56,6 +56,12 @@ public class AnnouncementController {
         return announcementService.publish(id);
     }
 
+    @PostMapping("/{id}/reject")
+    public AnuncioDtos.Response reject(@PathVariable Integer id, @RequestBody(required = false) java.util.Map<String, String> body) {
+        String observation = body != null ? body.get("observation") : null;
+        return announcementService.reject(id, observation);
+    }
+
     @PostMapping(value = "/{id}/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public PortalDtos.ArchivoResponse attachFile(@PathVariable Integer id, @RequestPart MultipartFile file,
             @RequestParam Integer usuarioOid) {

@@ -30,9 +30,9 @@ export function QuickAccessSection() {
     }
   };
 
-  // Sitios de redirección del módulo Inicio (SystemContext sincronizado con /api/sites). No deforma aunque URL/título sean largos.
+  // Sitios de redirección marcados como Acceso Rápido (flag gensitaccesorapido) + fallback Inicio.
   const dynamicSites = sites
-    .filter(s => s.moduleId === "Inicio" && s.active)
+    .filter(s => s.active && (s as any).accesoRapido === true)
     .map(s => ({
       title: s.title,
       icon: (ICON_MAP as any)[s.ref] || Globe,
@@ -41,13 +41,21 @@ export function QuickAccessSection() {
       url: s.url
     }));
 
-  const allQuickAccess = [
-    ...dynamicSites,
-    { title: "Extensiones Telefónicas - Directorio Institucional", icon: Users, name: "Extensiones" }
-  ];
+  const allQuickAccess = [...dynamicSites];
 
   // En el futuro, podríamos agregar filtrado por roles aquí si RedirectSite tuviera ese campo
   const quickAccess = allQuickAccess;
+
+  if (quickAccess.length === 0) {
+    return (
+      <section className="mb-6 md:mb-8">
+        <h2 className="text-lg md:text-xl font-semibold text-[#0778AC] mb-4 pb-2 border-b-2 border-[#CF3438]/30">
+          Accesos Rápidos
+        </h2>
+        <p className="text-sm text-gray-400 italic">No hay accesos rápidos habilitados. Configure en Módulo → Gestionar Accesos Rápidos.</p>
+      </section>
+    );
+  }
 
   return (
     <>

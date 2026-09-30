@@ -53,17 +53,25 @@ const MENU: SidebarItem[] = [
           { id: "cargos", label: "Cargo", view: "cargos", icon: BriefcaseBusiness },
         ],
       },
-      { id: "sitios", label: "Sitio de Redireccion", view: "sitios", icon: Globe },
-      {
-        id: "directorio",
-        label: "Directorio",
-        icon: BookOpen,
-        children: [
-          { id: "dir-extensiones", label: "Directorio de Extensiones", view: "directorio-extensiones", icon: Phone },
-          { id: "dir-correos", label: "Directorio de Correos", view: "directorio-correos", icon: Mail },
-        ],
-      },
       { id: "logs", label: "Logs", view: "logs", icon: FileText },
+    ],
+  },
+  {
+    id: "directorio",
+    label: "Directorio",
+    icon: BookOpen,
+    children: [
+      { id: "dir-extensiones", label: "Extensiones Telefónicas", view: "directorio-extensiones", icon: Phone },
+      { id: "dir-correos", label: "Correos Electrónicos", view: "directorio-correos", icon: Mail },
+    ],
+  },
+  {
+    id: "modulo",
+    label: "Sitios",
+    icon: Globe,
+    children: [
+      { id: "sitios", label: "Sitio de Redirección", view: "sitios", icon: Globe },
+      { id: "accesos-rapidos", label: "Sitios de Acceso Rápido", view: "accesos-rapidos", icon: LayoutDashboard },
     ],
   },
   {
@@ -88,7 +96,7 @@ const MENU: SidebarItem[] = [
           { id: "crear-anuncio", label: "Crear Anuncio", view: "crear-anuncio", icon: FileText },
           { id: "calendario-anuncios", label: "Calendario de Anuncios", view: "calendario-anuncios", icon: Calendar },
           { id: "anuncios-pendientes", label: "Anuncios Pendientes", view: "anuncios-pendientes", icon: AlignEndVertical },
-          { id: "anuncios-historial", label: "Historial de Anuncios", view: "anuncios-historial", icon: Calendar },
+          { id: "anuncios-historial", label: "Histórico de Anuncios", view: "anuncios-historial", icon: Calendar },
         ],
       },
       {
@@ -256,9 +264,9 @@ export function AdminSidebar({ activeView, onViewChange }: AdminSidebarProps) {
           <div className="w-8 h-8 bg-[#CF3438] rounded-full flex items-center justify-center">
             <Shield className="w-4 h-4 text-white" />
           </div>
-          <div>
-            <p className="text-white text-xs font-semibold">Administrador</p>
-            <p className="text-white/50 text-[10px]">root</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-white text-xs font-semibold truncate" title={adminUser?.fullName || "Administrador"}>{adminUser?.fullName || "Administrador"}</p>
+            <p className="text-white/50 text-[10px] truncate" title={adminUser?.position || adminUser?.role || "root"}>{adminUser?.position || adminUser?.role || "root"}</p>
           </div>
         </div>
         <button onClick={adminLogout} className="w-full flex items-center gap-2 text-white/60 hover:text-white hover:bg-black/10 rounded-lg px-3 py-2 transition-all text-sm">

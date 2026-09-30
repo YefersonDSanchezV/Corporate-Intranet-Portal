@@ -2,10 +2,12 @@ package co.com.icvc.intranet_backend.communication.service;
 
 import co.com.icvc.intranet_backend.common.exception.NotFoundException;
 import co.com.icvc.intranet_backend.communication.dto.RolPermisoDtos;
+import co.com.icvc.intranet_backend.communication.entity.ComUsuarioAccion;
 import co.com.icvc.intranet_backend.communication.entity.Permiso;
 import co.com.icvc.intranet_backend.communication.entity.Rol;
 import co.com.icvc.intranet_backend.communication.entity.RolPermiso;
 import co.com.icvc.intranet_backend.communication.entity.UsuarioComunicacion;
+import co.com.icvc.intranet_backend.communication.repository.ComUsuarioAccionRepository;
 import co.com.icvc.intranet_backend.communication.repository.PermisoRepository;
 import co.com.icvc.intranet_backend.communication.repository.RolPermisoRepository;
 import co.com.icvc.intranet_backend.communication.repository.RolRepository;
@@ -17,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +31,7 @@ public class CommunicationRoleService {
     private final RolPermisoRepository rolPermisoRepository;
     private final UsuarioComunicacionRepository usuarioComunicacionRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ComUsuarioAccionRepository comUsuarioAccionRepository;
 
     @Transactional(readOnly = true)
     public List<RolPermisoDtos.RolResponse> listRoles() {
@@ -132,5 +137,34 @@ public class CommunicationRoleService {
     private Rol requireRol(Integer id) {
         return rolRepository.findById(id)
                 .orElseThrow(() -> NotFoundException.of("Rol", id));
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, List<String>> listComUserPermissions() {
+        return comUsuarioAccionRepository.findAllByOrderByOidAsc().stream()
+                .collect(Collectors.groupingBy(
+                        c -> String.valueOf(c.getUsuario().getOid()),
+                        Collectors.mapping(ComUsuarioAccion::getAccion, Collectors.toList())));
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> getComUserPermissions(Integer usuarioOid) {
+        usuarioRepository.findById(usuarioOid).orElseThrow(() -> NotFoundException.of("Usuario", usuarioOid));
+        return comUsuarioAccionRepository.findByUsuarioOid(usuarioOid).stream()
+                .map(ComUsuarioAccion::getAccion).toList();
+    }
+
+    @Transactional
+    public List<String> replaceComUserPermissions(Integer usuarioOid, List<String> acciones) {
+        Usuario usuario = usuarioRepository.findById(usuarioOid)
+                .orElseThrow(() -> NotFoundException.of("Usuario", usuarioOid));
+        comUsuarioAccionRepository.deleteByUsuarioOid(usuarioOid);
+        comUsuarioAccionRepository.flush();
+        if (acciones != null) {
+            acciones.stream().filter(a -> a != null && !a.isBlank()).distinct().forEach(a -> {
+                comUsuarioAccionRepository.save(ComUsuarioAccion.builder().usuario(usuario).accion(a.trim()).build());
+            });
+        }
+        return getComUserPermissions(usuarioOid);
     }
 }

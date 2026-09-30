@@ -2,7 +2,9 @@ package co.com.icvc.intranet_backend.user.service;
 
 import co.com.icvc.intranet_backend.user.dto.CargoDtos;
 import co.com.icvc.intranet_backend.user.entity.CargoIntra;
+import co.com.icvc.intranet_backend.user.entity.CargoPermiso;
 import co.com.icvc.intranet_backend.user.repository.CargoIntraRepository;
+import co.com.icvc.intranet_backend.user.repository.CargoPermisoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -17,6 +20,7 @@ import java.util.List;
 public class CargoService {
 
     private final CargoIntraRepository cargoRepository;
+    private final CargoPermisoRepository cargoPermisoRepository;
     private final JdbcTemplate jdbcTemplate;
 
     @Transactional(readOnly = true)
@@ -76,5 +80,49 @@ public class CargoService {
             cargo.setEstado(estado);
             return CargoDtos.Response.from(cargoRepository.save(cargo));
         }
+    }
+
+    @Transactional(readOnly = true)
+    public CargoDtos.PermisosResponse getPermisos(Integer oid) {
+        CargoIntra cargo = cargoRepository.findById(oid)
+                .orElseThrow(() -> new co.com.icvc.intranet_backend.common.exception.NotFoundException("Cargo no encontrado"));
+        List<CargoPermiso> all = cargoPermisoRepository.findByCargoOid(cargo.getOid());
+        List<String> modulos = all.stream().filter(p -> "MODULO".equals(p.getTipo())).map(CargoPermiso::getPermiso).toList();
+        List<String> acciones = all.stream().filter(p -> "ACCION".equals(p.getTipo())).map(CargoPermiso::getPermiso).toList();
+        return new CargoDtos.PermisosResponse(cargo.getOid(), modulos, acciones);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CargoDtos.PermisosResponse> listAllPermisos() {
+        return cargoRepository.findAllByOrderByNombreAsc().stream()
+                .map(cargo -> {
+                    List<CargoPermiso> all = cargoPermisoRepository.findByCargoOid(cargo.getOid());
+                    List<String> modulos = all.stream().filter(p -> "MODULO".equals(p.getTipo())).map(CargoPermiso::getPermiso).toList();
+                    List<String> acciones = all.stream().filter(p -> "ACCION".equals(p.getTipo())).map(CargoPermiso::getPermiso).toList();
+                    return new CargoDtos.PermisosResponse(cargo.getOid(), modulos, acciones);
+                })
+                .toList();
+    }
+
+    @Transactional
+    public CargoDtos.PermisosResponse replacePermisos(Integer oid, CargoDtos.PermisosRequest request) {
+        CargoIntra cargo = cargoRepository.findById(oid)
+                .orElseThrow(() -> new co.com.icvc.intranet_backend.common.exception.NotFoundException("Cargo no encontrado"));
+        cargoPermisoRepository.deleteByCargoOid(cargo.getOid());
+        // flush to avoid unique constraint conflict within transaction
+        cargoPermisoRepository.flush();
+
+        List<String> modulos = request.modulos() != null ? request.modulos().stream().distinct().collect(Collectors.toList()) : List.of();
+        List<String> acciones = request.acciones() != null ? request.acciones().stream().distinct().collect(Collectors.toList()) : List.of();
+
+        for (String m : modulos) {
+            if (m == null || m.isBlank()) continue;
+            cargoPermisoRepository.save(CargoPermiso.builder().cargo(cargo).permiso(m.trim()).tipo("MODULO").build());
+        }
+        for (String a : acciones) {
+            if (a == null || a.isBlank()) continue;
+            cargoPermisoRepository.save(CargoPermiso.builder().cargo(cargo).permiso(a.trim()).tipo("ACCION").build());
+        }
+        return new CargoDtos.PermisosResponse(cargo.getOid(), modulos, acciones);
     }
 }
