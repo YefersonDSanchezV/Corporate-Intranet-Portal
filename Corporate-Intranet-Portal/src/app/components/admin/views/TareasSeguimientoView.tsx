@@ -1,9 +1,14 @@
 import { Plus, CheckCircle, X } from "lucide-react";
+import { useAdminAccess } from "../useAdminAccess";
+import { noPermissionReason } from "../AccessGate";
 import { useState } from "react";
 import { useSystem, Task } from "../../../contexts/SystemContext";
 import { useAuth } from "../../../contexts/AuthContext";
 
 export function TareasSeguimientoView() {
+  const { can } = useAdminAccess();
+  const canGrabar = can("tareas-seguimiento", "grabar");
+  const canActualizar = can("tareas-seguimiento", "actualizar");
   const { tasks, addTask, completeTask } = useSystem();
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
@@ -30,7 +35,12 @@ export function TareasSeguimientoView() {
           <h1 className="text-2xl font-bold text-[#0778AC] mb-2">Tareas y Seguimiento</h1>
           <p className="text-gray-600 text-sm">Administre las tareas y su seguimiento.</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-5 py-2.5 rounded-lg font-semibold shadow-md">
+        <button
+          onClick={() => setShowForm(!showForm)}
+          disabled={!canGrabar}
+          title={canGrabar ? undefined : noPermissionReason("Tareas y Seguimiento", "grabar")}
+          className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-semibold shadow-md"
+        >
           <Plus className="w-4 h-4" /> {showForm ? "Ver listado" : "Nueva tarea"}
         </button>
       </div>
@@ -53,7 +63,12 @@ export function TareasSeguimientoView() {
             </div>
             <div className="flex justify-end gap-3">
               <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold">Cancelar</button>
-              <button type="submit" className="bg-[#CF3438] hover:bg-[#a01f24] text-white px-6 py-2.5 rounded-lg text-sm font-semibold">Guardar tarea</button>
+              <button
+                type="submit"
+                disabled={!canGrabar}
+                title={canGrabar ? undefined : noPermissionReason("Tareas y Seguimiento", "grabar")}
+                className="bg-[#CF3438] hover:bg-[#a01f24] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+              >Guardar tarea</button>
             </div>
           </form>
         </div>
@@ -73,7 +88,13 @@ export function TareasSeguimientoView() {
                     <p className="font-semibold text-sm text-gray-800">{task.title}</p>
                     <p className="text-xs text-gray-500 mt-1">{task.description?.substring(0, 100)}</p>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); completeTask(task.id); }} className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg" title="Completar">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); completeTask(task.id); }}
+                    disabled={!canActualizar}
+                    title={canActualizar ? "Completar" : noPermissionReason("Tareas y Seguimiento", "actualizar")}
+                    aria-label="Completar tarea"
+                    className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
                     <CheckCircle className="w-4 h-4" />
                   </button>
                 </div>

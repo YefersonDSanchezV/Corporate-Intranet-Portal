@@ -2,6 +2,7 @@ package co.com.icvc.intranet_backend.assistance.controller;
 
 import co.com.icvc.intranet_backend.assistance.dto.AssistanceDtos;
 import co.com.icvc.intranet_backend.assistance.service.AssistanceService;
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,18 +31,21 @@ public class ExternalSiteController {
     }
 
     @PostMapping
+    @RequiresPermission(module = "consulta-externa", action = "grabar")
     public ResponseEntity<AssistanceDtos.SitioExternoResponse> create(
             @Valid @RequestBody AssistanceDtos.SitioExternoRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(assistanceService.createExternalSite(request));
     }
 
     @PutMapping("/{id}")
+    @RequiresPermission(module = "consulta-externa", action = "actualizar")
     public AssistanceDtos.SitioExternoResponse update(@PathVariable Integer id,
             @Valid @RequestBody AssistanceDtos.SitioExternoRequest request) {
         return assistanceService.updateExternalSite(id, request);
     }
 
     @DeleteMapping("/{id}")
+    @RequiresPermission(module = "consulta-externa", action = "eliminar")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         assistanceService.deleteExternalSite(id);
         return ResponseEntity.noContent().build();

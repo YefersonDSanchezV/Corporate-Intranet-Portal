@@ -1,5 +1,6 @@
 package co.com.icvc.intranet_backend.portal.controller;
 
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import co.com.icvc.intranet_backend.portal.dto.PortalDtos;
 import co.com.icvc.intranet_backend.portal.service.ModuleService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class ModuleController {
     }
 
     @PostMapping
+    @RequiresPermission(module = "sitios", action = "grabar")
     public ResponseEntity<PortalDtos.ModuloResponse> create(@RequestBody Map<String, Object> body) {
         String nombre = (String) body.get("nombre");
         boolean estado = body.get("estado") == null || Boolean.TRUE.equals(body.get("estado"));
@@ -36,6 +38,7 @@ public class ModuleController {
     }
 
     @PatchMapping("/{id}/active")
+    @RequiresPermission(module = "sitios", action = "activar")
     public ResponseEntity<Void> updateEstado(@PathVariable Integer id, @RequestBody Map<String, Boolean> body) {
         moduleService.updateEstado(id, Boolean.TRUE.equals(body.get("activo")));
         return ResponseEntity.noContent().build();

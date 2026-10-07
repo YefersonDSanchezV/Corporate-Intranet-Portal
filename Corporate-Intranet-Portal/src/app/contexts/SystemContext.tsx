@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { sitesApi } from '../api/sites';
 import { directoryApi } from '../api/directory';
 import { tasksApi } from '../api/tasks';
@@ -132,8 +132,8 @@ interface SystemContextType {
   addRole: (role: Omit<Role, 'id'>) => Promise<void>;
   toggleRoleEstado: (id: string) => Promise<void>;
   rolePermissions: RolePermission[];
-  updateRoleModulePermissions: (roleId: string, modules: string[]) => void;
-  updateRoleActionPermissions: (roleId: string, actions: string[]) => void;
+  updateRoleModulePermissions: (roleId: string, modules: string[] | ((prev: string[]) => string[])) => Promise<void>;
+  updateRoleActionPermissions: (roleId: string, actions: string[] | ((prev: string[]) => string[])) => Promise<void>;
   comUserPermissions: Record<string, string[]>;
   updateComUserPermissions: (userId: string, actions: string[]) => void;
   
@@ -209,6 +209,14 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
     }
     return [];
   });
+
+  // Espejo de rolePermissions para calcular el siguiente valor de forma síncrona.
+  // Hace falta porque las celdas de permisos disparan varios toggles seguidos en el
+  // mismo tick y un setState funcional no nos deja leer el resultado para persistirlo.
+  const rolePermissionsRef = useRef<RolePermission[]>(rolePermissions);
+  useEffect(() => {
+    rolePermissionsRef.current = rolePermissions;
+  }, [rolePermissions]);
 
   const [comUserPermissions, setComUserPermissions] = useState<Record<string, string[]>>(() => {
     const saved = localStorage.getItem('intranet_com_user_permissions');
@@ -429,44 +437,38 @@ export function SystemProvider({ children }: { children: React.ReactNode }) {
   };
 
   const persistPermisos = async (roleId: string, modules: string[], actions: string[]) => {
-    try {
-      await apiFetch(`/cargos/${roleId}/permisos`, { method: "PUT", body: { modulos: modules, acciones: actions } });
-    } catch (e) {
-      console.warn("No se pudo persistir permisos en backend, se mantiene en localStorage", e);
-    }
+    // Propaga el error: el modal de autorización debe poder avisar si el guardado falló.
+    await apiFetch(`/cargos/${roleId}/permisos`, { method: "PUT", body: { modulos: modules, acciones: actions } });
   };
 
-  const updateRoleModulePermissions = (roleId: string, modules: string[]) => {
-    let actionsToPersist: string[] = [];
-    setRolePermissions(prev => {
-      const existing = prev.find(p => p.roleId === roleId);
-      let next: RolePermission[];
-      if (existing) {
-        actionsToPersist = existing.actions;
-        next = prev.map(p => p.roleId === roleId ? { ...p, modules } : p);
-      } else {
-        next = [...prev, { roleId, modules, actions: [] }];
-      }
-      // persistir en backend sin bloquear UI
-      persistPermisos(roleId, modules, actionsToPersist);
-      return next;
-    });
+  const commitRolePermissions = (roleId: string, next: RolePermission[], modules: string[], actions: string[]) => {
+    rolePermissionsRef.current = next;
+    setRolePermissions(next);
+    return persistPermisos(roleId, modules, actions);
   };
 
-  const updateRoleActionPermissions = (roleId: string, actions: string[]) => {
-    let modulesToPersist: string[] = [];
-    setRolePermissions(prev => {
-      const existing = prev.find(p => p.roleId === roleId);
-      let next: RolePermission[];
-      if (existing) {
-        modulesToPersist = existing.modules;
-        next = prev.map(p => p.roleId === roleId ? { ...p, actions } : p);
-      } else {
-        next = [...prev, { roleId, modules: [], actions }];
-      }
-      persistPermisos(roleId, modulesToPersist, actions);
-      return next;
-    });
+  const updateRoleModulePermissions = async (roleId: string, modules: string[] | ((prev: string[]) => string[])) => {
+    const current = rolePermissionsRef.current;
+    const existing = current.find((p) => p.roleId === roleId);
+    const previous = existing?.modules ?? [];
+    const next = typeof modules === "function" ? modules(previous) : modules;
+    const actions = existing?.actions ?? [];
+    const nextPermissions = existing
+      ? current.map((p) => (p.roleId === roleId ? { ...p, modules: next } : p))
+      : [...current, { roleId, modules: next, actions }];
+    await commitRolePermissions(roleId, nextPermissions, next, actions);
+  };
+
+  const updateRoleActionPermissions = async (roleId: string, actions: string[] | ((prev: string[]) => string[])) => {
+    const current = rolePermissionsRef.current;
+    const existing = current.find((p) => p.roleId === roleId);
+    const previous = existing?.actions ?? [];
+    const next = typeof actions === "function" ? actions(previous) : actions;
+    const modules = existing?.modules ?? [];
+    const nextPermissions = existing
+      ? current.map((p) => (p.roleId === roleId ? { ...p, actions: next } : p))
+      : [...current, { roleId, modules, actions: next }];
+    await commitRolePermissions(roleId, nextPermissions, modules, next);
   };
 
   const updateComUserPermissions = (userId: string, actions: string[]) => {

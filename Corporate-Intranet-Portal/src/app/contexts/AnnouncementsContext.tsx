@@ -20,6 +20,7 @@ interface AnnouncementsContextType {
   publishedAnnouncements: Announcement[];
   notificationCount: number;
   clearNotifications: () => void;
+  // Las mutaciones propagan el error del backend (ApiError) para que la vista lo muestre.
   addAnnouncement: (announcement: Omit<Announcement, "id" | "published" | "createdAt" | "codigo">, creadorOid?: string | number | null) => Promise<void>;
   publishAnnouncement: (id: string) => Promise<void>;
   rejectAnnouncement: (id: string, observation: string) => Promise<void>;
@@ -69,7 +70,7 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
       if (!(await apiAvailable())) return;
       try {
         const data = await announcementsApi.list();
-        if (!cancelled && Array.isArray(data) && data.length > 0) {
+        if (!cancelled && Array.isArray(data)) {
           setAnnouncements(data.map((ann) => ({
             ...ann,
             startDate: new Date(ann.startDate),
@@ -86,60 +87,24 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const generateLocalCodigo = (existing: Announcement[]) => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    // secuencia global continua: max num +1
-    let maxNum = 0;
-    existing.forEach(a => {
-      const m = a.codigo?.match(/SOLANU-\d{4}-\d{2}-(\d{4})/);
-      if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
-    });
-    const seq = String((maxNum || existing.length) + 1).padStart(4, "0");
-    return `SOLANU-${year}-${month}-${seq}`;
-  };
-
   const addAnnouncement = async (announcement: Omit<Announcement, "id" | "published" | "createdAt" | "codigo">, creadorOid?: string | number | null) => {
-    try {
-      const created = await announcementsApi.create(announcement as any, creadorOid ?? null);
-      const withCreator: Announcement = {
-        ...created,
-        createdBy: created.createdBy || (announcement as any).createdBy || "Administrador",
-      };
-      setAnnouncements(prev => [withCreator, ...prev]);
-    } catch {
-      setAnnouncements(prev => {
-        const newAnnouncement: Announcement = {
-          ...announcement as Announcement,
-          id: Date.now().toString(),
-          published: false,
-          createdAt: new Date(),
-          codigo: generateLocalCodigo(prev),
-        };
-        return [newAnnouncement, ...prev];
-      });
-    }
+    const created = await announcementsApi.create(announcement as any, creadorOid ?? null);
+    const withCreator: Announcement = {
+      ...created,
+      createdBy: created.createdBy || (announcement as any).createdBy || "Administrador",
+    };
+    setAnnouncements(prev => [withCreator, ...prev]);
   };
 
   const publishAnnouncement = async (id: string) => {
-    try {
-      await announcementsApi.publish(id);
-      setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, published: true } : ann));
-      setNotificationCount(prev => prev + 1);
-    } catch {
-      setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, published: true } : ann));
-      setNotificationCount(prev => prev + 1);
-    }
+    await announcementsApi.publish(id);
+    setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, published: true } : ann));
+    setNotificationCount(prev => prev + 1);
   };
 
   const rejectAnnouncement = async (id: string, observation: string) => {
-    try {
-      await announcementsApi.reject(id, observation);
-      setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, published: false, description: `${ann.description}\n[Rechazado: ${observation}]` } as Announcement : ann));
-    } catch {
-      setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, published: false } as Announcement : ann));
-    }
+    await announcementsApi.reject(id, observation);
+    setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, published: false, description: `${ann.description}\n[Rechazado: ${observation}]` } as Announcement : ann));
   };
 
   const clearNotifications = () => {
@@ -147,21 +112,13 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
   };
 
   const updateAnnouncement = async (id: string, updates: Partial<Announcement>) => {
-    try {
-      const updated = await announcementsApi.update(id, updates);
-      setAnnouncements(prev => prev.map(ann => ann.id === id ? updated : ann));
-    } catch {
-      setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, ...updates } : ann));
-    }
+    const updated = await announcementsApi.update(id, updates);
+    setAnnouncements(prev => prev.map(ann => ann.id === id ? updated : ann));
   };
 
   const deleteAnnouncement = async (id: string) => {
-    try {
-      await announcementsApi.remove(id);
-      setAnnouncements(prev => prev.filter(ann => ann.id !== id));
-    } catch {
-      setAnnouncements(prev => prev.filter(ann => ann.id !== id));
-    }
+    await announcementsApi.remove(id);
+    setAnnouncements(prev => prev.filter(ann => ann.id !== id));
   };
 
   // Filtrar anuncios publicados y que estén dentro del rango de fechas (usa nowTick para refresco por minuto)

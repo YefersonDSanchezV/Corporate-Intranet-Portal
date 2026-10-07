@@ -1,8 +1,13 @@
 import { Plus, Eye, Trash2, X, Save, Award } from "lucide-react";
+import { useAdminAccess } from "../useAdminAccess";
+import { noPermissionReason } from "../AccessGate";
 import { useState } from "react";
 import { Achievement, useSystem } from "../../../contexts/SystemContext";
 
 export function LogrosAcreditacionesView() {
+  const { can } = useAdminAccess();
+  const canGrabar = can("logros-acreditaciones", "grabar");
+  const canEliminar = can("logros-acreditaciones", "eliminar");
   const { achievements, addAchievement, removeAchievement } = useSystem();
   const [showForm, setShowForm] = useState(false);
   const [showDetail, setShowDetail] = useState<Achievement | null>(null);
@@ -35,7 +40,12 @@ export function LogrosAcreditacionesView() {
           <h1 className="text-2xl font-bold text-[#0778AC] mb-2">Logros y Acreditaciones</h1>
           <p className="text-gray-600 text-sm">Administre los logros, acreditaciones y certificaciones institucionales.</p>
         </div>
-        <button onClick={() => { reset(); setShowForm(!showForm); }} className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-5 py-2.5 rounded-lg font-semibold shadow-md">
+        <button
+          onClick={() => { reset(); setShowForm(!showForm); }}
+          disabled={!canGrabar}
+          title={canGrabar ? undefined : noPermissionReason("Logros y Acreditaciones", "grabar")}
+          className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-semibold shadow-md"
+        >
           <Plus className="w-4 h-4" />
           {showForm ? "Ver listado" : "Nuevo logro"}
         </button>
@@ -73,7 +83,12 @@ export function LogrosAcreditacionesView() {
             </div>
             <div className="md:col-span-2 flex justify-end gap-3">
               <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold">Cancelar</button>
-              <button type="submit" className="flex items-center gap-2 bg-[#CF3438] hover:bg-[#a01f24] text-white px-6 py-2.5 rounded-lg text-sm font-semibold">
+              <button
+                type="submit"
+                disabled={!canGrabar}
+                title={canGrabar ? undefined : noPermissionReason("Logros y Acreditaciones", "grabar")}
+                className="flex items-center gap-2 bg-[#CF3438] hover:bg-[#a01f24] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+              >
                 <Save className="w-4 h-4" /> Guardar logro
               </button>
             </div>
@@ -94,7 +109,13 @@ export function LogrosAcreditacionesView() {
               </div>
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button onClick={() => setShowDetail(ach)} className="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-100 rounded-lg"><Eye className="w-4 h-4" /></button>
-                <button onClick={() => removeAchievement(ach.id)} className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                <button
+                  onClick={() => removeAchievement(ach.id)}
+                  disabled={!canEliminar}
+                  title={canEliminar ? "Eliminar" : noPermissionReason("Logros y Acreditaciones", "eliminar")}
+                  aria-label="Eliminar logro"
+                  className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                ><Trash2 className="w-4 h-4" /></button>
               </div>
             </div>
           )) : (

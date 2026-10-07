@@ -2,6 +2,7 @@ package co.com.icvc.intranet_backend.assistance.controller;
 
 import co.com.icvc.intranet_backend.assistance.dto.AssistanceDtos;
 import co.com.icvc.intranet_backend.assistance.service.AssistanceService;
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import co.com.icvc.intranet_backend.portal.dto.PortalDtos;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,24 +36,28 @@ public class ContingencyFormatController {
     }
 
     @PostMapping
+    @RequiresPermission(module = "formatos-contingencia", action = "grabar")
     public ResponseEntity<AssistanceDtos.FormatoResponse> create(
             @Valid @RequestBody AssistanceDtos.FormatoRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(assistanceService.createFormat(request));
     }
 
     @PutMapping("/{id}")
+    @RequiresPermission(module = "formatos-contingencia", action = "actualizar")
     public AssistanceDtos.FormatoResponse update(@PathVariable Integer id,
             @Valid @RequestBody AssistanceDtos.FormatoRequest request) {
         return assistanceService.updateFormat(id, request);
     }
 
     @DeleteMapping("/{id}")
+    @RequiresPermission(module = "formatos-contingencia", action = "eliminar")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         assistanceService.deleteFormat(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping(value = "/{id}/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequiresPermission(module = "formatos-contingencia", action = "actualizar")
     public PortalDtos.ArchivoResponse attachFile(@PathVariable Integer id, @RequestPart MultipartFile file,
             @RequestParam Integer usuarioOid) {
         return assistanceService.attachFile(id, file, usuarioOid);

@@ -1,6 +1,7 @@
 package co.com.icvc.intranet_backend.user.controller;
 
 import co.com.icvc.intranet_backend.common.web.HttpUtils;
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import co.com.icvc.intranet_backend.user.dto.UsuarioDtos;
 import co.com.icvc.intranet_backend.user.service.AuditService;
 import co.com.icvc.intranet_backend.user.service.UserService;
@@ -34,6 +35,7 @@ public class UserController {
     }
 
     @PostMapping
+    @RequiresPermission(module = "crear-usuario", action = "grabar")
     public ResponseEntity<UsuarioDtos.Response> create(@Valid @RequestBody UsuarioDtos.CreateRequest request,
             HttpServletRequest http) {
         UsuarioDtos.Response response = userService.create(request);
@@ -43,6 +45,7 @@ public class UserController {
     }
 
     @PutMapping("/{username}")
+    @RequiresPermission(module = "usuarios", action = "actualizar")
     public UsuarioDtos.Response update(@PathVariable String username,
             @Valid @RequestBody UsuarioDtos.UpdateRequest request, HttpServletRequest http) {
         UsuarioDtos.Response response = userService.update(username, request);
@@ -52,6 +55,7 @@ public class UserController {
     }
 
     @PatchMapping("/{username}/status")
+    @RequiresPermission(module = "usuarios", action = "activar")
     public UsuarioDtos.Response updateStatus(@PathVariable String username,
             @Valid @RequestBody UsuarioDtos.StatusRequest request, HttpServletRequest http) {
         UsuarioDtos.Response response = userService.updateStatus(username, request);
@@ -61,6 +65,7 @@ public class UserController {
     }
 
     @PatchMapping("/{id}/password")
+    @RequiresPermission(module = "usuarios", action = "actualizar")
     public UsuarioDtos.Response resetPassword(@PathVariable Integer id,
             @RequestBody(required = false) UsuarioDtos.UpdatePasswordRequest request, HttpServletRequest http) {
         UsuarioDtos.Response response = userService.resetPassword(id, request);

@@ -6,9 +6,11 @@ import co.com.icvc.intranet_backend.user.repository.LogAuditoriaRepository;
 import co.com.icvc.intranet_backend.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
@@ -16,6 +18,8 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class AuditService {
+
+    private static final long GENLOGS_ADVISORY_LOCK_KEY = 0x6C6F6753L;
 
     private final LogAuditoriaRepository logRepository;
     private final UsuarioRepository usuarioRepository;
@@ -30,35 +34,40 @@ public class AuditService {
         if (usuario == null) {
             return null;
         }
-        LogAuditoria audit = LogAuditoria.builder()
-                .usuario(usuario)
-                .accion(accion)
-                .tabla(tabla)
-                .registro(registro)
-                .valorAnterior(valorAnterior)
-                .valorNuevo(valorNuevo)
-                .fechaCambio(LocalDateTime.now())
-                .ip(ip)
-                .build();
         try {
-            return logRepository.save(audit);
-        } catch (Exception ex) {
-            String msg = ex.getMessage() != null ? ex.getMessage() : "";
-            if (msg.contains("oid") || (ex.getCause() != null && ex.getCause().getMessage() != null && ex.getCause().getMessage().contains("oid"))) {
-                log.warn("JPA save genlogs falló por oid, reintentando nativo: {}", ex.getMessage());
-                try {
-                    Integer nextOid = jdbcTemplate.queryForObject("SELECT COALESCE(MAX(oid),0)+1 FROM genlogs", Integer.class);
-                    jdbcTemplate.update(
-                            "INSERT INTO genlogs (oid, genusuario, genlogacci, genlogtabla, genlogregist, genlogvalant, genlogvalnue, genlogfechac, genlogip) VALUES (?,?,?,?,?,?,?,?,?)",
-                            nextOid, usuarioOid, accion, tabla, registro, valorAnterior, valorNuevo, Timestamp.valueOf(LocalDateTime.now()), ip);
-                    return logRepository.findById(nextOid).orElse(audit);
-                } catch (Exception ex2) {
-                    log.error("Fallback nativo genlogs falló: {}", ex2.getMessage(), ex2);
-                    return null;
-                }
+            lockLogs();
+            Integer nextOid = jdbcTemplate.queryForObject("SELECT COALESCE(MAX(oid),0)+1 FROM genlogs", Integer.class);
+            jdbcTemplate.update(
+                    "INSERT INTO genlogs (oid, genusuario, genlogacci, genlogtabla, genlogregist, genlogvalant, genlogvalnue, genlogfechac, genlogip) VALUES (?,?,?,?,?,?,?,?,?)",
+                    nextOid, usuarioOid, accion, tabla, registro, valorAnterior, valorNuevo,
+                    Timestamp.valueOf(LocalDateTime.now()), ip);
+            LogAuditoria audit = logRepository.findById(nextOid).orElse(null);
+            if (audit == null) {
+                audit = LogAuditoria.builder()
+                        .usuario(usuario)
+                        .accion(accion)
+                        .tabla(tabla)
+                        .registro(registro)
+                        .valorAnterior(valorAnterior)
+                        .valorNuevo(valorNuevo)
+                        .fechaCambio(LocalDateTime.now())
+                        .ip(ip)
+                        .build();
             }
-            log.error("Error registrando auditoría: {}", ex.getMessage(), ex);
+            return audit;
+        } catch (Exception ex) {
+            log.error("Error registrando auditoría en genlogs: {}", ex.getMessage(), ex);
             return null;
         }
+    }
+
+    private void lockLogs() {
+        jdbcTemplate.execute((ConnectionCallback<Object>) con -> {
+            try (PreparedStatement ps = con.prepareStatement("SELECT pg_advisory_xact_lock(?)")) {
+                ps.setLong(1, GENLOGS_ADVISORY_LOCK_KEY);
+                ps.execute();
+            }
+            return null;
+        });
     }
 }

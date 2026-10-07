@@ -45,18 +45,14 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/logout").permitAll()
                 // Solicitudes públicas (todo el personal puede crear solicitudes)
                 .requestMatchers(HttpMethod.POST, "/api/access-requests", "/api/password-reset-requests").permitAll()
-                // /api/me requiere JWT para identificar al usuario
-                .requestMatchers("/api/me").authenticated()
-                // Escritura permitida para usuarios autenticados en estos módulos del panel (antes de regla ADMIN)
-                .requestMatchers(HttpMethod.POST, "/api/sites/**", "/api/directory/**").authenticated()
-                .requestMatchers(HttpMethod.PUT, "/api/sites/**", "/api/directory/**").authenticated()
-                .requestMatchers(HttpMethod.PATCH, "/api/sites/**", "/api/directory/**").authenticated()
-                .requestMatchers(HttpMethod.DELETE, "/api/sites/**", "/api/directory/**").authenticated()
-                // Escritura protegida — solo ADMIN (panel de control)
-                .requestMatchers(HttpMethod.POST, "/api/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PATCH, "/api/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")
+                // /api/me y /api/me/** requieren JWT para identificar al usuario
+                .requestMatchers("/api/me", "/api/me/**").authenticated()
+                // Escrituras: cualquier usuario autenticado llega hasta el interceptor de
+                // permisos (PermissionInterceptor), que aplica el gateo modulo:accion.
+                .requestMatchers(HttpMethod.POST, "/api/**").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/**").authenticated()
+                .requestMatchers(HttpMethod.PATCH, "/api/**").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/**").authenticated()
                 // Lectura pública — portal público accesible a todo el personal
                 .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
                 .anyRequest().permitAll()

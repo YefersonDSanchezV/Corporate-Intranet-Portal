@@ -18,7 +18,8 @@ services:
 
     environment:
       TZ: America/Bogota
-      
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - intranet-network
 

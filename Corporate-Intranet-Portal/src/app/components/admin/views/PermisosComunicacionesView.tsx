@@ -2,6 +2,8 @@ import { Shield, Search } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useSystem } from "../../../contexts/SystemContext";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useAdminAccess } from "../useAdminAccess";
+import { noPermissionReason } from "../AccessGate";
 
 const COM_ACTIONS = [
   "Publicar anuncios",
@@ -40,8 +42,11 @@ export function PermisosComunicacionesView() {
   const selectedUser = comUsers.find(u => u.id === selectedUserId) || null;
   const actions = selectedUserId ? (comUserPermissions[selectedUserId] || []) : [];
 
+  const { can } = useAdminAccess();
+  const canActualizar = can("permisos", "actualizar");
+
   const toggleAction = (action: string) => {
-    if (!selectedUserId) return;
+    if (!selectedUserId || !canActualizar) return;
     const current = comUserPermissions[selectedUserId] || [];
     const next = current.includes(action) ? current.filter(a => a !== action) : [...current, action];
     updateComUserPermissions(selectedUserId, next);
@@ -90,8 +95,15 @@ export function PermisosComunicacionesView() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {COM_ACTIONS.map(action => (
-              <label key={action} className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer text-sm">
-                <input type="checkbox" checked={actions.includes(action)} onChange={() => toggleAction(action)} className="w-4 h-4 accent-[#CF3438]" />
+              <label key={action} className={`flex items-center gap-3 p-3 border border-gray-100 rounded-lg text-sm ${canActualizar ? "hover:bg-gray-50 cursor-pointer" : "bg-gray-50/60 text-gray-400 cursor-not-allowed"}`}>
+                <input
+                  type="checkbox"
+                  checked={actions.includes(action)}
+                  disabled={!canActualizar}
+                  title={canActualizar ? undefined : noPermissionReason("Permisos de Comunicaciones", "actualizar")}
+                  onChange={() => toggleAction(action)}
+                  className="w-4 h-4 accent-[#CF3438] disabled:opacity-40"
+                />
                 {action}
               </label>
             ))}

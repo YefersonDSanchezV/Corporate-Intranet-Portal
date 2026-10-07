@@ -1,10 +1,16 @@
 import { Eye, Send, X, Trash2, Pencil, Save, XCircle } from "lucide-react";
+import { useAdminAccess } from "../useAdminAccess";
+import { noPermissionReason } from "../AccessGate";
 import { useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useAnnouncements } from "../../../contexts/AnnouncementsContext";
+import { toast } from "sonner";
 
 export function AnunciosPendientesView() {
+  const { can } = useAdminAccess();
+  const canActualizar = can("anuncios-pendientes", "actualizar");
+  const canEliminar = can("anuncios-pendientes", "eliminar");
   const { announcements, publishAnnouncement, deleteAnnouncement, updateAnnouncement, rejectAnnouncement } = useAnnouncements() as any;
   const [selectedAnn, setSelectedAnn] = useState<any | null>(null);
   const [editingAnn, setEditingAnn] = useState<any | null>(null);
@@ -17,6 +23,7 @@ export function AnunciosPendientesView() {
   const [editStartTime, setEditStartTime] = useState("12:00");
   const [editEndDate, setEditEndDate] = useState("");
   const [editEndTime, setEditEndTime] = useState("23:59");
+  const [editDateError, setEditDateError] = useState("");
 
   const openEdit = (ann: any) => {
     setEditingAnn(ann);
@@ -29,19 +36,66 @@ export function AnunciosPendientesView() {
     setEditStartTime(s.toTimeString().slice(0,5));
     setEditEndDate(e.toISOString().slice(0,10));
     setEditEndTime(e.toTimeString().slice(0,5));
+    setEditDateError("");
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingAnn || !editTitle.trim() || !editStartDate || !editEndDate) return;
-    await updateAnnouncement(editingAnn.id, {
-      title: editTitle.trim(),
-      description: editDescription.trim(),
-      startDate: new Date(`${editStartDate}T${editStartTime}:00`),
-      endDate: new Date(`${editEndDate}T${editEndTime}:00`),
-      areaInforma: editArea.trim() || undefined,
-    } as any);
-    setEditingAnn(null);
+    if (!editingAnn || !editTitle.trim() || !editDescription.trim() || !editStartDate || !editEndDate) return;
+
+    const start = new Date(`${editStartDate}T${editStartTime}:00`);
+    const end = new Date(`${editEndDate}T${editEndTime}:00`);
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+      setEditDateError("La fecha y hora de fin debe ser posterior a la de inicio.");
+      return;
+    }
+    setEditDateError("");
+
+    try {
+      await updateAnnouncement(editingAnn.id, {
+        title: editTitle.trim(),
+        description: editDescription.trim(),
+        startDate: start,
+        endDate: end,
+        areaInforma: editArea.trim() || undefined,
+      } as any);
+      setEditingAnn(null);
+      toast.success("Anuncio actualizado correctamente.");
+    } catch (err: any) {
+      // El modal permanece abierto para no perder los cambios del usuario.
+      toast.error(`No se pudo actualizar el anuncio: ${err?.message || "error desconocido"}`);
+    }
+  };
+
+  const handlePublish = async (id: string, onDone?: () => void) => {
+    try {
+      await publishAnnouncement(id);
+      toast.success("Anuncio publicado.");
+      onDone?.();
+    } catch (err: any) {
+      toast.error(`No se pudo publicar el anuncio: ${err?.message || "error desconocido"}`);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Eliminar anuncio?")) return;
+    try {
+      await deleteAnnouncement(id);
+      toast.success("Anuncio eliminado.");
+    } catch (err: any) {
+      toast.error(`No se pudo eliminar el anuncio: ${err?.message || "error desconocido"}`);
+    }
+  };
+
+  const handleReject = async (id: string, observation: string) => {
+    try {
+      await rejectAnnouncement(id, observation);
+      setRejectAnn(null);
+      setRejectObs("");
+      toast.success("Anuncio rechazado.");
+    } catch (err: any) {
+      toast.error(`No se pudo rechazar el anuncio: ${err?.message || "error desconocido"}`);
+    }
   };
 
   const pending = announcements.filter(a => !a.published);
@@ -81,16 +135,40 @@ export function AnunciosPendientesView() {
                       <button onClick={() => setSelectedAnn(ann)} className="p-2 bg-slate-50 text-slate-600 hover:bg-slate-100 rounded-lg" title="Ver detalle">
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button onClick={() => openEdit(ann)} className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg" title="Editar">
+                      <button
+                        onClick={() => openEdit(ann)}
+                        className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={canActualizar ? "Editar" : noPermissionReason("Anuncios Pendientes", "actualizar")}
+                        aria-label="Editar anuncio"
+                        disabled={!canActualizar}
+                      >
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button onClick={() => publishAnnouncement(ann.id)} className="p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg" title="Publicar">
+                      <button
+                        onClick={() => handlePublish(ann.id)}
+                        className="p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={canActualizar ? "Publicar" : noPermissionReason("Anuncios Pendientes", "actualizar")}
+                        aria-label="Publicar anuncio"
+                        disabled={!canActualizar}
+                      >
                         <Send className="w-4 h-4" />
                       </button>
-                      <button onClick={() => { setRejectAnn(ann); setRejectObs(""); }} className="p-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg" title="Rechazar">
+                      <button
+                        onClick={() => { setRejectAnn(ann); setRejectObs(""); }}
+                        className="p-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={canActualizar ? "Rechazar" : noPermissionReason("Anuncios Pendientes", "actualizar")}
+                        aria-label="Rechazar anuncio"
+                        disabled={!canActualizar}
+                      >
                         <XCircle className="w-4 h-4" />
                       </button>
-                      <button onClick={() => { if (confirm("Eliminar anuncio?")) deleteAnnouncement(ann.id); }} className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg" title="Eliminar">
+                      <button
+                        onClick={() => handleDelete(ann.id)}
+                        className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={canEliminar ? "Eliminar" : noPermissionReason("Anuncios Pendientes", "eliminar")}
+                        aria-label="Eliminar anuncio"
+                        disabled={!canEliminar}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -120,7 +198,12 @@ export function AnunciosPendientesView() {
               <p>Fin: {format(selectedAnn.endDate, "dd/MM/yyyy HH:mm", { locale: es })}</p>
             </div>
             <div className="flex gap-2 mt-6">
-              <button onClick={() => { publishAnnouncement(selectedAnn.id); setSelectedAnn(null); }} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold text-sm">
+              <button
+                onClick={() => handlePublish(selectedAnn.id, () => setSelectedAnn(null))}
+                disabled={!canActualizar}
+                title={canActualizar ? undefined : noPermissionReason("Anuncios Pendientes", "actualizar")}
+                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white py-2 rounded-lg font-semibold text-sm"
+              >
                 Publicar anuncio
               </button>
               <button onClick={() => setSelectedAnn(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 py-2 rounded-lg font-semibold text-sm">Cerrar</button>
@@ -146,8 +229,8 @@ export function AnunciosPendientesView() {
                 <input value={editArea} onChange={e => setEditArea(e.target.value)} placeholder="Ej: Talento Humano" className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Descripción</label>
-                <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} rows={4} className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm resize-none" />
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Descripción *</label>
+                <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} rows={4} required className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm resize-none" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -167,9 +250,17 @@ export function AnunciosPendientesView() {
                   <input type="time" value={editEndTime} onChange={e => setEditEndTime(e.target.value)} className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm" />
                 </div>
               </div>
+              {editDateError && (
+                <p className="text-sm text-[#CF3438] font-medium">⚠ {editDateError}</p>
+              )}
               <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-                <button type="button" onClick={() => setEditingAnn(null)} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold">Cancelar</button>
-                <button type="submit" className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-6 py-2.5 rounded-lg text-sm font-semibold"><Save className="w-4 h-4" /> Guardar</button>
+                <button
+                  type="submit"
+                  disabled={!canActualizar}
+                  title={canActualizar ? undefined : noPermissionReason("Anuncios Pendientes", "actualizar")}
+                  className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+                ><Save className="w-4 h-4" /> Guardar</button>
+
               </div>
             </form>
           </div>
@@ -192,7 +283,12 @@ export function AnunciosPendientesView() {
               </div>
               <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
                 <button onClick={() => setRejectAnn(null)} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold">Cancelar</button>
-                <button onClick={async () => { if (!rejectObs.trim()) return; await rejectAnnouncement(rejectAnn.id, rejectObs.trim()); setRejectAnn(null); setRejectObs(""); }} disabled={!rejectObs.trim()} className="bg-[#CF3438] hover:bg-[#a01f24] disabled:opacity-40 text-white px-6 py-2.5 rounded-lg text-sm font-semibold">Rechazar</button>
+                <button
+                  onClick={() => { if (!rejectObs.trim()) return; handleReject(rejectAnn.id, rejectObs.trim()); }}
+                  disabled={!rejectObs.trim() || !canActualizar}
+                  title={canActualizar ? undefined : noPermissionReason("Anuncios Pendientes", "actualizar")}
+                  className="bg-[#CF3438] hover:bg-[#a01f24] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+                >Rechazar</button>
               </div>
             </div>
           </div>

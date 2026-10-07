@@ -1,4 +1,6 @@
 import { Plus, Trash2, Save, Cake } from "lucide-react";
+import { useAdminAccess } from "../useAdminAccess";
+import { noPermissionReason } from "../AccessGate";
 import { useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -11,6 +13,9 @@ interface Birthday {
 }
 
 export function CalendarioCumpleaniosView() {
+  const { can } = useAdminAccess();
+  const canGrabar = can("calendario-cumpleanios", "grabar");
+  const canEliminar = can("calendario-cumpleanios", "eliminar");
   const [birthdays, setBirthdays] = useState<Birthday[]>(() => {
     const saved = localStorage.getItem("admin_birthdays");
     return saved ? JSON.parse(saved) : [];
@@ -43,7 +48,12 @@ export function CalendarioCumpleaniosView() {
           <h1 className="text-2xl font-bold text-[#0778AC] mb-2">Calendario de Cumpleaños</h1>
           <p className="text-gray-600 text-sm">Administre los cumpleaños del personal.</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-5 py-2.5 rounded-lg font-semibold shadow-md">
+        <button
+          onClick={() => setShowForm(!showForm)}
+          disabled={!canGrabar}
+          title={canGrabar ? undefined : noPermissionReason("Calendario de Cumpleanos", "grabar")}
+          className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-semibold shadow-md"
+        >
           <Plus className="w-4 h-4" /> {showForm ? "Ver listado" : "Nuevo cumpleaños"}
         </button>
       </div>
@@ -66,7 +76,12 @@ export function CalendarioCumpleaniosView() {
             </div>
             <div className="md:col-span-2 flex justify-end gap-3">
               <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold">Cancelar</button>
-              <button type="submit" className="bg-[#CF3438] hover:bg-[#a01f24] text-white px-6 py-2.5 rounded-lg text-sm font-semibold"><Save className="w-4 h-4 inline mr-1" />Guardar</button>
+              <button
+                type="submit"
+                disabled={!canGrabar}
+                title={canGrabar ? undefined : noPermissionReason("Calendario de Cumpleanos", "grabar")}
+                className="bg-[#CF3438] hover:bg-[#a01f24] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+              ><Save className="w-4 h-4 inline mr-1" />Guardar</button>
             </div>
           </form>
         </div>
@@ -84,7 +99,13 @@ export function CalendarioCumpleaniosView() {
                 <p className="text-xs text-gray-500">{format(new Date(b.date), "dd 'de' MMMM", { locale: es })}</p>
                 {b.area && <p className="text-[10px] text-gray-400">{b.area}</p>}
               </div>
-              <button onClick={() => persist(birthdays.filter(x => x.id !== b.id))} className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+              <button
+                onClick={() => persist(birthdays.filter(x => x.id !== b.id))}
+                disabled={!canEliminar}
+                title={canEliminar ? "Eliminar" : noPermissionReason("Calendario de Cumpleanos", "eliminar")}
+                aria-label="Eliminar cumpleano"
+                className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+              ><Trash2 className="w-4 h-4" /></button>
             </div>
           )) : (
             <div className="col-span-full text-center py-8 text-gray-400">No hay cumpleaños registrados para este mes.</div>
@@ -113,7 +134,13 @@ export function CalendarioCumpleaniosView() {
                   <td className="p-3 text-sm">{format(new Date(b.date), "dd/MM/yyyy")}</td>
                   <td className="p-3 text-sm">{b.area || "-"}</td>
                   <td className="p-3 text-center">
-                    <button onClick={() => persist(birthdays.filter(x => x.id !== b.id))} className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                    <button
+                      onClick={() => persist(birthdays.filter(x => x.id !== b.id))}
+                      disabled={!canEliminar}
+                      title={canEliminar ? "Eliminar" : noPermissionReason("Calendario de Cumpleanos", "eliminar")}
+                      aria-label="Eliminar cumpleano"
+                      className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                    ><Trash2 className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,7 @@
 import {
   CheckCircle,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ChevronsDown,
   ChevronsUp,
@@ -16,13 +17,25 @@ import {
   UserPlus,
   XCircle,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { AccessRequest, useAuth, User, UserRole } from "../../../contexts/AuthContext";
 import { useSystem } from "../../../contexts/SystemContext";
 import { AdminView } from "../AdminSidebar";
-import { CONTROL_PANEL_MODULES, countAuthorizedSubmodules } from "../rbac";
+import {
+  CONTROL_PANEL_ACTIONS,
+  isImplicitControlPanelAction,
+  CONTROL_PANEL_ALL_PERMISSION_IDS,
+  CONTROL_PANEL_MODULES,
+  actionPermissionKey,
+  actionStateOverModules,
+  countAuthorizedSubmodules,
+  hasActionPermission,
+  parseActionPermissionKey,
+} from "../rbac";
 import { usersApi } from "../../../api/users";
 import { ApiError } from "../../../api/client";
+import { useAdminAccess } from "../useAdminAccess";
+import { noPermissionReason } from "../AccessGate";
 
 type Mode = "list" | "create" | "requests" | "cargos";
 
@@ -39,11 +52,14 @@ export function GeneralesUsuariosView({
   onModeChange: (view: AdminView) => void;
 }) {
   const { users, addUser, toggleUserStatus, accessRequests, approveAccessRequest, rejectAccessRequest, updateUser } = useAuth();
-  const { roles, addRole, toggleRoleEstado, rolePermissions, updateRoleModulePermissions } = useSystem();
+  const { roles, addRole, toggleRoleEstado, rolePermissions, updateRoleModulePermissions, updateRoleActionPermissions } = useSystem();
+  const { can } = useAdminAccess();
 
   const [statusFilter, setStatusFilter] = useState<"all" | User["status"]>("all");
   const [nameFilter, setNameFilter] = useState("");
   const [positionFilter, setPositionFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -149,6 +165,17 @@ export function GeneralesUsuariosView({
       return matchesStatus && matchesName && matchesPosition;
     });
   }, [users, statusFilter, nameFilter, positionFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedUsers = useMemo(
+    () => filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [filteredUsers, currentPage, pageSize],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, nameFilter, positionFilter]);
 
   const cargos = useMemo(() => {
     return roles.map((role) => ({
@@ -336,13 +363,56 @@ export function GeneralesUsuariosView({
   };
 
   const selectedPermissions = rolePermissions.find((permission) => permission.roleId === permissionRoleId)?.modules || [];
+  const selectedActions = rolePermissions.find((permission) => permission.roleId === permissionRoleId)?.actions || [];
+
+  const runPermissionUpdate = async (update: () => Promise<void>) => {
+    try {
+      await update();
+    } catch (error) {
+      const detail = error instanceof ApiError ? error.message : "error desconocido";
+      showToast(`No se pudo guardar el permiso: ${detail}`);
+    }
+  };
 
   const togglePermission = (permission: string) => {
-    const next = selectedPermissions.includes(permission)
-      ? selectedPermissions.filter((item) => item !== permission)
-      : [...selectedPermissions, permission];
-    updateRoleModulePermissions(permissionRoleId, next);
+    return runPermissionUpdate(() => updateRoleModulePermissions(permissionRoleId, (prev) =>
+      prev.includes(permission) ? prev.filter((item) => item !== permission) : [...prev, permission],
+    ));
   };
+
+  /** Aplica (o quita) una acción a varios módulos de una sola vez. */
+  const setActionForModules = (moduleIds: string[], actionId: string, enabled: boolean) => {
+    // "consultar" es implícita al acceso al módulo: se deriva, nunca se persiste.
+    if (isImplicitControlPanelAction(actionId)) return Promise.resolve();
+    const keys = moduleIds.map((moduleId) => actionPermissionKey(moduleId, actionId));
+    return runPermissionUpdate(() => updateRoleActionPermissions(permissionRoleId, (prev) =>
+      enabled
+        ? Array.from(new Set([...prev, ...keys]))
+        : prev.filter((action) => !keys.includes(action)),
+    ));
+  };
+
+  /** Marca o desmarca todas las acciones de todos los módulos y submódulos. */
+  const setAllActions = (enabled: boolean) => {
+    const allModuleIds = CONTROL_PANEL_MODULES.flatMap((section) => [
+      section.id,
+      ...(section.children?.map((child) => child.id) ?? []),
+    ]);
+    const allKeys = allModuleIds.flatMap((moduleId) =>
+      CONTROL_PANEL_ACTIONS
+        .filter((action) => !action.implicit)
+        .map((action) => actionPermissionKey(moduleId, action.id)),
+    );
+    return runPermissionUpdate(() => updateRoleActionPermissions(permissionRoleId, (prev) => {
+      if (!enabled) return prev.filter((action) => !allKeys.includes(action));
+      // Conserva los permisos legacy que no siguen el formato "modulo:accion".
+      return Array.from(new Set([...prev, ...allKeys]));
+    }));
+  };
+
+  const grantedActionCount = selectedActions.filter((action) => parseActionPermissionKey(action) !== null).length;
+  const scopedActionTotal = CONTROL_PANEL_ALL_PERMISSION_IDS.length
+    * CONTROL_PANEL_ACTIONS.filter((action) => !action.implicit).length;
 
   return (
     <div className="p-6 max-w-[1500px] mx-auto">
@@ -359,7 +429,12 @@ export function GeneralesUsuariosView({
           </p>
         </div>
         {mode === "list" && (
-          <button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            disabled={!can("usuarios", "grabar")}
+            title={can("usuarios", "grabar") ? undefined : noPermissionReason("Usuarios", "grabar")}
+            className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm"
+          >
             <UserPlus className="w-4 h-4" />
             Crear Usuario
           </button>
@@ -394,7 +469,7 @@ export function GeneralesUsuariosView({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredUsers.map((user) => (
+                  {paginatedUsers.map((user) => (
                     <tr key={user.id} className="hover:bg-gray-50">
                       <td className="p-4 text-sm font-semibold text-gray-800">{user.username}</td>
                       <td className="p-4">
@@ -406,24 +481,69 @@ export function GeneralesUsuariosView({
                       <td className="p-4 text-sm text-gray-700">{user.position || user.role}</td>
                       <td className="p-4">
                         <div className="flex items-center justify-center gap-2">
-                          <button title={user.status === "active" ? "Desactivar" : "Activar"} onClick={() => toggleUserStatus(user.username)} className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700">
+                          <button
+                            title={can("usuarios", "activar") ? (user.status === "active" ? "Desactivar" : "Activar") : noPermissionReason("Usuarios", "activar")}
+                            aria-label="Activar/Inactivar usuario"
+                            disabled={!can("usuarios", "activar")}
+                            onClick={() => toggleUserStatus(user.username)}
+                            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700"
+                          >
                             {user.status === "active" ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
                           </button>
-                          <button title="Editar" onClick={() => setEditingUser(user)} className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700"><Pencil className="w-4 h-4" /></button>
+                          <button
+                            title={can("usuarios", "actualizar") ? "Editar" : noPermissionReason("Usuarios", "actualizar")}
+                            aria-label="Editar usuario"
+                            disabled={!can("usuarios", "actualizar")}
+                            onClick={() => setEditingUser(user)}
+                            className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed text-blue-700"
+                          ><Pencil className="w-4 h-4" /></button>
                           <button title="Consultar" onClick={() => setSelectedUser(user)} className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700"><Eye className="w-4 h-4" /></button>
-                          <button title="Restablecer contrasena" onClick={() => handleResetPassword(user)} className="p-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700"><Key className="w-4 h-4" /></button>
+                          <button
+                            title={can("usuarios", "actualizar") ? "Restablecer contrasena" : noPermissionReason("Usuarios", "actualizar")}
+                            aria-label="Restablecer contrasena"
+                            disabled={!can("usuarios", "actualizar")}
+                            onClick={() => handleResetPassword(user)}
+                            className="p-2 rounded-lg bg-amber-50 hover:bg-amber-100 disabled:opacity-40 disabled:cursor-not-allowed text-amber-700"
+                          ><Key className="w-4 h-4" /></button>
                         </div>
                       </td>
                     </tr>
                   ))}
+                  {paginatedUsers.length === 0 && (
+                    <tr><td colSpan={5} className="p-8 text-center text-gray-400">No hay usuarios para mostrar.</td></tr>
+                  )}
                 </tbody>
               </table>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-gray-50 border-t border-gray-100">
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <span>Mostrar</span>
+                <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} className="border border-gray-300 rounded-md px-2 py-1 bg-white text-xs font-semibold">
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={30}>30</option>
+                  <option value={40}>40</option>
+                </select>
+                <span>por página</span>
+                <span className="ml-2 text-gray-500 hidden sm:inline">{filteredUsers.length > 0 ? `${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, filteredUsers.length)} de ${filteredUsers.length}` : "0 de 0"}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40">
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, currentPage - 3), Math.min(totalPages, currentPage + 2)).map(p => (
+                  <button key={p} onClick={() => setPage(p)} className={`min-w-[32px] h-8 rounded-md text-xs font-semibold border ${p === currentPage ? "bg-[#0778AC] text-white border-[#0778AC]" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"}`}>{p}</button>
+                ))}
+                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40">
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {mode === "create" && (
+      {mode === "create" && can("crear-usuario", "grabar") && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
           <form onSubmit={handleCreateUser} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <FormField label="Nombre de Usuario *" value={username} onChange={setUsername} required />
@@ -446,7 +566,12 @@ export function GeneralesUsuariosView({
             </div>
             <div className="lg:col-span-2 flex justify-end gap-3 pt-2">
               <button type="button" onClick={resetCreateForm} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold">Limpiar</button>
-              <button type="submit" className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-6 py-2.5 rounded-lg text-sm font-semibold">
+              <button
+                type="submit"
+                disabled={!can("usuarios", "grabar")}
+                title={can("usuarios", "grabar") ? undefined : noPermissionReason("Usuarios", "grabar")}
+                className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+              >
                 <Save className="w-4 h-4" />
                 Grabar
               </button>
@@ -487,7 +612,12 @@ export function GeneralesUsuariosView({
               </div>
               <div className="lg:col-span-2 flex justify-end gap-3 pt-2 border-t border-gray-100 mt-2">
                 <button type="button" onClick={() => { setShowCreateModal(false); resetCreateForm(); }} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50">Cancelar</button>
-                <button type="submit" className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-6 py-2.5 rounded-lg text-sm font-semibold">
+                <button
+                  type="submit"
+                  disabled={!can("usuarios", "grabar")}
+                  title={can("usuarios", "grabar") ? undefined : noPermissionReason("Usuarios", "grabar")}
+                  className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+                >
                   <Save className="w-4 h-4" />
                   Grabar
                 </button>
@@ -533,12 +663,24 @@ export function GeneralesUsuariosView({
                       <div className="flex justify-center gap-1.5">
                         <button title="Consultar" onClick={() => setSelectedSolicitud(request)} className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg"><Eye className="w-4 h-4" /></button>
                         {!isApproved && (
-                          <button onClick={() => handleAuthorize(request)} title="Aprobar" aria-label="Aprobar" className="bg-green-100 hover:bg-green-200 text-green-700 p-2 rounded-lg">
+                          <button
+                          onClick={() => handleAuthorize(request)}
+                          title={can("solicitudes", "actualizar") ? "Aprobar" : noPermissionReason("Solicitudes", "actualizar")}
+                          aria-label="Aprobar"
+                          disabled={!can("solicitudes", "actualizar")}
+                          className="bg-green-100 hover:bg-green-200 disabled:opacity-40 disabled:cursor-not-allowed text-green-700 p-2 rounded-lg"
+                        >
                             <CheckCircle className="w-[18px] h-[18px]" />
                           </button>
                         )}
                         {!isApproved && !isRejected && (
-                          <button onClick={() => handleReject(request)} title="Rechazar" aria-label="Rechazar" className="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-lg">
+                          <button
+                          onClick={() => handleReject(request)}
+                          title={can("solicitudes", "actualizar") ? "Rechazar" : noPermissionReason("Solicitudes", "actualizar")}
+                          aria-label="Rechazar"
+                          disabled={!can("solicitudes", "actualizar")}
+                          className="bg-red-100 hover:bg-red-200 disabled:opacity-40 disabled:cursor-not-allowed text-red-700 p-2 rounded-lg"
+                        >
                             <XCircle className="w-[18px] h-[18px]" />
                           </button>
                         )}
@@ -564,8 +706,18 @@ export function GeneralesUsuariosView({
             <div className="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-bold text-[#0778AC]">Cargos registrados</h2>
               <div className="flex items-center gap-2">
-                <button onClick={() => setShowAutorizarModal(true)} className="flex items-center gap-1.5 bg-white border-2 border-[#0778AC] text-[#0778AC] hover:bg-[#0778AC]/10 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm"><Shield className="w-4 h-4" />Autorizar acceso</button>
-                <button onClick={() => setShowCargoModal(true)} className="flex items-center gap-1 bg-[#0778AC] hover:bg-[#065a87] text-white rounded-lg px-4 py-2 text-sm font-semibold shadow-sm"><Plus className="w-4 h-4" />Nuevo Cargo</button>
+                <button
+                  onClick={() => setShowAutorizarModal(true)}
+                  disabled={!can("cargos", "actualizar")}
+                  title={can("cargos", "actualizar") ? undefined : noPermissionReason("Cargo", "actualizar")}
+                  className="flex items-center gap-1.5 bg-white border-2 border-[#0778AC] text-[#0778AC] hover:bg-[#0778AC]/10 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg px-4 py-2 text-sm font-semibold shadow-sm"
+                ><Shield className="w-4 h-4" />Autorizar acceso</button>
+                <button
+                  onClick={() => setShowCargoModal(true)}
+                  disabled={!can("cargos", "grabar")}
+                  title={can("cargos", "grabar") ? undefined : noPermissionReason("Cargo", "grabar")}
+                  className="flex items-center gap-1 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg px-4 py-2 text-sm font-semibold shadow-sm"
+                ><Plus className="w-4 h-4" />Nuevo Cargo</button>
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -594,7 +746,13 @@ export function GeneralesUsuariosView({
                         <td className="p-4 text-sm text-center"><span className="bg-blue-50 text-blue-700 text-xs font-bold rounded-full px-2.5 py-1">{totalUsers}</span></td>
                         <td className="p-4 text-sm text-center"><span className="bg-purple-50 text-purple-700 text-xs font-bold rounded-full px-2.5 py-1">{totalPerms}</span></td>
                         <td className="p-4 text-center">
-                          <button onClick={() => toggleRoleEstado(item.id)} title={isActive ? "Inactivar" : "Activar"} className={`p-2 rounded-lg ${isActive ? "bg-amber-50 hover:bg-amber-100 text-amber-700" : "bg-green-50 hover:bg-green-100 text-green-700"}`}>
+                          <button
+                            onClick={() => toggleRoleEstado(item.id)}
+                            title={can("cargos", "activar") ? (isActive ? "Inactivar" : "Activar") : noPermissionReason("Cargo", "activar")}
+                            aria-label="Activar/Inactivar cargo"
+                            disabled={!can("cargos", "activar")}
+                            className={`p-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed ${isActive ? "bg-amber-50 hover:bg-amber-100 text-amber-700" : "bg-green-50 hover:bg-green-100 text-green-700"}`}
+                          >
                             {isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
                           </button>
                         </td>
@@ -612,88 +770,194 @@ export function GeneralesUsuariosView({
         </div>
       )}
 
-      {/* Modal Autorizar acceso a módulos y submódulos */}
+      {/* Modal Autorizar acceso a módulos, submódulos y acciones */}
       {mode === "cargos" && showAutorizarModal && (
-        <div className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
-            <div className="bg-[#0778AC] px-6 py-4 flex justify-between items-center flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-white" />
-                <h2 className="font-bold text-white text-sm md:text-base">Autorizar acceso a módulos y submódulos del panel de control al cargo</h2>
+        <div className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-[1400px] max-h-[92vh] overflow-hidden flex flex-col">
+            <div className="bg-[#0778AC] px-6 py-4 flex justify-between items-center flex-shrink-0 gap-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <Shield className="w-5 h-5 text-white flex-shrink-0" />
+                <h2 className="font-bold text-white text-sm md:text-base truncate">
+                  Autorizar acceso a módulos, submódulos y acciones del panel de control
+                </h2>
               </div>
-              <button onClick={() => setShowAutorizarModal(false)} className="text-white/80 hover:text-white hover:bg-white/20 p-1.5 rounded-full"><XCircle className="w-5 h-5" /></button>
+              <button onClick={() => setShowAutorizarModal(false)} className="text-white/80 hover:text-white hover:bg-white/20 p-1.5 rounded-full flex-shrink-0" title="Cerrar">
+                <XCircle className="w-5 h-5" />
+              </button>
             </div>
-            <div className="p-5 overflow-y-auto flex-1 custom-scrollbar">
-              <p className="text-xs text-gray-500 mb-3">Seleccione un cargo para asignar los módulos y submódulos del panel de control a los que podrá acceder.</p>
-              <select value={permissionRoleId} onChange={(e) => setPermissionRoleId(e.target.value)} className="w-full border-2 border-gray-200 rounded-lg p-2.5 text-sm bg-white mb-4">
-                <option value="">Seleccione un cargo...</option>
-                {roles.map((role) => <option key={role.id} value={role.id}>{role.description || role.name}</option>)}
-              </select>
-              {permissionRoleId ? (
-                <>
-                  <div className="flex justify-end gap-2 mb-3">
-                    <button onClick={() => setExpandedSections(Object.fromEntries(CONTROL_PANEL_MODULES.map(m => [m.id, true])))} className="inline-flex items-center gap-1 text-xs font-semibold text-[#0778AC] hover:text-[#065a87] border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:bg-gray-50">
+
+            <div className="px-6 py-4 border-b border-gray-100 flex-shrink-0 space-y-3">
+              <div className="flex flex-col md:flex-row md:items-end gap-3">
+                <div className="flex-1 min-w-0">
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Cargo</label>
+                  <select
+                    value={permissionRoleId}
+                    onChange={(e) => setPermissionRoleId(e.target.value)}
+                    className="w-full border-2 border-gray-200 rounded-lg p-2.5 text-sm bg-white focus:outline-none focus:border-[#0778AC]"
+                  >
+                    <option value="">Seleccione un cargo...</option>
+                    {roles.map((role) => <option key={role.id} value={role.id}>{role.description || role.name}</option>)}
+                  </select>
+                </div>
+                {permissionRoleId && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button onClick={() => setExpandedSections(Object.fromEntries(CONTROL_PANEL_MODULES.map(m => [m.id, true])))} className="inline-flex items-center gap-1 text-xs font-semibold text-[#0778AC] hover:text-[#065a87] border border-gray-200 rounded-lg px-3 py-2 bg-white hover:bg-gray-50">
                       <ChevronsDown className="w-3.5 h-3.5" /> Expandir todo
                     </button>
-                    <button onClick={() => setExpandedSections({})} className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-gray-800 border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:bg-gray-50">
+                    <button onClick={() => setExpandedSections({})} className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-gray-800 border border-gray-200 rounded-lg px-3 py-2 bg-white hover:bg-gray-50">
                       <ChevronsUp className="w-3.5 h-3.5" /> Comprimir todo
                     </button>
+                    <button onClick={() => setAllActions(true)} className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 hover:text-green-800 border border-green-200 rounded-lg px-3 py-2 bg-green-50 hover:bg-green-100">
+                      <CheckCircle className="w-3.5 h-3.5" /> Todas las acciones
+                    </button>
+                    <button onClick={() => setAllActions(false)} className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-gray-800 border border-gray-200 rounded-lg px-3 py-2 bg-white hover:bg-gray-50">
+                      <EyeOff className="w-3.5 h-3.5" /> Quitar acciones
+                    </button>
                   </div>
-                  <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
-                    {CONTROL_PANEL_MODULES.map((section) => {
-                      const sectionIds = [section.id, ...(section.children?.map(c => c.id) || [])];
-                      const sectionSelected = sectionIds.every(id => selectedPermissions.includes(id));
-                      const sectionPartial = !sectionSelected && sectionIds.some(id => selectedPermissions.includes(id));
-                      const isExpanded = !!expandedSections[section.id];
-                      return (
-                        <div key={section.id} className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
-                          <div className={`flex items-center gap-2 p-2.5 ${sectionSelected ? "bg-[#0778AC]/10" : "bg-gray-50"} `}>
-                            <button
-                              type="button"
-                              onClick={() => setExpandedSections(prev => ({ ...prev, [section.id]: !isExpanded }))}
-                              className="p-1 rounded hover:bg-black/10 text-gray-500 hover:text-gray-700 flex-shrink-0"
-                              title={isExpanded ? "Comprimir" : "Expandir"}
-                            >
-                              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                            </button>
-                            <label className="flex items-center gap-3 flex-1 cursor-pointer min-w-0">
-                              <input type="checkbox" checked={sectionSelected} ref={el => { if (el) el.indeterminate = sectionPartial; }} onChange={() => {
-                                const allSelected = sectionSelected;
-                                let next: string[];
-                                if (allSelected) {
-                                  next = selectedPermissions.filter(p => !sectionIds.includes(p));
-                                } else {
-                                  next = [...new Set([...selectedPermissions, ...sectionIds])];
-                                }
-                                updateRoleModulePermissions(permissionRoleId, next);
-                              }} className="w-4 h-4 accent-[#0778AC] flex-shrink-0" />
-                              <span className="font-bold text-sm text-gray-800 truncate">{section.label}</span>
-                              <span className="ml-auto text-xs text-gray-500 whitespace-nowrap hidden sm:inline">{section.children ? `${section.children.length} submódulos` : ""}</span>
-                            </label>
-                            <span className="text-[10px] font-mono text-gray-400 hidden md:inline truncate max-w-[140px]">{section.id}</span>
-                          </div>
-                          {isExpanded && section.children && (
-                            <div className="divide-y divide-gray-100 bg-white border-t border-gray-100">
-                              {section.children.map((sub) => (
-                                <label key={sub.id} className="flex items-center gap-3 py-2.5 px-3 pl-10 hover:bg-gray-50 cursor-pointer text-sm">
-                                  <input type="checkbox" checked={selectedPermissions.includes(sub.id)} onChange={() => togglePermission(sub.id)} className="w-4 h-4 accent-[#0778AC] flex-shrink-0" />
-                                  <span className="text-gray-700 truncate">{sub.label}</span>
-                                  <span className="ml-auto text-[10px] text-gray-400 font-mono whitespace-nowrap">{sub.id}</span>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-gray-400 italic text-center py-4">Seleccione un cargo arriba para gestionar sus permisos.</p>
+                )}
+              </div>
+              {permissionRoleId && (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                  <span>
+                    Módulos y submódulos autorizados:{" "}
+                    <strong className="text-gray-700">{selectedPermissions.filter((id) => CONTROL_PANEL_ALL_PERMISSION_IDS.includes(id)).length}</strong>
+                    {" / "}{CONTROL_PANEL_ALL_PERMISSION_IDS.length}
+                  </span>
+                  <span>
+                    Acciones autorizadas:{" "}
+                    <strong className="text-gray-700">{grantedActionCount}</strong>
+                    {" / "}{scopedActionTotal}
+                  </span>
+                  <span className="text-gray-400 italic">
+                    Marcar un módulo aplica la acción a todos sus submódulos.
+                  </span>
+                </div>
               )}
             </div>
-            <div className="bg-gray-50 px-6 py-3 flex justify-end border-t border-gray-100 flex-shrink-0">
-              <button onClick={() => setShowAutorizarModal(false)} className="px-5 py-2.5 rounded-lg bg-[#0778AC] hover:bg-[#065a87] text-white text-sm font-semibold">Cerrar</button>
+
+            <div className="p-4 overflow-auto flex-1 custom-scrollbar">
+              {permissionRoleId ? (
+                <table className="w-full border-collapse text-sm">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="bg-gray-50 border-b-2 border-gray-200">
+                      <th className="text-left font-semibold text-gray-600 px-3 py-2.5 min-w-[280px]">Módulo / Submódulo</th>
+                      {CONTROL_PANEL_ACTIONS.map((action) => (
+                        <th
+                          key={action.id}
+                          className={`px-2 py-2.5 text-center font-semibold w-[104px] ${action.implicit ? "text-gray-400" : "text-gray-600"}`}
+                          title={action.implicit ? `${action.label}: se concede automáticamente con el acceso al módulo` : action.hint}
+                        >
+                          <span className="block leading-tight">{action.label}</span>
+                          {action.implicit && <span className="block text-[9px] font-normal uppercase tracking-wide">implícita</span>}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {CONTROL_PANEL_MODULES.map((section) => {
+                      const childIds = section.children?.map((child) => child.id) ?? [];
+                      const sectionIds = [section.id, ...childIds];
+                      const sectionSelected = sectionIds.every((id) => selectedPermissions.includes(id));
+                      const sectionPartial = !sectionSelected && sectionIds.some((id) => selectedPermissions.includes(id));
+                      const isExpanded = !!expandedSections[section.id];
+                      return (
+                        <Fragment key={section.id}>
+                          <tr className={`border-b border-gray-100 ${sectionSelected ? "bg-[#0778AC]/10" : "bg-gray-50"}`}>
+                            <td className="px-3 py-2">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedSections(prev => ({ ...prev, [section.id]: !isExpanded }))}
+                                  className="p-1 rounded hover:bg-black/10 text-gray-500 hover:text-gray-700 flex-shrink-0"
+                                  title={isExpanded ? "Comprimir" : "Expandir"}
+                                >
+                                  {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                </button>
+                                <label className="flex items-center gap-2 cursor-pointer min-w-0 flex-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={sectionSelected}
+                                    ref={(el) => { if (el) el.indeterminate = sectionPartial; }}
+                                    onChange={() => runPermissionUpdate(() => updateRoleModulePermissions(permissionRoleId, (prev) => {
+                                      const all = sectionIds.every((id) => prev.includes(id));
+                                      return all
+                                        ? prev.filter((p) => !sectionIds.includes(p))
+                                        : Array.from(new Set([...prev, ...sectionIds]));
+                                    }))}
+                                    className="w-4 h-4 accent-[#0778AC] flex-shrink-0"
+                                  />
+                                  <span className="font-bold text-gray-800 truncate">{section.label}</span>
+                                </label>
+                                <span className="text-[10px] text-gray-400 whitespace-nowrap">{childIds.length} sub</span>
+                              </div>
+                            </td>
+                            {CONTROL_PANEL_ACTIONS.map((action) => {
+                              const state = actionStateOverModules(selectedActions, sectionIds, action.id);
+                              // "consultar" refleja el acceso al módulo y no se puede editar a mano.
+                              const derived = action.implicit ? sectionSelected : undefined;
+                              return (
+                                <td key={action.id} className="px-2 py-2 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={derived ?? state.all}
+                                    ref={(el) => { if (el) el.indeterminate = derived === undefined && !state.all && state.some; }}
+                                    disabled={derived !== undefined}
+                                    onChange={() => setActionForModules(sectionIds, action.id, !state.all)}
+                                    title={derived !== undefined ? "Se concede con el acceso al módulo" : action.hint}
+                                    className={`w-4 h-4 accent-[#0778AC] ${derived !== undefined ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                                  />
+                                </td>
+                              );
+                            })}
+                          </tr>
+                          {isExpanded && section.children?.map((sub) => (
+                            <tr key={sub.id} className="border-b border-gray-50 hover:bg-gray-50/70">
+                              <td className="py-1.5 pr-3 pl-12">
+                                <label className="flex items-center gap-2 cursor-pointer min-w-0">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedPermissions.includes(sub.id)}
+                                    onChange={() => togglePermission(sub.id)}
+                                    className="w-4 h-4 accent-[#0778AC] flex-shrink-0"
+                                  />
+                                  <span className="text-gray-700 truncate">{sub.label}</span>
+                                  <span className="text-[10px] text-gray-400 font-mono truncate hidden xl:inline">{sub.id}</span>
+                                </label>
+                              </td>
+                              {CONTROL_PANEL_ACTIONS.map((action) => {
+                                const derived = action.implicit ? selectedPermissions.includes(sub.id) : undefined;
+                                return (
+                                  <td key={action.id} className="px-2 py-1.5 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={derived ?? hasActionPermission(selectedActions, sub.id, action.id)}
+                                      disabled={derived !== undefined}
+                                      onChange={(e) => setActionForModules([sub.id], action.id, e.target.checked)}
+                                      title={derived !== undefined ? "Se concede con el acceso al submódulo" : action.hint}
+                                      className={`w-4 h-4 accent-[#0778AC] ${derived !== undefined ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                                    />
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-sm text-gray-400 italic text-center py-10">Seleccione un cargo arriba para gestionar sus permisos.</p>
+              )}
+            </div>
+
+            <div className="bg-gray-50 px-6 py-3 flex items-center justify-between gap-4 border-t border-gray-100 flex-shrink-0">
+              <p className="text-xs text-gray-500 hidden md:block">
+                Los cambios se guardan automáticamente al marcar cada casilla.
+              </p>
+              <div className="flex items-center gap-3 ml-auto">
+                <button onClick={() => { setExpandedSections({}); setShowAutorizarModal(false); }} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-100">Cerrar</button>
+              </div>
             </div>
           </div>
         </div>
@@ -714,7 +978,12 @@ export function GeneralesUsuariosView({
             </div>
             <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
               <button onClick={() => { setShowCargoModal(false); setNewCargoName(""); }} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-100">Cancelar</button>
-              <button onClick={async () => { await handleAddCargo(); setShowCargoModal(false); }} disabled={!newCargoName.trim()} className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg text-sm font-semibold"><Save className="w-4 h-4" /> Grabar</button>
+              <button
+                onClick={async () => { await handleAddCargo(); setShowCargoModal(false); }}
+                disabled={!newCargoName.trim() || !can("cargos", "grabar")}
+                title={can("cargos", "grabar") ? undefined : noPermissionReason("Cargo", "grabar")}
+                className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg text-sm font-semibold"
+              ><Save className="w-4 h-4" /> Grabar</button>
             </div>
           </div>
         </div>
@@ -802,7 +1071,12 @@ export function GeneralesUsuariosView({
               )}
               <div className="md:col-span-2 flex justify-end gap-3 pt-2 border-t border-gray-100">
                 <button type="button" onClick={() => setApprovingSolicitud(null)} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50">Cancelar</button>
-                <button type="submit" className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg text-sm font-semibold">
+                <button
+                  type="submit"
+                  disabled={!can("solicitudes", "actualizar")}
+                  title={can("solicitudes", "actualizar") ? undefined : noPermissionReason("Solicitudes", "actualizar")}
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+                >
                   <CheckCircle className="w-4 h-4" /> Grabar
                 </button>
               </div>
@@ -832,7 +1106,12 @@ export function GeneralesUsuariosView({
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button onClick={() => setResetTarget(null)} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50">Cancelar</button>
-                <button onClick={handleConfirmResetPassword} className="bg-[#0778AC] hover:bg-[#065a87] text-white px-6 py-2.5 rounded-lg text-sm font-semibold">Restablecer</button>
+                <button
+                  onClick={handleConfirmResetPassword}
+                  disabled={!can("usuarios", "actualizar")}
+                  title={can("usuarios", "actualizar") ? undefined : noPermissionReason("Usuarios", "actualizar")}
+                  className="bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+                >Restablecer</button>
               </div>
             </div>
           </div>
@@ -855,7 +1134,12 @@ export function GeneralesUsuariosView({
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button onClick={() => setRejectTarget(null)} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50">Cancelar</button>
-                <button onClick={handleConfirmReject} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg text-sm font-semibold">Grabar</button>
+                <button
+                  onClick={handleConfirmReject}
+                  disabled={!can("solicitudes", "actualizar")}
+                  title={can("solicitudes", "actualizar") ? undefined : noPermissionReason("Solicitudes", "actualizar")}
+                  className="bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+                >Grabar</button>
               </div>
             </div>
           </div>

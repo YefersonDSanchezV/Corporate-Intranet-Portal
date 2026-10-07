@@ -16,6 +16,7 @@ import { SystemProvider } from "./contexts/SystemContext";
 import { AnnouncementPanel } from "./components/AnnouncementPanel";
 import { BirthdayWall } from "./components/BirthdayWall";
 import { AdminPanel } from "./components/admin/AdminPanel";
+import { Toaster } from "sonner";
 
 function AppContent() {
   const { adminPanelOpen } = useAdminAuth();
@@ -76,6 +77,8 @@ function AppContent() {
       </div>
 
       {adminPanelOpen && <AdminPanel />}
+
+      <Toaster position="top-right" richColors closeButton />
     </>
   );
 }

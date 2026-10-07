@@ -1,5 +1,6 @@
 package co.com.icvc.intranet_backend.user.controller;
 
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import co.com.icvc.intranet_backend.user.dto.SolicitudUsuarioDtos;
 import co.com.icvc.intranet_backend.user.service.PasswordResetService;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class PasswordResetController {
     }
 
     @PostMapping("/{id}/complete")
+    @RequiresPermission(module = "usuarios", action = "actualizar")
     public SolicitudUsuarioDtos.Response complete(@PathVariable Integer id) {
         return passwordResetService.complete(id);
     }

@@ -1,5 +1,6 @@
 package co.com.icvc.intranet_backend.portal.controller;
 
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import co.com.icvc.intranet_backend.portal.dto.PortalDtos;
 import co.com.icvc.intranet_backend.portal.service.SiteService;
 import jakarta.validation.Valid;
@@ -32,28 +33,33 @@ public class SiteController {
     }
 
     @PostMapping
+    @RequiresPermission(module = "sitios", action = "grabar")
     public ResponseEntity<PortalDtos.SitioResponse> create(@Valid @RequestBody PortalDtos.SitioRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(siteService.create(request));
     }
 
     @PutMapping("/{id}")
+    @RequiresPermission(module = "sitios", action = "actualizar")
     public PortalDtos.SitioResponse update(@PathVariable Integer id,
             @Valid @RequestBody PortalDtos.SitioRequest request) {
         return siteService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
+    @RequiresPermission(module = "sitios", action = "eliminar")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         siteService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/active")
+    @RequiresPermission(module = "sitios", action = "activar")
     public PortalDtos.SitioResponse updateActive(@PathVariable Integer id) {
         return siteService.toggleActive(id);
     }
 
     @PatchMapping("/{id}/acceso-rapido")
+    @RequiresPermission(module = "accesos-rapidos", action = "actualizar")
     public PortalDtos.SitioResponse toggleAccesoRapido(@PathVariable Integer id) {
         return siteService.toggleAccesoRapido(id);
     }

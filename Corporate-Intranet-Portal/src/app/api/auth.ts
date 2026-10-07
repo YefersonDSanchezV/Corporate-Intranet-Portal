@@ -44,6 +44,11 @@ function mapBackendUsuario(u: BackendUsuario): User {
   };
 }
 
+export interface MePermissions {
+  modules: string[];
+  actions: string[];
+}
+
 export const authApi = {
   login: async (username: string, password: string): Promise<LoginResponse> => {
     const res = await apiFetch<BackendLoginResponse>("/auth/login", {
@@ -64,6 +69,7 @@ export const authApi = {
     const u = await apiFetch<BackendUsuario>("/me");
     return mapBackendUsuario(u);
   },
+  mePermissions: () => apiFetch<MePermissions>("/me/permissions"),
   cargos: () => apiFetch<UserRole[]>("/cargos"),
   areas: () => apiFetch<string[]>("/areas"),
 };

@@ -2,6 +2,7 @@ package co.com.icvc.intranet_backend.directory.controller;
 
 import co.com.icvc.intranet_backend.directory.dto.DirectoryDtos;
 import co.com.icvc.intranet_backend.directory.service.DirectoryService;
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -32,18 +33,21 @@ public class DirectoryController {
     }
 
     @PostMapping("/extensions")
+    @RequiresPermission(module = "directorio-extensiones", action = "grabar")
     public ResponseEntity<DirectoryDtos.ExtensionResponse> createExtension(
             @Valid @RequestBody DirectoryDtos.ExtensionRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(directoryService.createExtension(request));
     }
 
     @PutMapping("/extensions/{id}")
+    @RequiresPermission(module = "directorio-extensiones", action = "actualizar")
     public DirectoryDtos.ExtensionResponse updateExtension(@PathVariable Integer id,
             @Valid @RequestBody DirectoryDtos.ExtensionRequest request) {
         return directoryService.updateExtension(id, request);
     }
 
     @DeleteMapping("/extensions/{id}")
+    @RequiresPermission(module = "directorio-extensiones", action = "eliminar")
     public ResponseEntity<Void> deleteExtension(@PathVariable Integer id) {
         directoryService.deleteExtension(id);
         return ResponseEntity.noContent().build();
@@ -56,18 +60,21 @@ public class DirectoryController {
     }
 
     @PostMapping("/emails")
+    @RequiresPermission(module = "directorio-correos", action = "grabar")
     public ResponseEntity<DirectoryDtos.CorreoResponse> createEmail(
             @Valid @RequestBody DirectoryDtos.CorreoRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(directoryService.createEmail(request));
     }
 
     @PutMapping("/emails/{id}")
+    @RequiresPermission(module = "directorio-correos", action = "actualizar")
     public DirectoryDtos.CorreoResponse updateEmail(@PathVariable Integer id,
             @Valid @RequestBody DirectoryDtos.CorreoRequest request) {
         return directoryService.updateEmail(id, request);
     }
 
     @DeleteMapping("/emails/{id}")
+    @RequiresPermission(module = "directorio-correos", action = "eliminar")
     public ResponseEntity<Void> deleteEmail(@PathVariable Integer id) {
         directoryService.deleteEmail(id);
         return ResponseEntity.noContent().build();

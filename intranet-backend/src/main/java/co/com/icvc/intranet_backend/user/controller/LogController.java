@@ -1,6 +1,7 @@
 package co.com.icvc.intranet_backend.user.controller;
 
 import co.com.icvc.intranet_backend.common.web.HttpUtils;
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import co.com.icvc.intranet_backend.user.dto.LogAuditoriaDtos;
 import co.com.icvc.intranet_backend.user.service.LogService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,6 +31,7 @@ public class LogController {
     }
 
     @PostMapping
+    @RequiresPermission(module = "logs", action = "grabar")
     public ResponseEntity<LogAuditoriaDtos.Response> create(
             @Valid @RequestBody LogAuditoriaDtos.CreateRequest request, HttpServletRequest http) {
         return ResponseEntity.status(HttpStatus.CREATED)

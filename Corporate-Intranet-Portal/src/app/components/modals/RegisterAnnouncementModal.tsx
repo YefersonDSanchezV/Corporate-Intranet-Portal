@@ -2,6 +2,7 @@ import { X, Plus, Send, Lock, User, Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAnnouncements } from "../../contexts/AnnouncementsContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { toast } from "sonner";
 
 interface RegisterAnnouncementModalProps {
   isOpen: boolean;
@@ -68,19 +69,24 @@ export function RegisterAnnouncementModal({
     if (dateError) setDateError("");
   }, [startDate, startTime, endDate, endTime]);
 
-  const handleSubmit = (e: React.FormEvent, publishDirectly: boolean = false) => {
+  const handleSubmit = async (e: React.FormEvent, publishDirectly: boolean = false) => {
     e.preventDefault();
 
     if (!validateDates()) return;
 
-    addAnnouncement({
-      title,
-      description,
-      startDate: new Date(`${startDate}T${startTime || "00:00"}`),
-      endDate: new Date(`${endDate}T${endTime || "23:59"}`),
-      createdBy: user?.fullName || username,
-      published: publishDirectly,
-    } as any);
+    try {
+      await addAnnouncement({
+        title,
+        description,
+        startDate: new Date(`${startDate}T${startTime || "00:00"}`),
+        endDate: new Date(`${endDate}T${endTime || "23:59"}`),
+        createdBy: user?.fullName || username,
+        published: publishDirectly,
+      } as any);
+    } catch (err: any) {
+      toast.error(`No se pudo registrar el anuncio: ${err?.message || "error desconocido"}`);
+      return;
+    }
 
     setSuccessMsg(
       publishDirectly 
@@ -323,19 +329,24 @@ export function RegisterAnnouncementModal({
                   <button
                     type="button"
                     disabled={!!dateError || !title || !description || !startDate || !endDate}
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.preventDefault();
                       if (!validateDates()) return;
                       const startDateTime = new Date(`${startDate}T${startTime || "00:00"}`);
                       const endDateTime = new Date(`${endDate}T${endTime || "23:59"}`);
-                      addAnnouncement({
-                        title,
-                        description,
-                        startDate: startDateTime,
-                        endDate: endDateTime,
-                        createdBy: user?.fullName || "",
-                        published: true,
-                      } as any);
+                      try {
+                        await addAnnouncement({
+                          title,
+                          description,
+                          startDate: startDateTime,
+                          endDate: endDateTime,
+                          createdBy: user?.fullName || "",
+                          published: true,
+                        } as any);
+                      } catch (err: any) {
+                        toast.error(`No se pudo publicar el anuncio: ${err?.message || "error desconocido"}`);
+                        return;
+                      }
                       setSuccessMsg("✅ Anuncio publicado exitosamente.");
                       setTimeout(() => {
                         resetForm();

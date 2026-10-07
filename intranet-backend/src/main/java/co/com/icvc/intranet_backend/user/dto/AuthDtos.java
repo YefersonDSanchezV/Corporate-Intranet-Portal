@@ -15,4 +15,7 @@ public final class AuthDtos {
             this(usuario, null, java.util.List.of(), mensaje);
         }
     }
+
+    public record MePermissions(java.util.List<String> modules, java.util.List<String> actions) {
+    }
 }

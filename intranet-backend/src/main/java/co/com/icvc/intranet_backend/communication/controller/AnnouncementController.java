@@ -2,6 +2,7 @@ package co.com.icvc.intranet_backend.communication.controller;
 
 import co.com.icvc.intranet_backend.communication.dto.AnuncioDtos;
 import co.com.icvc.intranet_backend.communication.service.AnnouncementService;
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import co.com.icvc.intranet_backend.portal.dto.PortalDtos;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,34 +36,40 @@ public class AnnouncementController {
     }
 
     @PostMapping
+    @RequiresPermission(module = "crear-anuncio", action = "grabar")
     public ResponseEntity<AnuncioDtos.Response> create(@Valid @RequestBody AnuncioDtos.CreateRequest request,
             @RequestParam(required = false) Integer creadorOid) {
         return ResponseEntity.status(HttpStatus.CREATED).body(announcementService.create(request, creadorOid));
     }
 
     @PutMapping("/{id}")
+    @RequiresPermission(module = "anuncios-pendientes", action = "actualizar")
     public AnuncioDtos.Response update(@PathVariable Integer id, @Valid @RequestBody AnuncioDtos.CreateRequest request) {
         return announcementService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
+    @RequiresPermission(module = "anuncios-pendientes", action = "eliminar")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         announcementService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/publish")
+    @RequiresPermission(module = "anuncios-pendientes", action = "actualizar")
     public AnuncioDtos.Response publish(@PathVariable Integer id) {
         return announcementService.publish(id);
     }
 
     @PostMapping("/{id}/reject")
+    @RequiresPermission(module = "anuncios-pendientes", action = "actualizar")
     public AnuncioDtos.Response reject(@PathVariable Integer id, @RequestBody(required = false) java.util.Map<String, String> body) {
         String observation = body != null ? body.get("observation") : null;
         return announcementService.reject(id, observation);
     }
 
     @PostMapping(value = "/{id}/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequiresPermission(module = "crear-anuncio", action = "grabar")
     public PortalDtos.ArchivoResponse attachFile(@PathVariable Integer id, @RequestPart MultipartFile file,
             @RequestParam Integer usuarioOid) {
         return announcementService.attachFile(id, file, usuarioOid);

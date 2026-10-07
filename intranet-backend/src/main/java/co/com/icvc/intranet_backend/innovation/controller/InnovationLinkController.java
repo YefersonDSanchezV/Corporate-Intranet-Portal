@@ -2,6 +2,7 @@ package co.com.icvc.intranet_backend.innovation.controller;
 
 import co.com.icvc.intranet_backend.innovation.dto.InnovationDtos;
 import co.com.icvc.intranet_backend.innovation.service.InnovationLinkService;
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,17 +31,20 @@ public class InnovationLinkController {
     }
 
     @PostMapping
+    @RequiresPermission(module = "enlace-redireccion", action = "grabar")
     public ResponseEntity<InnovationDtos.Response> create(@Valid @RequestBody InnovationDtos.CreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(innovationLinkService.create(request));
     }
 
     @PutMapping("/{id}")
+    @RequiresPermission(module = "enlace-redireccion", action = "actualizar")
     public InnovationDtos.Response update(@PathVariable Integer id,
             @Valid @RequestBody InnovationDtos.CreateRequest request) {
         return innovationLinkService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
+    @RequiresPermission(module = "enlace-redireccion", action = "eliminar")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         innovationLinkService.delete(id);
         return ResponseEntity.noContent().build();

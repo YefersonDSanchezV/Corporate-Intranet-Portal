@@ -1,5 +1,7 @@
 package co.com.icvc.intranet_backend.user.controller;
 
+import co.com.icvc.intranet_backend.permisos.CargoPermisos;
+import co.com.icvc.intranet_backend.permisos.PermisoService;
 import co.com.icvc.intranet_backend.user.dto.AuthDtos;
 import co.com.icvc.intranet_backend.user.dto.UsuarioDtos;
 import co.com.icvc.intranet_backend.user.service.AuthService;
@@ -13,12 +15,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
+    private final PermisoService permisoService;
 
     @PostMapping("/auth/login")
     public AuthDtos.LoginResponse login(@Valid @RequestBody AuthDtos.LoginRequest request) {
@@ -37,5 +42,14 @@ public class AuthController {
             throw new co.com.icvc.intranet_backend.common.exception.ValidationException("No autenticado");
         }
         return authService.me(authentication.getName());
+    }
+
+    @GetMapping("/me/permissions")
+    public AuthDtos.MePermissions mePermissions(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new co.com.icvc.intranet_backend.common.exception.ValidationException("No autenticado");
+        }
+        CargoPermisos permisos = permisoService.loadForUsername(authentication.getName());
+        return new AuthDtos.MePermissions(List.copyOf(permisos.modulos()), List.copyOf(permisos.acciones()));
     }
 }

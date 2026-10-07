@@ -1,5 +1,6 @@
 package co.com.icvc.intranet_backend.user.controller;
 
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import co.com.icvc.intranet_backend.user.dto.SolicitudUsuarioDtos;
 import co.com.icvc.intranet_backend.user.service.AccessRequestService;
 import jakarta.validation.Valid;
@@ -34,6 +35,7 @@ public class AccessRequestController {
     }
 
     @PostMapping("/{id}/approve")
+    @RequiresPermission(module = "solicitudes", action = "actualizar")
     public SolicitudUsuarioDtos.Response approve(@PathVariable Integer id,
             @RequestBody(required = false) SolicitudUsuarioDtos.ApproveRequest body) {
         String motivo = body != null ? body.observaciones() : null;
@@ -41,6 +43,7 @@ public class AccessRequestController {
     }
 
     @PostMapping("/{id}/reject")
+    @RequiresPermission(module = "solicitudes", action = "actualizar")
     public SolicitudUsuarioDtos.Response reject(@PathVariable Integer id,
             @RequestBody(required = false) SolicitudUsuarioDtos.RejectRequest body) {
         String motivo = body != null ? body.observaciones() : null;

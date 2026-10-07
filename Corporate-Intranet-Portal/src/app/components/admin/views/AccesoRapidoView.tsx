@@ -1,4 +1,6 @@
 import { Check, Eye, Globe, Plus, Trash2, X, Star } from "lucide-react";
+import { useAdminAccess } from "../useAdminAccess";
+import { noPermissionReason } from "../AccessGate";
 import { useMemo, useState } from "react";
 import { ApiError } from "../../../api/client";
 import { useSystem } from "../../../contexts/SystemContext";
@@ -27,6 +29,11 @@ export function AccesoRapidoView() {
     }
   };
 
+  const { can } = useAdminAccess();
+  const canGrabar = can("accesos-rapidos", "grabar");
+  const canActualizar = can("accesos-rapidos", "actualizar");
+  const canEliminar = can("accesos-rapidos", "eliminar");
+
   const handleRemoveQuickAccess = async (id: string) => {
     // Quitar de acceso rápido = toggle off
     await handleToggle(id);
@@ -39,7 +46,12 @@ export function AccesoRapidoView() {
           <h1 className="text-2xl font-bold text-[#0778AC] mb-2">Gestionar Accesos Rápidos</h1>
           <p className="text-gray-600 text-sm">Seleccione los sitios de redirección (creados en <span className="font-semibold">Módulo → Sitio de Redirección</span>) que aparecerán en el panel público <span className="font-semibold">Inicio → Accesos Rápidos</span>. ({accesosRapidos.length} activos)</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-5 py-2.5 rounded-lg font-semibold shadow-md">
+        <button
+          onClick={() => setShowModal(true)}
+          disabled={!canGrabar}
+          title={canGrabar ? undefined : noPermissionReason("Accesos Rapidos", "grabar")}
+          className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-semibold shadow-md"
+        >
           <Plus className="w-4 h-4" />
           Nuevo acceso
         </button>
@@ -69,7 +81,13 @@ export function AccesoRapidoView() {
                   <td className="p-4">
                     <div className="flex justify-center gap-2">
                       <button title="Consultar" onClick={() => setConsulting(site)} className="p-2 bg-slate-50 text-slate-700 hover:bg-slate-100 rounded-lg"><Eye className="w-4 h-4" /></button>
-                      <button title="Quitar de Accesos Rápidos" onClick={() => handleRemoveQuickAccess(site.id)} disabled={updatingId === site.id} className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg disabled:opacity-50"><Trash2 className="w-4 h-4" /></button>
+                      <button
+                        title={canEliminar ? "Quitar de Accesos Rápidos" : noPermissionReason("Accesos Rapidos", "eliminar")}
+                        aria-label="Quitar de Accesos Rapidos"
+                        onClick={() => handleRemoveQuickAccess(site.id)}
+                        disabled={!canEliminar || updatingId === site.id}
+                        className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                      ><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -121,8 +139,9 @@ export function AccesoRapidoView() {
                             type="checkbox"
                             checked={!!site.accesoRapido}
                             onChange={() => handleToggle(site.id)}
-                            disabled={updatingId === site.id}
-                            className="w-[18px] h-[18px] rounded border-2 border-gray-300 text-[#0778AC] focus:ring-[#0778AC] disabled:opacity-50"
+                            disabled={!canActualizar || updatingId === site.id}
+                            title={canActualizar ? (site.accesoRapido ? "Quitar de Accesos Rapidos" : "Agregar a Accesos Rapidos") : noPermissionReason("Accesos Rapidos", "actualizar")}
+                            className="w-[18px] h-[18px] rounded border-2 border-gray-300 text-[#0778AC] focus:ring-[#0778AC] disabled:opacity-40 disabled:cursor-not-allowed"
                           />
                         </label>
                       </td>

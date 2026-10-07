@@ -1,5 +1,6 @@
 package co.com.icvc.intranet_backend.user.controller;
 
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import co.com.icvc.intranet_backend.user.dto.CargoDtos;
 import co.com.icvc.intranet_backend.user.service.CargoService;
 import jakarta.validation.Valid;
@@ -30,16 +31,19 @@ public class CargoController {
     }
 
     @PostMapping
+    @RequiresPermission(module = "cargos", action = "grabar")
     public ResponseEntity<CargoDtos.Response> create(@Valid @RequestBody CargoDtos.CreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(cargoService.create(request));
     }
 
     @PatchMapping("/{id}/estado")
+    @RequiresPermission(module = "cargos", action = "activar")
     public CargoDtos.Response toggleEstado(@PathVariable Integer id) {
         return cargoService.toggleEstado(id);
     }
 
     @PatchMapping("/{id}")
+    @RequiresPermission(module = "cargos", action = "activar")
     public CargoDtos.Response updateEstado(@PathVariable Integer id, @Valid @RequestBody CargoDtos.UpdateStatusRequest request) {
         return cargoService.updateEstado(id, request.estado());
     }
@@ -55,6 +59,7 @@ public class CargoController {
     }
 
     @PutMapping("/{id}/permisos")
+    @RequiresPermission(module = "cargos", action = "actualizar")
     public CargoDtos.PermisosResponse replacePermisos(@PathVariable Integer id, @RequestBody CargoDtos.PermisosRequest request) {
         return cargoService.replacePermisos(id, request);
     }

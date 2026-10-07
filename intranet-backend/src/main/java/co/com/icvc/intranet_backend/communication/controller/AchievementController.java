@@ -2,6 +2,7 @@ package co.com.icvc.intranet_backend.communication.controller;
 
 import co.com.icvc.intranet_backend.communication.dto.LogroDtos;
 import co.com.icvc.intranet_backend.communication.service.AchievementService;
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import co.com.icvc.intranet_backend.portal.dto.PortalDtos;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,22 +36,26 @@ public class AchievementController {
     }
 
     @PostMapping
+    @RequiresPermission(module = "logros-acreditaciones", action = "grabar")
     public ResponseEntity<LogroDtos.Response> create(@Valid @RequestBody LogroDtos.CreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(achievementService.create(request));
     }
 
     @PutMapping("/{id}")
+    @RequiresPermission(module = "logros-acreditaciones", action = "actualizar")
     public LogroDtos.Response update(@PathVariable Integer id, @Valid @RequestBody LogroDtos.CreateRequest request) {
         return achievementService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
+    @RequiresPermission(module = "logros-acreditaciones", action = "eliminar")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         achievementService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping(value = "/{id}/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequiresPermission(module = "logros-acreditaciones", action = "grabar")
     public PortalDtos.ArchivoResponse attachFile(@PathVariable Integer id, @RequestPart MultipartFile file,
             @RequestParam Integer usuarioOid) {
         return achievementService.attachFile(id, file, usuarioOid);

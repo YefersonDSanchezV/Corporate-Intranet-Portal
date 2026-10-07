@@ -73,6 +73,72 @@ export const CONTROL_PANEL_ALL_PERMISSION_IDS = CONTROL_PANEL_MODULES.flatMap((s
   ...(section.children?.map((child) => child.id) ?? []),
 ]);
 
+/**
+ * Acciones que se pueden autorizar por módulo/submódulo dentro del panel de control.
+ * El orden define el de las columnas del modal de autorización.
+ */
+export const CONTROL_PANEL_ACTIONS: ReadonlyArray<{ id: string; label: string; hint: string; implicit?: boolean }> = [
+  { id: "grabar", label: "Grabar", hint: "Crear registros nuevos" },
+  { id: "consultar", label: "Consultar", hint: "Viene implícita con el acceso al módulo", implicit: true },
+  { id: "actualizar", label: "Actualizar", hint: "Editar registros existentes" },
+  { id: "eliminar", label: "Eliminar", hint: "Borrar registros" },
+  { id: "activar", label: "Activar/Inactivar", hint: "Habilitar o deshabilitar" },
+  { id: "imprimir", label: "Imprimir", hint: "Generar reportes e impresión" },
+];
+
+export const CONTROL_PANEL_ACTION_IDS = CONTROL_PANEL_ACTIONS.map((action) => action.id);
+
+/** Acciones que se otorgan por tener acceso al módulo, sin persistirse. */
+export const CONTROL_PANEL_IMPLICIT_ACTION_IDS = CONTROL_PANEL_ACTIONS
+  .filter((action) => action.implicit)
+  .map((action) => action.id);
+
+export function isImplicitControlPanelAction(actionId: string): boolean {
+  return CONTROL_PANEL_IMPLICIT_ACTION_IDS.includes(actionId);
+}
+
+/**
+ * Clave de un permiso de acción: `${moduloId}:${accionId}` (ej. "usuarios:grabar").
+ * Se persiste en `gencargopermiso.permiso` con tipo 'ACCION', por lo que debe caber en 255
+ * caracteres y no puede contener ':' — los ids de módulo están garantizado sin dos puntos.
+ */
+export function actionPermissionKey(moduleId: string, actionId: string): string {
+  return `${moduleId}:${actionId}`;
+}
+
+export function parseActionPermissionKey(key: string): { moduleId: string; actionId: string } | null {
+  const separator = key.indexOf(":");
+  if (separator <= 0 || separator === key.length - 1) return null;
+  const actionId = key.slice(separator + 1);
+  if (!CONTROL_PANEL_ACTION_IDS.includes(actionId)) return null;
+  // Las acciones implicitas no se persisten; si alguna existe de antes, se trata como legacy.
+  if (isImplicitControlPanelAction(actionId)) return null;
+  return { moduleId: key.slice(0, separator), actionId };
+}
+
+export function hasActionPermission(actions: string[], moduleId: string, actionId: string): boolean {
+  return actions.includes(actionPermissionKey(moduleId, actionId));
+}
+
+/**
+ * Permisos heredados del legacy que no siguen el formato "modulo:accion".
+ * Se conservan al guardar para no perderlos.
+ */
+export function isLegacyActionPermission(key: string): boolean {
+  return parseActionPermissionKey(key) === null;
+}
+
+/** Estado de una acción sobre un conjunto de módulos (para los checkbox tri-estado). */
+export function actionStateOverModules(
+  actions: string[],
+  moduleIds: string[],
+  actionId: string,
+): { all: boolean; some: boolean } {
+  if (moduleIds.length === 0) return { all: false, some: false };
+  const granted = moduleIds.filter((moduleId) => hasActionPermission(actions, moduleId, actionId)).length;
+  return { all: granted === moduleIds.length, some: granted > 0 };
+}
+
 export function countAuthorizedSubmodules(permissions: string[]): number {
   return new Set(permissions.filter((permission) => CONTROL_PANEL_SUBMODULE_IDS.has(permission))).size;
 }
@@ -131,17 +197,44 @@ function resolveRoleIdForUser(user: User | null, roles: Role[]): string | null {
   return role?.id ?? null;
 }
 
+/**
+ * Módulos y acciones persisted de un usuario, resueltos a partir de su cargo.
+ *
+ * `actions` solo contiene los permisos con formato "modulo:accion"; los permisos legacy
+ * (p.ej. "Listar Usuarios") se descartan aquí porque no son verificables contra un módulo.
+ *
+ * Es la única fuente de resolución de permisos: la usan la navegación (AdminSidebar,
+ * AdminPanel) y el gateo de acciones (useAdminAccess), para que nunca discrepen.
+ */
+export function getUserAdminPermissionSets(
+  user: User | null,
+  roles: Role[],
+  rolePermissions: RolePermission[],
+): { isAdministrator: boolean; modules: Set<string>; actions: Set<string> } {
+  if (isAdministratorUser(user)) {
+    return {
+      isAdministrator: true,
+      modules: new Set(CONTROL_PANEL_ALL_PERMISSION_IDS),
+      actions: new Set(),
+    };
+  }
+
+  const roleId = resolveRoleIdForUser(user, roles);
+  const rolePermission = roleId ? rolePermissions.find((permission) => permission.roleId === roleId) : undefined;
+  return {
+    isAdministrator: false,
+    modules: new Set(rolePermission?.modules ?? []),
+    actions: new Set((rolePermission?.actions ?? []).filter((action) => parseActionPermissionKey(action) !== null)),
+  };
+}
+
 export function getUserAdminPermissions(
   user: User | null,
   roles: Role[],
   rolePermissions: RolePermission[],
 ): string[] {
-  if (isAdministratorUser(user)) {
-    return CONTROL_PANEL_ALL_PERMISSION_IDS;
-  }
-  const roleId = resolveRoleIdForUser(user, roles);
-  if (!roleId) return [];
-  return rolePermissions.find((permission) => permission.roleId === roleId)?.modules ?? [];
+  const { modules } = getUserAdminPermissionSets(user, roles, rolePermissions);
+  return Array.from(modules);
 }
 
 export function getAllowedAdminViews(permissions: string[]): Set<PermissionBasedAdminView> {

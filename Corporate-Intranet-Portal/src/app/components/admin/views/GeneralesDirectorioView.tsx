@@ -2,6 +2,8 @@ import { Edit2, Eye, Mail, Phone, Plus, Trash2, XCircle } from "lucide-react";
 import { useState } from "react";
 import { ApiError } from "../../../api/client";
 import { DirectoryEntry, InstitutionEmail, useSystem } from "../../../contexts/SystemContext";
+import { useAdminAccess } from "../useAdminAccess";
+import { noPermissionReason } from "../AccessGate";
 
 const PISOS = ["Piso 1", "Piso 2", "Piso 3", "Piso 4", "Piso 5", "Piso 6", "Betania"] as const;
 
@@ -123,6 +125,11 @@ export function GeneralesDirectorioView({ type }: { type: "extension" | "email" 
   };
 
   const isExtension = type === "extension";
+  const { can } = useAdminAccess();
+  const moduleId = isExtension ? "directorio-extensiones" : "directorio-correos";
+  const moduleLabel = isExtension ? "Extensiones Telefonicas" : "Correos Electronicos";
+  const canGrabar = can(moduleId, "grabar");
+  const canActualizar = can(moduleId, "actualizar");
 
   return (
     <div className="p-6 max-w-[1500px] mx-auto">
@@ -135,7 +142,12 @@ export function GeneralesDirectorioView({ type }: { type: "extension" | "email" 
             {isExtension ? "Administre extensiones, areas, pisos y marcacion de soporte." : "Administre los correos corporativos del directorio institucional."}
           </p>
         </div>
-        <button onClick={() => { reset(); setShowForm(true); }} className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-5 py-2.5 rounded-lg font-semibold shadow-md">
+        <button
+          onClick={() => { reset(); setShowForm(true); }}
+          disabled={!canGrabar}
+          title={canGrabar ? undefined : noPermissionReason(moduleLabel, "grabar")}
+          className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-semibold shadow-md"
+        >
           <Plus className="w-4 h-4" />
           {isExtension ? "Nueva extension" : "Nuevo correo"}
         </button>
@@ -143,6 +155,9 @@ export function GeneralesDirectorioView({ type }: { type: "extension" | "email" 
 
       {isExtension ? (
         <DirectoryTable
+          moduleLabel={moduleLabel}
+          canActualizar={canActualizar}
+          canEliminar={can("directorio-extensiones", "eliminar")}
           entries={directory}
           onEdit={editExtension}
           onConsult={setConsulting}
@@ -157,6 +172,9 @@ export function GeneralesDirectorioView({ type }: { type: "extension" | "email" 
         />
       ) : (
         <EmailTable
+          moduleLabel={moduleLabel}
+          canActualizar={canActualizar}
+          canEliminar={can("directorio-correos", "eliminar")}
           entries={institutionEmails}
           onEdit={editEmail}
           onConsult={setConsulting}
@@ -205,7 +223,14 @@ export function GeneralesDirectorioView({ type }: { type: "extension" | "email" 
               </label>
               <div className="md:col-span-2 flex justify-end gap-3 pt-2 border-t border-gray-100">
                 <button type="button" onClick={() => { setShowForm(false); reset(); }} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50">Cancelar</button>
-                <button type="submit" className="bg-[#0778AC] hover:bg-[#065a87] text-white px-6 py-2.5 rounded-lg text-sm font-semibold">{editingExtension ? "Actualizar" : "Grabar"}</button>
+                <button
+                  type="submit"
+                  disabled={editingExtension ? !canActualizar : !canGrabar}
+                  title={editingExtension
+                    ? (canActualizar ? undefined : noPermissionReason(moduleLabel, "actualizar"))
+                    : (canGrabar ? undefined : noPermissionReason(moduleLabel, "grabar"))}
+                  className="bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+                >{editingExtension ? "Actualizar" : "Grabar"}</button>
               </div>
             </form>
           </div>
@@ -234,7 +259,14 @@ export function GeneralesDirectorioView({ type }: { type: "extension" | "email" 
               </label>
               <div className="md:col-span-2 flex justify-end gap-3 pt-2 border-t border-gray-100">
                 <button type="button" onClick={() => { setShowForm(false); reset(); }} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50">Cancelar</button>
-                <button type="submit" className="bg-[#0778AC] hover:bg-[#065a87] text-white px-6 py-2.5 rounded-lg text-sm font-semibold">{editingEmail ? "Actualizar" : "Grabar"}</button>
+                <button
+                  type="submit"
+                  disabled={editingEmail ? !canActualizar : !canGrabar}
+                  title={editingEmail
+                    ? (canActualizar ? undefined : noPermissionReason(moduleLabel, "actualizar"))
+                    : (canGrabar ? undefined : noPermissionReason(moduleLabel, "grabar"))}
+                  className="bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+                >{editingEmail ? "Actualizar" : "Grabar"}</button>
               </div>
             </form>
           </div>
@@ -277,7 +309,7 @@ export function GeneralesDirectorioView({ type }: { type: "extension" | "email" 
   );
 }
 
-function DirectoryTable({ entries, onEdit, onConsult, onDelete }: { entries: DirectoryEntry[]; onEdit: (entry: DirectoryEntry) => void; onConsult: (entry: DirectoryEntry) => void; onDelete: (id: string) => Promise<void> }) {
+function DirectoryTable({ moduleLabel, canActualizar, canEliminar, entries, onEdit, onConsult, onDelete }: { moduleLabel: string; canActualizar: boolean; canEliminar: boolean; entries: DirectoryEntry[]; onEdit: (entry: DirectoryEntry) => void; onConsult: (entry: DirectoryEntry) => void; onDelete: (id: string) => Promise<void> }) {
   const [pisoFilter, setPisoFilter] = useState<string>("Todos");
   const [areaFilterDir, setAreaFilterDir] = useState<string>("Todos");
   const [colWidths, setColWidths] = useState({ name: 220, ext: 150, piso: 180, area: 160 });
@@ -335,7 +367,7 @@ function DirectoryTable({ entries, onEdit, onConsult, onDelete }: { entries: Dir
                 <td className="p-4 text-sm"><span className="block truncate max-w-full break-all font-mono text-xs bg-gray-50 px-2 py-1 rounded border" title={entry.extension}>{entry.extension}</span></td>
                 <td className="p-4 text-sm"><span className="block truncate" title={entry.floor?.join(", ")}>{entry.floor?.join(", ")}</span></td>
                 <td className="p-4 text-sm"><span className="truncate block" title={entry.area || entry.type}>{entry.area || entry.type}</span></td>
-                <Actions onEdit={() => onEdit(entry)} onConsult={() => onConsult(entry)} onDelete={() => onDelete(entry.id)} />
+                <Actions moduleLabel={moduleLabel} canActualizar={canActualizar} canEliminar={canEliminar} onEdit={() => onEdit(entry)} onConsult={() => onConsult(entry)} onDelete={() => onDelete(entry.id)} />
               </tr>
             ))}
             {filteredByModule.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-400">No hay extensiones registradas.</td></tr>}
@@ -346,7 +378,7 @@ function DirectoryTable({ entries, onEdit, onConsult, onDelete }: { entries: Dir
   );
 }
 
-function EmailTable({ entries, onEdit, onConsult, onDelete }: { entries: InstitutionEmail[]; onEdit: (entry: InstitutionEmail) => void; onConsult: (entry: InstitutionEmail) => void; onDelete: (id: string) => Promise<void> }) {
+function EmailTable({ moduleLabel, canActualizar, canEliminar, entries, onEdit, onConsult, onDelete }: { moduleLabel: string; canActualizar: boolean; canEliminar: boolean; entries: InstitutionEmail[]; onEdit: (entry: InstitutionEmail) => void; onConsult: (entry: InstitutionEmail) => void; onDelete: (id: string) => Promise<void> }) {
   const [areaFilter, setAreaFilter] = useState("Todos");
   const [cargoFilter, setCargoFilter] = useState("Todos");
   const areas = Array.from(new Set(entries.map(e => e.area).filter(Boolean)));
@@ -395,7 +427,7 @@ function EmailTable({ entries, onEdit, onConsult, onDelete }: { entries: Institu
                 <td className="p-4 text-sm"><span className="block truncate max-w-full break-all text-xs font-mono bg-blue-50 px-2 py-1 rounded border text-[#0778AC]" title={entry.email}>{entry.email}</span></td>
                 <td className="p-4 text-sm"><span className="truncate block" title={entry.area}>{entry.area}</span></td>
                 <td className="p-4 text-sm"><span className="truncate block" title={entry.position}>{entry.position}</span></td>
-                <Actions onEdit={() => onEdit(entry)} onConsult={() => onConsult(entry)} onDelete={() => onDelete(entry.id)} />
+                <Actions moduleLabel={moduleLabel} canActualizar={canActualizar} canEliminar={canEliminar} onEdit={() => onEdit(entry)} onConsult={() => onConsult(entry)} onDelete={() => onDelete(entry.id)} />
               </tr>
             ))}
             {filtered.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-400">No hay correos registrados.</td></tr>}
@@ -414,13 +446,39 @@ function Th({ children, resizable, onResize }: { children: React.ReactNode; resi
   return <th className="p-4 text-sm font-semibold text-gray-600 relative select-none bg-gray-50">{children}{resizable && <span onMouseDown={onResize} className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-[#0778AC]/40" title="Arrastrar para redimensionar" />}</th>;
 }
 
-function Actions({ onEdit, onConsult, onDelete }: { onEdit: () => void; onConsult: () => void; onDelete: () => void }) {
+function Actions({
+  moduleLabel,
+  canActualizar,
+  canEliminar,
+  onEdit,
+  onConsult,
+  onDelete,
+}: {
+  moduleLabel: string;
+  canActualizar: boolean;
+  canEliminar: boolean;
+  onEdit: () => void;
+  onConsult: () => void;
+  onDelete: () => void;
+}) {
   return (
     <td className="p-4">
       <div className="flex justify-center gap-2">
-        <button title="Editar" onClick={onEdit} className="p-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg"><Edit2 className="w-4 h-4" /></button>
-        <button title="Consultar" onClick={onConsult} className="p-2 bg-slate-50 text-slate-700 hover:bg-slate-100 rounded-lg"><Eye className="w-4 h-4" /></button>
-        <button title="Eliminar" onClick={onDelete} className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+        <button
+          title={canActualizar ? "Editar" : noPermissionReason(moduleLabel, "actualizar")}
+          aria-label="Editar"
+          disabled={!canActualizar}
+          onClick={onEdit}
+          className="p-2 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg"
+        ><Edit2 className="w-4 h-4" /></button>
+        <button title="Consultar" aria-label="Consultar" onClick={onConsult} className="p-2 bg-slate-50 text-slate-700 hover:bg-slate-100 rounded-lg"><Eye className="w-4 h-4" /></button>
+        <button
+          title={canEliminar ? "Eliminar" : noPermissionReason(moduleLabel, "eliminar")}
+          aria-label="Eliminar"
+          disabled={!canEliminar}
+          onClick={onDelete}
+          className="p-2 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg"
+        ><Trash2 className="w-4 h-4" /></button>
       </div>
     </td>
   );

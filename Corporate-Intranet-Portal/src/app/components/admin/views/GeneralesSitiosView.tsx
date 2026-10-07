@@ -2,6 +2,8 @@ import { Calendar, Edit2, Eye, FileText, Globe, Image, Plus, ShieldCheck, Trash2
 import { useState } from "react";
 import { ApiError } from "../../../api/client";
 import { RedirectSite, useSystem } from "../../../contexts/SystemContext";
+import { useAdminAccess } from "../useAdminAccess";
+import { noPermissionReason } from "../AccessGate";
 
 const MODULE_OPTIONS = [
   { id: "Inicio", name: "Inicio" },
@@ -25,6 +27,10 @@ const ICON_OPTIONS = [
 
 export function GeneralesSitiosView() {
   const { sites, addSite, updateSite, removeSite } = useSystem();
+  const { can } = useAdminAccess();
+  const canGrabar = can("sitios", "grabar");
+  const canActualizar = can("sitios", "actualizar");
+  const canEliminar = can("sitios", "eliminar");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<RedirectSite | null>(null);
   const [consulting, setConsulting] = useState<RedirectSite | null>(null);
@@ -115,7 +121,12 @@ export function GeneralesSitiosView() {
           <h1 className="text-2xl font-bold text-[#0778AC] mb-2">Sitio de Redireccion</h1>
           <p className="text-gray-600 text-sm">Liste, cree y administre los sitios asociados a cada modulo del portal. ({sites.length} total)</p>
         </div>
-        <button onClick={() => { reset(); setShowForm(true); }} className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-5 py-2.5 rounded-lg font-semibold shadow-md">
+        <button
+          onClick={() => { reset(); setShowForm(true); }}
+          disabled={!canGrabar}
+          title={canGrabar ? undefined : noPermissionReason("Sitio de Redireccion", "grabar")}
+          className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-semibold shadow-md"
+        >
           <Plus className="w-4 h-4" />
           Nuevo sitio
         </button>
@@ -161,9 +172,21 @@ export function GeneralesSitiosView() {
                   <td className="p-4"><span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded truncate block max-w-[150px]" title={getModuleName(site.moduleId)}>{getModuleName(site.moduleId)}</span></td>
                   <td className="p-4">
                     <div className="flex justify-center gap-2">
-                      <button title="Editar" onClick={() => handleEdit(site)} className="p-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg"><Edit2 className="w-4 h-4" /></button>
+                      <button
+                        title={canActualizar ? "Editar" : noPermissionReason("Sitio de Redireccion", "actualizar")}
+                        aria-label="Editar"
+                        disabled={!canActualizar}
+                        onClick={() => handleEdit(site)}
+                        className="p-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                      ><Edit2 className="w-4 h-4" /></button>
                       <button title="Consultar" onClick={() => setConsulting(site)} className="p-2 bg-slate-50 text-slate-700 hover:bg-slate-100 rounded-lg"><Eye className="w-4 h-4" /></button>
-                      <button title="Eliminar" onClick={() => handleDelete(site.id)} className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                      <button
+                        title={canEliminar ? "Eliminar" : noPermissionReason("Sitio de Redireccion", "eliminar")}
+                        aria-label="Eliminar"
+                        disabled={!canEliminar}
+                        onClick={() => handleDelete(site.id)}
+                        className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                      ><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -218,7 +241,14 @@ export function GeneralesSitiosView() {
               </div>
               <div className="md:col-span-2 flex justify-end gap-3 pt-2 border-t border-gray-100">
                 <button type="button" onClick={() => { setShowForm(false); reset(); }} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50">Cancelar</button>
-                <button type="submit" className="bg-[#0778ac] hover:bg-[#033b56] text-white px-6 py-3 rounded-lg font-semibold">{editing ? "Actualizar" : "Grabar"}</button> 
+                <button
+                  type="submit"
+                  disabled={editing ? !canActualizar : !canGrabar}
+                  title={editing
+                    ? (canActualizar ? undefined : noPermissionReason("Sitio de Redireccion", "actualizar"))
+                    : (canGrabar ? undefined : noPermissionReason("Sitio de Redireccion", "grabar"))}
+                  className="bg-[#0778ac] hover:bg-[#033b56] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold"
+                >{editing ? "Actualizar" : "Grabar"}</button>
               </div>
             </form>
           </div>

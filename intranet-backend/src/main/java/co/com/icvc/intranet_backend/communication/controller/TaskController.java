@@ -2,6 +2,7 @@ package co.com.icvc.intranet_backend.communication.controller;
 
 import co.com.icvc.intranet_backend.communication.dto.TareaDtos;
 import co.com.icvc.intranet_backend.communication.service.TaskService;
+import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import co.com.icvc.intranet_backend.portal.dto.PortalDtos;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,21 +35,25 @@ public class TaskController {
     }
 
     @PostMapping
+    @RequiresPermission(module = "tareas-seguimiento", action = "grabar")
     public ResponseEntity<TareaDtos.Response> create(@Valid @RequestBody TareaDtos.CreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(taskService.create(request));
     }
 
     @PutMapping("/{id}")
+    @RequiresPermission(module = "tareas-seguimiento", action = "actualizar")
     public TareaDtos.Response update(@PathVariable Integer id, @Valid @RequestBody TareaDtos.CreateRequest request) {
         return taskService.update(id, request);
     }
 
     @PostMapping("/{id}/complete")
+    @RequiresPermission(module = "tareas-seguimiento", action = "actualizar")
     public TareaDtos.Response complete(@PathVariable Integer id) {
         return taskService.complete(id);
     }
 
     @PostMapping("/{id}/comments")
+    @RequiresPermission(module = "tareas-seguimiento", action = "actualizar")
     public ResponseEntity<TareaDtos.ComentarioResponse> addComment(@PathVariable Integer id,
             @Valid @RequestBody TareaDtos.ComentarioRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(taskService.addComment(id, request));
@@ -60,6 +65,7 @@ public class TaskController {
     }
 
     @PostMapping(value = "/{id}/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequiresPermission(module = "tareas-seguimiento", action = "actualizar")
     public PortalDtos.ArchivoResponse attachFile(@PathVariable Integer id, @RequestPart MultipartFile file,
             @RequestParam Integer usuarioOid) {
         return taskService.attachFile(id, file, usuarioOid);

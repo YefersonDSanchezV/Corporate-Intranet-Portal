@@ -1,12 +1,17 @@
 import { Plus, X, Eye, Save } from "lucide-react";
+import { useAdminAccess } from "../useAdminAccess";
+import { noPermissionReason } from "../AccessGate";
 import { useState } from "react";
 import { useAnnouncements } from "../../../contexts/AnnouncementsContext";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useAdminAuth } from "../../../contexts/AdminAuthContext";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 export function CrearAnuncioView() {
+  const { can } = useAdminAccess();
+  const canGrabar = can("crear-anuncio", "grabar");
   const { announcements, addAnnouncement } = useAnnouncements();
   const { user } = useAuth();
   const { adminUser } = useAdminAuth();
@@ -20,6 +25,7 @@ export function CrearAnuncioView() {
   const [startTime, setStartTime] = useState("12:00");
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("23:59");
+  const [dateError, setDateError] = useState("");
 
   const resetForm = () => {
     setTitle("");
@@ -29,11 +35,31 @@ export function CrearAnuncioView() {
     setStartTime("12:00");
     setEndDate("");
     setEndTime("23:59");
+    setDateError("");
+  };
+
+  // Mismas reglas que RegisterAnnouncementModal, replicadas aquí porque este formulario
+  // tiene su propio submit y el backend no valida el rango de fechas.
+  const validateDates = (): boolean => {
+    const startObj = new Date(`${startDate}T${startTime || "00:00"}`);
+    const endObj = new Date(`${endDate}T${endTime || "23:59"}`);
+
+    if (isNaN(startObj.getTime()) || isNaN(endObj.getTime())) {
+      setDateError("Ingrese fechas y horas válidas.");
+      return false;
+    }
+    if (endObj <= startObj) {
+      setDateError("La fecha y hora de fin debe ser posterior a la de inicio.");
+      return false;
+    }
+    setDateError("");
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !startDate || !endDate) return;
+    if (!title.trim() || !description.trim() || !areaInforma.trim() || !startDate || !endDate) return;
+    if (!validateDates()) return;
 
     const ann: any = {
       title: title.trim(),
@@ -44,9 +70,15 @@ export function CrearAnuncioView() {
       createdBy: effectiveUser?.fullName || user?.fullName || "Administrador",
     };
 
-    await addAnnouncement(ann, effectiveUser?.id || user?.id || null);
-    resetForm();
-    setShowModal(false);
+    try {
+      await addAnnouncement(ann, effectiveUser?.id || user?.id || null);
+      resetForm();
+      setShowModal(false);
+      toast.success("Anuncio creado correctamente.");
+    } catch (err: any) {
+      // No se cierra el modal ni se limpia el formulario: el usuario no pierde lo escrito.
+      toast.error(`No se pudo crear el anuncio: ${err?.message || "error desconocido"}`);
+    }
   };
 
   return (
@@ -56,7 +88,12 @@ export function CrearAnuncioView() {
           <h1 className="text-2xl font-bold text-[#0778AC] mb-2">Crear Anuncio</h1>
           <p className="text-gray-600 text-sm">Cree y publique anuncios institucionales.</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-5 py-2.5 rounded-lg font-semibold shadow-md">
+        <button
+          onClick={() => setShowModal(true)}
+          disabled={!canGrabar}
+          title={canGrabar ? undefined : noPermissionReason("Crear Anuncio", "grabar")}
+          className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-semibold shadow-md"
+        >
           <Plus className="w-4 h-4" />
           Crear Anuncio
         </button>
@@ -182,8 +219,8 @@ export function CrearAnuncioView() {
                 <input value={areaInforma} onChange={(e) => setAreaInforma(e.target.value)} required className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm" placeholder="Ej: Talento Humano, Comunicaciones, Gerencia" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Descripción</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm resize-none" placeholder="Descripción del anuncio..." />
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Descripción *</label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} required className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm resize-none" placeholder="Descripción del anuncio..." />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -203,11 +240,19 @@ export function CrearAnuncioView() {
                   <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm" />
                 </div>
               </div>
+              {dateError && (
+                <p className="text-sm text-[#CF3438] font-medium">⚠ {dateError}</p>
+              )}
               <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
                 <button type="button" onClick={() => { resetForm(); }} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold">
                   Limpiar
                 </button>
-                <button type="submit" className="flex items-center gap-2 bg-[#CF3438] hover:bg-[#a01f24] text-white px-6 py-2.5 rounded-lg text-sm font-semibold">
+                <button
+                  type="submit"
+                  disabled={!canGrabar}
+                  title={canGrabar ? undefined : noPermissionReason("Crear Anuncio", "grabar")}
+                  className="flex items-center gap-2 bg-[#CF3438] hover:bg-[#a01f24] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+                >
                   <Save className="w-4 h-4" />
                   Guardar
                 </button>

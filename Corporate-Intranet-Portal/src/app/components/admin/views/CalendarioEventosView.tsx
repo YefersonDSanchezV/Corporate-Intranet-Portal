@@ -1,4 +1,6 @@
 import { Plus, Trash2, Save, Calendar as CalendarIcon } from "lucide-react";
+import { useAdminAccess } from "../useAdminAccess";
+import { noPermissionReason } from "../AccessGate";
 import { useState } from "react";
 import { Calendar } from "../../ui/calendar";
 import { format } from "date-fns";
@@ -20,6 +22,9 @@ const EVENT_TYPES = [
 ];
 
 export function CalendarioEventosView() {
+  const { can } = useAdminAccess();
+  const canGrabar = can("calendario-eventos", "grabar");
+  const canEliminar = can("calendario-eventos", "eliminar");
   const [events, setEvents] = useState<Event[]>(() => {
     const saved = localStorage.getItem("admin_events");
     return saved ? JSON.parse(saved).map((e: any) => ({ ...e, date: new Date(e.date) })) : [];
@@ -58,7 +63,12 @@ export function CalendarioEventosView() {
           <h1 className="text-2xl font-bold text-[#0778AC] mb-2">Calendario de Eventos</h1>
           <p className="text-gray-600 text-sm">Administre los eventos institucionales.</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] text-white px-5 py-2.5 rounded-lg font-semibold shadow-md">
+        <button
+          onClick={() => setShowForm(!showForm)}
+          disabled={!canGrabar}
+          title={canGrabar ? undefined : noPermissionReason("Calendario de Eventos", "grabar")}
+          className="flex items-center gap-2 bg-[#0778AC] hover:bg-[#065a87] disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-semibold shadow-md"
+        >
           <Plus className="w-4 h-4" /> {showForm ? "Ver calendario" : "Nuevo evento"}
         </button>
       </div>
@@ -87,7 +97,12 @@ export function CalendarioEventosView() {
             </div>
             <div className="md:col-span-2 flex justify-end gap-3">
               <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold">Cancelar</button>
-              <button type="submit" className="bg-[#CF3438] hover:bg-[#a01f24] text-white px-6 py-2.5 rounded-lg text-sm font-semibold"><Save className="w-4 h-4 inline mr-1" />Guardar</button>
+              <button
+                type="submit"
+                disabled={!canGrabar}
+                title={canGrabar ? undefined : noPermissionReason("Calendario de Eventos", "grabar")}
+                className="bg-[#CF3438] hover:bg-[#a01f24] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg text-sm font-semibold"
+              ><Save className="w-4 h-4 inline mr-1" />Guardar</button>
             </div>
           </form>
         </div>
@@ -113,7 +128,13 @@ export function CalendarioEventosView() {
                   <span className={`text-[10px] font-bold px-2 py-1 rounded ${getTypeStyle(event.type)}`}>
                     {EVENT_TYPES.find(t => t.value === event.type)?.label}
                   </span>
-                  <button onClick={() => persist(events.filter(e => e.id !== event.id))} className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                  <button
+                    onClick={() => persist(events.filter(e => e.id !== event.id))}
+                    disabled={!canEliminar}
+                    title={canEliminar ? "Eliminar" : noPermissionReason("Calendario de Eventos", "eliminar")}
+                    aria-label="Eliminar evento"
+                    className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                  ><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
             </div>

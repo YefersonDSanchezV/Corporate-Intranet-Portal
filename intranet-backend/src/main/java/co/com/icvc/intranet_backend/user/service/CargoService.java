@@ -1,5 +1,6 @@
 package co.com.icvc.intranet_backend.user.service;
 
+import co.com.icvc.intranet_backend.permisos.CargoPermisosCache;
 import co.com.icvc.intranet_backend.user.dto.CargoDtos;
 import co.com.icvc.intranet_backend.user.entity.CargoIntra;
 import co.com.icvc.intranet_backend.user.entity.CargoPermiso;
@@ -7,6 +8,7 @@ import co.com.icvc.intranet_backend.user.repository.CargoIntraRepository;
 import co.com.icvc.intranet_backend.user.repository.CargoPermisoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -105,6 +107,7 @@ public class CargoService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CargoPermisosCache.CACHE_NAME, key = "#oid")
     public CargoDtos.PermisosResponse replacePermisos(Integer oid, CargoDtos.PermisosRequest request) {
         CargoIntra cargo = cargoRepository.findById(oid)
                 .orElseThrow(() -> new co.com.icvc.intranet_backend.common.exception.NotFoundException("Cargo no encontrado"));
