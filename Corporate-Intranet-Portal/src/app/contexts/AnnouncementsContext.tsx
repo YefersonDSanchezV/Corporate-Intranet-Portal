@@ -10,6 +10,7 @@ export interface Announcement {
   endDate: Date;
   createdBy: string;
   published: boolean;
+  estado?: string; // PENDIENTE, PUBLICADO, RECHAZADO
   createdAt: Date;
   codigo?: string;
   areaInforma?: string;
@@ -94,17 +95,18 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
       createdBy: created.createdBy || (announcement as any).createdBy || "Administrador",
     };
     setAnnouncements(prev => [withCreator, ...prev]);
+    return withCreator;
   };
 
   const publishAnnouncement = async (id: string) => {
     await announcementsApi.publish(id);
-    setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, published: true } : ann));
+    setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, published: true, estado: "PUBLICADO" } : ann));
     setNotificationCount(prev => prev + 1);
   };
 
   const rejectAnnouncement = async (id: string, observation: string) => {
-    await announcementsApi.reject(id, observation);
-    setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, published: false, description: `${ann.description}\n[Rechazado: ${observation}]` } as Announcement : ann));
+    const updated = await announcementsApi.reject(id, observation);
+    setAnnouncements(prev => prev.map(ann => ann.id === id ? updated : ann));
   };
 
   const clearNotifications = () => {
@@ -123,7 +125,7 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
 
   // Filtrar anuncios publicados y que estén dentro del rango de fechas (usa nowTick para refresco por minuto)
   const publishedAnnouncements = announcements.filter(ann => {
-    if (!ann.published) return false;
+    if (ann.estado !== "PUBLICADO") return false;
     return nowTick >= ann.startDate && nowTick <= ann.endDate;
   });
 

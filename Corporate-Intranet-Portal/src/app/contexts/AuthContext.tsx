@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
 import { authApi } from "../api/auth";
 import { usersApi } from "../api/users";
-import { apiAvailable, getToken, clearToken } from "../api/client";
+import { apiAvailable, getToken, clearToken, ApiError } from "../api/client";
 
 export type UserRole =
   | "admin"
@@ -48,7 +48,7 @@ interface AuthContextType {
   accessRecords: AccessRecord[];
   accessRequests: AccessRequest[];
   passwordResetRequests: PasswordResetRequest[];
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<{ success: boolean; error?: ApiError }>;
   logout: () => void;
   addAccessRecord: (moduleName: string) => void;
   addAccessRequest: (request: Omit<AccessRequest, "id" | "requestDate" | "status">) => void;
@@ -153,13 +153,16 @@ useEffect(() => localStorage.setItem("intranet_users", JSON.stringify(users)), [
     };
   }, []);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<{ success: boolean; error?: ApiError }> => {
     try {
       const res = await authApi.login(username, password);
       setCurrentUser(res.user);
-      return true;
-    } catch {
-      return false;
+      return { success: true };
+    } catch (error) {
+      if (error instanceof ApiError) {
+        return { success: false, error };
+      }
+      return { success: false, error: new ApiError("Error desconocido", 0) };
     }
   };
 

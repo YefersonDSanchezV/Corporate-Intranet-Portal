@@ -1,5 +1,6 @@
 package co.com.icvc.intranet_backend.user.service;
 
+import co.com.icvc.intranet_backend.common.exception.AuthenticationException;
 import co.com.icvc.intranet_backend.common.exception.NotFoundException;
 import co.com.icvc.intranet_backend.common.exception.ValidationException;
 import co.com.icvc.intranet_backend.communication.entity.UsuarioComunicacion;
@@ -39,12 +40,12 @@ public class AuthService {
     @Transactional(readOnly = true)
     public AuthDtos.LoginResponse login(AuthDtos.LoginRequest request) {
         Usuario usuario = usuarioRepository.findByUsername(request.username())
-                .orElseThrow(() -> new ValidationException("Credenciales inválidas"));
+                .orElseThrow(() -> new AuthenticationException("Credenciales inválidas"));
         if (!usuario.isEstado()) {
-            throw new ValidationException("El usuario está inactivo");
+            throw new AuthenticationException("El usuario está inactivo");
         }
         if (!passwordEncoder.matches(request.password(), usuario.getPasswordHash())) {
-            throw new ValidationException("Credenciales inválidas");
+            throw new AuthenticationException("Credenciales inválidas");
         }
         java.util.List<String> roles = resolveRoles(usuario);
         String token = jwtService.generateToken(usuario.getUsername(), roles);

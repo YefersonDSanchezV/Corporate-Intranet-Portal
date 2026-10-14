@@ -11,7 +11,7 @@ export function HistorialAnunciosView() {
   const [pageSize, setPageSize] = useState(10);
 
   const sorted = useMemo(() => {
-    return [...announcements].filter(a => a.published).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+    return [...announcements].filter(a => a.estado === "PUBLICADO" || a.estado === "RECHAZADO").sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
   }, [announcements]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
@@ -21,24 +21,24 @@ export function HistorialAnunciosView() {
     <div className="p-6 max-w-[1500px] mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#0778AC] mb-2">Histórico de Anuncios</h1>
-        <p className="text-gray-600 text-sm">Consulte el histórico de anuncios publicados en el panel público.</p>
+        <p className="text-gray-600 text-sm">Consulte el histórico de anuncios publicados y rechazados.</p>
       </div>
 
       <div className="bg-white border border-gray-100 rounded-lg shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="p-3 text-xs font-semibold text-gray-600">Código</th>
-                <th className="p-3 text-xs font-semibold text-gray-600">Título</th>
-                <th className="p-3 text-xs font-semibold text-gray-600">Área informa</th>
-                <th className="p-3 text-xs font-semibold text-gray-600">Creado por</th>
-                <th className="p-3 text-xs font-semibold text-gray-600 whitespace-nowrap">Fecha/Hora Inicio</th>
-                <th className="p-3 text-xs font-semibold text-gray-600 whitespace-nowrap">Fecha/Hora Final</th>
-                <th className="p-3 text-xs font-semibold text-gray-600">Estado</th>
-                <th className="p-3 text-xs font-semibold text-gray-600 text-center">Acciones</th>
-              </tr>
-            </thead>
+<thead>
+            <tr className="bg-gray-50 border-b border-gray-100">
+              <th className="p-3 text-xs font-semibold text-gray-600">Código</th>
+              <th className="p-3 text-xs font-semibold text-gray-600">Título</th>
+              <th className="p-3 text-xs font-semibold text-gray-600">Área informa</th>
+              <th className="p-3 text-xs font-semibold text-gray-600">Creado por</th>
+              <th className="p-3 text-xs font-semibold text-gray-600 whitespace-nowrap">Fecha/Hora Inicio</th>
+              <th className="p-3 text-xs font-semibold text-gray-600 whitespace-nowrap">Fecha/Hora Final</th>
+              <th className="p-3 text-xs font-semibold text-gray-600">Estado</th>
+              <th className="p-3 text-xs font-semibold text-gray-600 text-center">Acciones</th>
+            </tr>
+          </thead>
             <tbody className="divide-y divide-gray-100">
               {paginated.map(ann => (
                 <tr key={ann.id} className="hover:bg-gray-50">
@@ -48,7 +48,7 @@ export function HistorialAnunciosView() {
                   <td className="p-3 text-xs text-gray-700 max-w-[140px] truncate" title={ann.createdBy}>{ann.createdBy}</td>
                   <td className="p-3 text-xs text-gray-600 whitespace-nowrap">{format(new Date(ann.startDate), "dd/MM/yyyy HH:mm", { locale: es })}</td>
                   <td className="p-3 text-xs text-gray-600 whitespace-nowrap">{format(new Date(ann.endDate), "dd/MM/yyyy HH:mm", { locale: es })}</td>
-                  <td className="p-3"><span className="text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700">Publicado</span></td>
+                  <td className="p-3"><span className={`text-[10px] font-bold px-2 py-1 rounded ${ann.estado === "PUBLICADO" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{ann.estado === "PUBLICADO" ? "Publicado" : "Rechazado"}</span></td>
                   <td className="p-3 text-center">
                     <button onClick={() => setSelectedAnn(ann)} title="Consultar" className="p-2 bg-slate-50 text-slate-600 hover:bg-slate-100 rounded-lg">
                       <Eye className="w-4 h-4" />
@@ -118,7 +118,7 @@ export function HistorialAnunciosView() {
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                   <div className="text-[11px] font-bold text-gray-500 uppercase">Estado</div>
-                  <div className="inline-block mt-1 text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700">Publicado</div>
+                  <div className={`inline-block mt-1 text-[10px] font-bold px-2 py-1 rounded ${selectedAnn.estado === "PUBLICADO" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{selectedAnn.estado === "PUBLICADO" ? "Publicado" : "Rechazado"}</div>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                   <div className="text-[11px] font-bold text-gray-500 uppercase">Fecha/Hora Inicio</div>

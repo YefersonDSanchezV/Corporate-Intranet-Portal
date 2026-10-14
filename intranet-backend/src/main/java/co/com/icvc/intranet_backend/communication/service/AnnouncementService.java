@@ -102,6 +102,7 @@ public class AnnouncementService {
     @Transactional
     public AnuncioDtos.Response update(Integer id, AnuncioDtos.CreateRequest request) {
         Anuncio anuncio = require(id);
+        UsuarioComunicacion creadorExistente = anuncio.getCreador();
         TipoAnuncio tipo = tipoRepository.findById(request.tipoOid())
                 .orElseThrow(() -> NotFoundException.of("Tipo de anuncio", request.tipoOid()));
         anuncio.setTitulo(request.titulo());
@@ -111,6 +112,10 @@ public class AnnouncementService {
         anuncio.setFechaFin(request.fechaFin());
         anuncio.setFechaVencimiento(request.fechaVencimiento());
         anuncio.setAreaInforma(request.areaInforma());
+        // Preservar explícitamente el creador original
+        if (creadorExistente != null) {
+            anuncio.setCreador(creadorExistente);
+        }
         return AnuncioDtos.Response.from(anuncioRepository.save(anuncio));
     }
 

@@ -65,6 +65,7 @@ export function mapAnuncioToFE(dto: BackendAnuncioResponse): Announcement {
     endDate: dto.fechaFin ? new Date(dto.fechaFin) : new Date(Date.now() + 7*24*60*60*1000),
     createdBy: dto.creadorNombre || "",
     published: dto.estado === "PUBLICADO",
+    estado: dto.estado,
     createdAt: new Date(dto.fechaCreacion),
     codigo: dto.codigo || undefined,
     areaInforma: dto.areaInforma || undefined,

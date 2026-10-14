@@ -27,14 +27,32 @@ export function Login() {
     setError("");
     setLoading(true);
     try {
-      const success = await login(username, password);
-      if (success) {
+      const result = await login(username, password);
+      if (result.success) {
         sessionStorage.setItem("intranet_session_started", "true");
-      } else {
-        setError("Usuario o contraseña incorrectos");
+      } else if (result.error) {
+        console.error("[Login Error]", {
+          status: result.error.status,
+          message: result.error.message,
+          timestamp: result.error.timestamp,
+          path: result.error.path,
+          fieldErrors: result.error.fieldErrors
+        });
+
+        switch (result.error.status) {
+          case 401:
+            setError("Usuario o contraseña incorrectos");
+            break;
+          case 0:
+            setError("No se pudo conectar con el servidor");
+            break;
+          case 500:
+            setError("Error interno del servidor. Intente más tarde");
+            break;
+          default:
+            setError(result.error.message || "Error de autenticación");
+        }
       }
-    } catch {
-      setError("No se pudo conectar con el servidor");
     } finally {
       setLoading(false);
     }

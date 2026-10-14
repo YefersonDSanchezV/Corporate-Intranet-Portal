@@ -64,7 +64,7 @@ function AppContent() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               <aside className="lg:col-span-3 order-2 lg:order-1">
                 <div className="sticky top-4 space-y-6">
-                  <AnnouncementPanel compact={true} />
+                  <AnnouncementPanel variant="sidebar" />
                   <BirthdayWall />
                 </div>
               </aside>

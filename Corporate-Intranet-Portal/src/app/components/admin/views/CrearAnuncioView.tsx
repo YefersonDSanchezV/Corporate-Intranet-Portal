@@ -126,8 +126,8 @@ export function CrearAnuncioView() {
                   <td className="p-3 text-xs text-gray-600 whitespace-nowrap">{format(ann.endDate, "dd/MM/yyyy HH:mm", { locale: es })}</td>
                   <td className="p-3 text-sm text-gray-600 max-w-[110px] truncate">{ann.createdBy}</td>
                   <td className="p-3">
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded ${ann.published ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                      {ann.published ? "Publicado" : "Pendiente"}
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded ${ann.estado === "PUBLICADO" ? "bg-green-100 text-green-700" : ann.estado === "RECHAZADO" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                      {ann.estado === "PUBLICADO" ? "Publicado" : ann.estado === "RECHAZADO" ? "Rechazado" : "Pendiente"}
                     </span>
                   </td>
                   <td className="p-3 text-center">
@@ -178,7 +178,9 @@ export function CrearAnuncioView() {
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                   <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Estado</div>
-                  <div className={`inline-block mt-1 text-[10px] font-bold px-2 py-1 rounded ${selectedAnn.published ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>{selectedAnn.published ? "Publicado" : "Pendiente"}</div>
+                  <div className={`inline-block mt-1 text-[10px] font-bold px-2 py-1 rounded ${selectedAnn.estado === "PUBLICADO" ? "bg-green-100 text-green-700" : selectedAnn.estado === "RECHAZADO" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                    {selectedAnn.estado === "PUBLICADO" ? "Publicado" : selectedAnn.estado === "RECHAZADO" ? "Rechazado" : "Pendiente"}
+                  </div>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                   <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Fecha inicio</div>

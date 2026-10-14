@@ -30,11 +30,17 @@ export function clearToken() {
 
 export class ApiError extends Error {
   readonly status: number;
+  readonly timestamp?: string;
+  readonly path?: string;
+  readonly fieldErrors?: Record<string, string>;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, data?: any) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.timestamp = data?.timestamp;
+    this.path = data?.path;
+    this.fieldErrors = data?.fieldErrors;
   }
 }
 
@@ -68,13 +74,14 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
         window.dispatchEvent(new CustomEvent("auth:expired"));
       }
       let message = `HTTP ${response.status}`;
+      let errorData: any = null;
       try {
-        const data = await response.json();
-        message = data?.message || data?.error || message;
+        errorData = await response.json();
+        message = errorData?.message || errorData?.error || message;
       } catch {
         // Respuesta sin cuerpo JSON
       }
-      throw new ApiError(message, response.status);
+      throw new ApiError(message, response.status, errorData);
     }
 
     if (response.status === 204) return undefined as T;

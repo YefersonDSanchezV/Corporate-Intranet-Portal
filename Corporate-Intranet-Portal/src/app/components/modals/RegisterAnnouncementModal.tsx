@@ -17,7 +17,7 @@ export function RegisterAnnouncementModal({
   requirePassword = true,
   isComunicaciones = false,
 }: RegisterAnnouncementModalProps) {
-  const { addAnnouncement } = useAnnouncements();
+  const { addAnnouncement, publishAnnouncement } = useAnnouncements();
   const { user } = useAuth();
   const [step, setStep] = useState<"auth" | "form">(requirePassword ? "auth" : "form");
   const [username, setUsername] = useState("");
@@ -75,14 +75,17 @@ export function RegisterAnnouncementModal({
     if (!validateDates()) return;
 
     try {
-      await addAnnouncement({
+      const created = await addAnnouncement({
         title,
         description,
         startDate: new Date(`${startDate}T${startTime || "00:00"}`),
         endDate: new Date(`${endDate}T${endTime || "23:59"}`),
         createdBy: user?.fullName || username,
-        published: publishDirectly,
       } as any);
+
+      if (publishDirectly && created?.id) {
+        await publishAnnouncement(created.id);
+      }
     } catch (err: any) {
       toast.error(`No se pudo registrar el anuncio: ${err?.message || "error desconocido"}`);
       return;
@@ -335,14 +338,16 @@ export function RegisterAnnouncementModal({
                       const startDateTime = new Date(`${startDate}T${startTime || "00:00"}`);
                       const endDateTime = new Date(`${endDate}T${endTime || "23:59"}`);
                       try {
-                        await addAnnouncement({
+                        const created = await addAnnouncement({
                           title,
                           description,
                           startDate: startDateTime,
                           endDate: endDateTime,
                           createdBy: user?.fullName || "",
-                          published: true,
                         } as any);
+                        if (created?.id) {
+                          await publishAnnouncement(created.id);
+                        }
                       } catch (err: any) {
                         toast.error(`No se pudo publicar el anuncio: ${err?.message || "error desconocido"}`);
                         return;

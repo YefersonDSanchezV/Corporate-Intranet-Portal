@@ -1,5 +1,6 @@
 package co.com.icvc.intranet_backend.user.controller;
 
+import co.com.icvc.intranet_backend.common.exception.AuthenticationException;
 import co.com.icvc.intranet_backend.permisos.CargoPermisos;
 import co.com.icvc.intranet_backend.permisos.PermisoService;
 import co.com.icvc.intranet_backend.user.dto.AuthDtos;
@@ -39,7 +40,7 @@ public class AuthController {
     @GetMapping("/me")
     public UsuarioDtos.Response me(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
-            throw new co.com.icvc.intranet_backend.common.exception.ValidationException("No autenticado");
+            throw new AuthenticationException("No autenticado");
         }
         return authService.me(authentication.getName());
     }
@@ -47,7 +48,7 @@ public class AuthController {
     @GetMapping("/me/permissions")
     public AuthDtos.MePermissions mePermissions(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
-            throw new co.com.icvc.intranet_backend.common.exception.ValidationException("No autenticado");
+            throw new AuthenticationException("No autenticado");
         }
         CargoPermisos permisos = permisoService.loadForUsername(authentication.getName());
         return new AuthDtos.MePermissions(List.copyOf(permisos.modulos()), List.copyOf(permisos.acciones()));

@@ -1,4 +1,4 @@
-import { Eye, Send, X, Trash2, Pencil, Save, XCircle } from "lucide-react";
+import { Eye, Send, X, Pencil, Save, XCircle } from "lucide-react";
 import { useAdminAccess } from "../useAdminAccess";
 import { noPermissionReason } from "../AccessGate";
 import { useState } from "react";
@@ -10,8 +10,7 @@ import { toast } from "sonner";
 export function AnunciosPendientesView() {
   const { can } = useAdminAccess();
   const canActualizar = can("anuncios-pendientes", "actualizar");
-  const canEliminar = can("anuncios-pendientes", "eliminar");
-  const { announcements, publishAnnouncement, deleteAnnouncement, updateAnnouncement, rejectAnnouncement } = useAnnouncements() as any;
+  const { announcements, publishAnnouncement, updateAnnouncement, rejectAnnouncement } = useAnnouncements() as any;
   const [selectedAnn, setSelectedAnn] = useState<any | null>(null);
   const [editingAnn, setEditingAnn] = useState<any | null>(null);
   const [rejectAnn, setRejectAnn] = useState<any | null>(null);
@@ -77,16 +76,6 @@ export function AnunciosPendientesView() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Eliminar anuncio?")) return;
-    try {
-      await deleteAnnouncement(id);
-      toast.success("Anuncio eliminado.");
-    } catch (err: any) {
-      toast.error(`No se pudo eliminar el anuncio: ${err?.message || "error desconocido"}`);
-    }
-  };
-
   const handleReject = async (id: string, observation: string) => {
     try {
       await rejectAnnouncement(id, observation);
@@ -98,7 +87,7 @@ export function AnunciosPendientesView() {
     }
   };
 
-  const pending = announcements.filter(a => !a.published);
+  const pending = announcements.filter(a => a.estado === "PENDIENTE");
 
   return (
     <div className="p-6 max-w-[1500px] mx-auto">
@@ -161,15 +150,6 @@ export function AnunciosPendientesView() {
                         disabled={!canActualizar}
                       >
                         <XCircle className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(ann.id)}
-                        className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
-                        title={canEliminar ? "Eliminar" : noPermissionReason("Anuncios Pendientes", "eliminar")}
-                        aria-label="Eliminar anuncio"
-                        disabled={!canEliminar}
-                      >
-                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>

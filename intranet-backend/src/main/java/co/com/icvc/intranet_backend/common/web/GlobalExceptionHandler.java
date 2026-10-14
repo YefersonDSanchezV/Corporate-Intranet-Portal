@@ -1,6 +1,7 @@
 package co.com.icvc.intranet_backend.common.web;
 
 import co.com.icvc.intranet_backend.common.api.ErrorResponse;
+import co.com.icvc.intranet_backend.common.exception.AuthenticationException;
 import co.com.icvc.intranet_backend.common.exception.ConflictException;
 import co.com.icvc.intranet_backend.common.exception.NotFoundException;
 import co.com.icvc.intranet_backend.common.exception.ValidationException;
@@ -30,6 +31,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex, HttpServletRequest request) {
         return respond(HttpStatus.CONFLICT, ex.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex, HttpServletRequest request) {
+        return respond(HttpStatus.UNAUTHORIZED, ex.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(ValidationException.class)

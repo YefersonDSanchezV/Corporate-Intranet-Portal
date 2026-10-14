@@ -4,6 +4,3 @@ spring:
 
   application:
     name: intranet-backend
-
-  config:
-    import: optional:file:./.env[.properties], optional:file:./.env_pruebas[.properties]

@@ -82,12 +82,12 @@ export function CalendarioAnunciosView() {
             <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar flex-1">
               {dayAnnouncements.map(ann => (
                 <div key={ann.id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 flex-shrink-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-gray-800 text-sm">{ann.title}</h3>
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded ${ann.published ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                      {ann.published ? "Publicado" : "Pendiente"}
-                    </span>
-                  </div>
+<div className="flex items-center justify-between">
+                      <h3 className="font-bold text-gray-800 text-sm">{ann.title}</h3>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded ${ann.estado === "PUBLICADO" ? "bg-green-100 text-green-700" : ann.estado === "RECHAZADO" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                        {ann.estado === "PUBLICADO" ? "Publicado" : ann.estado === "RECHAZADO" ? "Rechazado" : "Pendiente"}
+                      </span>
+                    </div>
                   <p className="text-xs text-gray-500 mt-1 line-clamp-2">{ann.description}</p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500 mt-2">
                     <span className="inline-flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> Inicio: {format(new Date(ann.startDate), "dd/MM/yyyy HH:mm", { locale: es })}</span>
@@ -127,7 +127,7 @@ export function CalendarioAnunciosView() {
                   <td className="p-3 text-xs text-gray-700 max-w-[140px] truncate" title={ann.createdBy}>{ann.createdBy}</td>
                   <td className="p-3 text-xs text-gray-600 whitespace-nowrap">{format(new Date(ann.startDate), "dd/MM/yyyy HH:mm", { locale: es })}</td>
                   <td className="p-3 text-xs text-gray-600 whitespace-nowrap">{format(new Date(ann.endDate), "dd/MM/yyyy HH:mm", { locale: es })}</td>
-                  <td className="p-3"><span className={`text-[10px] font-bold px-2 py-1 rounded ${ann.published ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>{ann.published ? "Publicado" : "Pendiente"}</span></td>
+                  <td className="p-3"><span className={`text-[10px] font-bold px-2 py-1 rounded ${ann.estado === "PUBLICADO" ? "bg-green-100 text-green-700" : ann.estado === "RECHAZADO" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>{ann.estado === "PUBLICADO" ? "Publicado" : ann.estado === "RECHAZADO" ? "Rechazado" : "Pendiente"}</span></td>
                   <td className="p-3 text-center">
                     <button onClick={() => setPreviewAnn(ann)} className="inline-flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-[#0778AC] px-3 py-1.5 rounded-lg text-xs font-semibold">
                       <Eye className="w-3.5 h-3.5" /> Vista previa
@@ -177,7 +177,9 @@ export function CalendarioAnunciosView() {
               {/* Simulación de AnnouncementPanel card */}
               <div className="border-2 border-[#0778AC]/20 rounded-xl p-5 bg-gradient-to-br from-blue-50 to-white">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded ${previewAnn.published ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>{previewAnn.published ? "Publicado" : "Pendiente"}</span>
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded ${previewAnn.estado === "PUBLICADO" ? "bg-green-100 text-green-700" : previewAnn.estado === "RECHAZADO" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                    {previewAnn.estado === "PUBLICADO" ? "Publicado" : previewAnn.estado === "RECHAZADO" ? "Rechazado" : "Pendiente"}
+                  </span>
                   <span className="text-xs text-gray-500">{format(new Date(previewAnn.startDate), "dd 'de' MMMM yyyy", { locale: es })} - {format(new Date(previewAnn.endDate), "dd 'de' MMMM yyyy", { locale: es })}</span>
                 </div>
                 <h4 className="font-bold text-[#0778AC] text-lg mb-1">{previewAnn.title}</h4>
@@ -190,7 +192,7 @@ export function CalendarioAnunciosView() {
                 <p className="text-sm text-gray-700 leading-relaxed">{previewAnn.description || "Sin descripción"}</p>
                 {(() => {
                   const creator = users.find(u => u.fullName === previewAnn.createdBy || u.username === previewAnn.createdBy);
-                  const cargo = (previewAnn as any).areaInforma || creator?.position || creator?.role || "";
+                  const cargo = creator?.position || creator?.role || "";
                   return <p className="text-xs text-gray-500 mt-4 flex items-center gap-1.5"><User className="w-3 h-3" /> Creado por: {previewAnn.createdBy}{cargo ? ` — ${cargo}` : ""}</p>;
                 })()}
               </div>

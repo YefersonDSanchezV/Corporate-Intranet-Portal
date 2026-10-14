@@ -5,34 +5,17 @@ import { ClinicalAreaPanel } from "../ClinicalAreaPanel";
 import { AdministrativeAreaPanel } from "../AdministrativeAreaPanel";
 import { InstitutionalManagementPanel } from "../InstitutionalManagementPanel";
 import { SupportPanel } from "../SupportPanel";
-import { RegisterAnnouncementModal } from "../modals/RegisterAnnouncementModal";
 import { BirthdayWall } from "../BirthdayWall";
-import { Plus } from "lucide-react";
-import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { getGreeting } from "../../utils/greetings";
 import { hasRole, ADMIN_PANEL_ROLES, ASISTENCIAL_PANEL_ROLES } from "../../utils/roles";
 
 export function HomeModule() {
   const { user } = useAuth();
-  const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const greeting = getGreeting();
 
-  // Un rol es "coordinador" si contiene la palabra "coordinador" en su string
-  const isCoordinador = user?.role?.includes("coordinador") ?? false;
-  const isComunicaciones = user?.role === "comunicaciones";
-  const isAdminOrRoot = user?.role === "admin" || user?.role === "root";
-
-  // Solo coordinadores (cualquier tipo), comunicaciones, admin y root pueden registrar/solicitar anuncios
-  const canRegisterAnnouncements = isCoordinador || isComunicaciones || isAdminOrRoot;
-
-  // Los roles que NO necesitan contraseña de confirmación adicional
-  const noPasswordRequired = isCoordinador || isComunicaciones || isAdminOrRoot;
-
   const canSeeAsistencialPanel = hasRole(user, ASISTENCIAL_PANEL_ROLES);
-
   const canSeeAdministrativePanel = hasRole(user, ADMIN_PANEL_ROLES);
-
   const canSeeInstitutionalPanel = hasRole(user, ADMIN_PANEL_ROLES);
 
   return (
@@ -48,30 +31,9 @@ export function HomeModule() {
 
       <SearchBar />
 
-      {/* Botón para registrar / solicitar anuncios */}
-      {canRegisterAnnouncements && (
-        <div className="mb-6">
-          <button
-            id="btn-registrar-anuncio"
-            onClick={() => setRegisterModalOpen(true)}
-            className="w-full md:w-auto bg-gradient-to-r from-[#CF3438] to-[#e74c3c] hover:from-[#a01f24] hover:to-[#CF3438] text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            {isComunicaciones
-              ? "Registrar / Publicar Anuncio o Comunicado"
-              : "Solicitar Registro de Anuncio o Comunicado"}
-          </button>
-          {!isComunicaciones && (
-            <p className="mt-2 text-xs text-gray-500">
-              * Su solicitud será revisada y aprobada por el área de Comunicaciones antes de publicarse.
-            </p>
-          )}
-        </div>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mb-12 items-stretch">
         <div className="lg:col-span-2">
-          <AnnouncementPanel />
+          <AnnouncementPanel variant="home" />
         </div>
         <div className="lg:col-span-1">
           <BirthdayWall />
@@ -85,13 +47,6 @@ export function HomeModule() {
       {canSeeAdministrativePanel && <AdministrativeAreaPanel />}
       {canSeeInstitutionalPanel && <InstitutionalManagementPanel />}
       <SupportPanel />
-
-      <RegisterAnnouncementModal
-        isOpen={registerModalOpen}
-        onClose={() => setRegisterModalOpen(false)}
-        requirePassword={!noPasswordRequired}
-        isComunicaciones={isComunicaciones}
-      />
     </>
   );
 }
