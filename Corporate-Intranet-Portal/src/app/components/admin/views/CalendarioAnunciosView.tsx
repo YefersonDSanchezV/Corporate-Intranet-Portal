@@ -13,6 +13,18 @@ export function CalendarioAnunciosView() {
   const [previewAnn, setPreviewAnn] = useState<(typeof announcements)[number] | null>(null);
 
   const stripDate = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  // Días con punto de alerta: solo la fecha INICIAL de cada anuncio PUBLICADO
+  // (el día en que se publicó), no todo el rango de vigencia.
+  const publishedDays = useMemo(() => {
+    const days = new Set<number>();
+    announcements.forEach(ann => {
+      if (ann.estado !== "PUBLICADO") return;
+      const start = new Date(ann.startDate);
+      if (isNaN(start.getTime())) return;
+      days.add(stripDate(start));
+    });
+    return days;
+  }, [announcements]);
   const dayAnnouncementsAll = announcements.filter(ann => {
     if (!date) return false;
     const start = new Date(ann.startDate);
@@ -57,6 +69,8 @@ export function CalendarioAnunciosView() {
             selected={date}
             onSelect={setDate}
             className="rounded-md w-full p-1"
+            modifiers={{ hasPublished: (day: Date) => publishedDays.has(stripDate(day)) }}
+            modifiersClassNames={{ hasPublished: "day-has-published" }}
             classNames={{
               months: "flex flex-col w-full",
               month: "flex flex-col w-full gap-1",
@@ -70,6 +84,10 @@ export function CalendarioAnunciosView() {
               nav_button: "size-8 bg-transparent p-0 opacity-60 hover:opacity-100",
             }}
           />
+          <div className="flex items-center justify-center gap-2 mt-3 text-[11px] text-gray-500">
+            <span className="size-2 rounded-full bg-[#CF3438] inline-block" />
+            Día de publicación del anuncio
+          </div>
         </div>
 
         <div className="lg:col-span-2 bg-white border border-gray-100 rounded-lg p-5 shadow-sm flex flex-col min-h-[440px] lg:min-h-[420px]">

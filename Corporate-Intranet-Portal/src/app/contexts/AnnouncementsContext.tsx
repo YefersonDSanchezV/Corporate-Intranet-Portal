@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { announcementsApi } from "../api/announcements";
 import { apiAvailable } from "../api/client";
+import { mapAnuncioToFE, type BackendAnuncioResponse } from "../api/mappers";
 
 export interface Announcement {
   id: string;
@@ -31,17 +32,94 @@ interface AnnouncementsContextType {
 
 const AnnouncementsContext = createContext<AnnouncementsContextType | undefined>(undefined);
 
+// Caché persistente id -> nombre del creador. Una vez que se conoce el creador de un
+// anuncio, ese nombre no se pierde aunque el backend deje de informarlo.
+const CREATORS_KEY = 'intranet_announcement_creators';
+
+function loadCreatorCache(): Record<string, string> {
+  try {
+    const saved = localStorage.getItem(CREATORS_KEY);
+    const parsed = saved ? JSON.parse(saved) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function rememberCreator(id: string | undefined, name: string | undefined) {
+  if (!id || !name) return;
+  try {
+    const cache = loadCreatorCache();
+    if (cache[id] === name) return;
+    cache[id] = name;
+    localStorage.setItem(CREATORS_KEY, JSON.stringify(cache));
+  } catch {
+    // almacenamiento no disponible
+  }
+}
+
+function resolveCreator(id: string | undefined, name: string | undefined): string {
+  if (name) {
+    rememberCreator(id, name);
+    return name;
+  }
+  try {
+    const cached = id ? loadCreatorCache()[id] : undefined;
+    return cached || "";
+  } catch {
+    return "";
+  }
+}
+
+// Descarta entradas corruptas (p. ej. respuestas sin mapear guardadas antes del fix)
+// para que nunca rompan el render con pantalla en blanco.
+function sanitizeAnnouncements(raw: unknown): Announcement[] {
+  if (!Array.isArray(raw)) return [];
+  const out: Announcement[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const ann = item as any;
+    try {
+      const start = new Date(ann.startDate);
+      const end = new Date(ann.endDate);
+      const created = new Date(ann.createdAt);
+      if (!ann.id || !ann.title || isNaN(start.getTime()) || isNaN(end.getTime())) continue;
+      out.push({
+        ...ann,
+        startDate: start,
+        endDate: end,
+        createdAt: isNaN(created.getTime()) ? new Date() : created,
+        createdBy: resolveCreator(ann.id, ann.createdBy),
+      });
+    } catch {
+      // omitir entrada corrupta
+    }
+  }
+  return out;
+}
+
+// Mapea el DTO del backend; si la respuesta no trae el anuncio, aplica el fallback local.
+// El nombre del creador nunca se borra: si el backend no lo informa se conserva el previo.
+function fromDto(dto: unknown, fallback: Announcement): Announcement {
+  try {
+    if (dto && typeof dto === "object" && (dto as any).oid !== undefined) {
+      const mapped = mapAnuncioToFE(dto as BackendAnuncioResponse);
+      mapped.createdBy = resolveCreator(mapped.id, mapped.createdBy || fallback.createdBy);
+      return mapped;
+    }
+  } catch {
+    // usar fallback
+  }
+  return fallback;
+}
+
 export function AnnouncementsProvider({ children }: { children: ReactNode }) {
   const [announcements, setAnnouncements] = useState<Announcement[]>(() => {
-    const saved = localStorage.getItem('intranet_announcements');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return parsed.map((ann: any) => ({
-        ...ann,
-        startDate: new Date(ann.startDate),
-        endDate: new Date(ann.endDate),
-        createdAt: new Date(ann.createdAt)
-      }));
+    try {
+      const saved = localStorage.getItem('intranet_announcements');
+      if (saved) return sanitizeAnnouncements(JSON.parse(saved));
+    } catch {
+      // almacenamiento corrupto: empezar vacío
     }
     return [];
   });
@@ -72,12 +150,13 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
       try {
         const data = await announcementsApi.list();
         if (!cancelled && Array.isArray(data)) {
-          setAnnouncements(data.map((ann) => ({
+          // sanitizeAnnouncements conserva el creador conocido (caché) si el backend no lo informa.
+          setAnnouncements(sanitizeAnnouncements(data.map((ann) => ({
             ...ann,
             startDate: new Date(ann.startDate),
             endDate: new Date(ann.endDate),
             createdAt: new Date(ann.createdAt),
-          })));
+          }))));
         }
       } catch {
         // Backend no disponible: se mantiene localStorage
@@ -92,21 +171,21 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
     const created = await announcementsApi.create(announcement as any, creadorOid ?? null);
     const withCreator: Announcement = {
       ...created,
-      createdBy: created.createdBy || (announcement as any).createdBy || "Administrador",
+      createdBy: resolveCreator(created.id, created.createdBy || (announcement as any).createdBy || "Administrador"),
     };
     setAnnouncements(prev => [withCreator, ...prev]);
     return withCreator;
   };
 
   const publishAnnouncement = async (id: string) => {
-    await announcementsApi.publish(id);
-    setAnnouncements(prev => prev.map(ann => ann.id === id ? { ...ann, published: true, estado: "PUBLICADO" } : ann));
+    const dto = await announcementsApi.publish(id);
+    setAnnouncements(prev => prev.map(ann => ann.id === id ? fromDto(dto, { ...ann, published: true, estado: "PUBLICADO" }) : ann));
     setNotificationCount(prev => prev + 1);
   };
 
   const rejectAnnouncement = async (id: string, observation: string) => {
-    const updated = await announcementsApi.reject(id, observation);
-    setAnnouncements(prev => prev.map(ann => ann.id === id ? updated : ann));
+    const dto = await announcementsApi.reject(id, observation);
+    setAnnouncements(prev => prev.map(ann => ann.id === id ? fromDto(dto, { ...ann, published: false, estado: "RECHAZADO" }) : ann));
   };
 
   const clearNotifications = () => {
@@ -114,8 +193,12 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
   };
 
   const updateAnnouncement = async (id: string, updates: Partial<Announcement>) => {
-    const updated = await announcementsApi.update(id, updates);
-    setAnnouncements(prev => prev.map(ann => ann.id === id ? updated : ann));
+    const dto = await announcementsApi.update(id, updates);
+    setAnnouncements(prev => prev.map(ann => {
+      if (ann.id !== id) return ann;
+      const fallback: Announcement = { ...ann, ...updates, id: ann.id };
+      return fromDto(dto, fallback);
+    }));
   };
 
   const deleteAnnouncement = async (id: string) => {

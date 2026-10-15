@@ -1,7 +1,7 @@
-import { Plus, X, Eye, Save } from "lucide-react";
+import { Plus, X, Eye, Save, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAdminAccess } from "../useAdminAccess";
 import { noPermissionReason } from "../AccessGate";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAnnouncements } from "../../../contexts/AnnouncementsContext";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useAdminAuth } from "../../../contexts/AdminAuthContext";
@@ -26,6 +26,31 @@ export function CrearAnuncioView() {
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("23:59");
   const [dateError, setDateError] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  const totalPages = Math.max(1, Math.ceil(announcements.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginated = useMemo(
+    () => announcements.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [announcements, safePage, pageSize]
+  );
+  const [dateErrorField, setDateErrorField] = useState<"start" | "end" | "both" | null>(null);
+
+  // Clase para resaltar en rojo el campo de fecha/hora donde está el error.
+  const dateInputClass = (field: "start" | "end") =>
+    `w-full border-2 rounded-lg p-3 text-sm focus:outline-none transition-all ${
+      dateErrorField === field || dateErrorField === "both"
+        ? "border-[#CF3438] focus:border-[#CF3438] ring-2 ring-[#CF3438]/20"
+        : "border-gray-200"
+    }`;
+
+  const clearDateError = () => {
+    if (dateError) {
+      setDateError("");
+      setDateErrorField(null);
+    }
+  };
 
   const resetForm = () => {
     setTitle("");
@@ -36,6 +61,7 @@ export function CrearAnuncioView() {
     setEndDate("");
     setEndTime("23:59");
     setDateError("");
+    setDateErrorField(null);
   };
 
   // Mismas reglas que RegisterAnnouncementModal, replicadas aquí porque este formulario
@@ -46,13 +72,22 @@ export function CrearAnuncioView() {
 
     if (isNaN(startObj.getTime()) || isNaN(endObj.getTime())) {
       setDateError("Ingrese fechas y horas válidas.");
+      setDateErrorField("both");
+      return false;
+    }
+    // La fecha y hora de inicio no puede ser anterior a la fecha y hora actual del sistema.
+    if (startObj.getTime() < Date.now()) {
+      setDateError("La fecha y hora de inicio no puede ser anterior a la fecha y hora actual.");
+      setDateErrorField("start");
       return false;
     }
     if (endObj <= startObj) {
       setDateError("La fecha y hora de fin debe ser posterior a la de inicio.");
+      setDateErrorField("end");
       return false;
     }
     setDateError("");
+    setDateErrorField(null);
     return true;
   };
 
@@ -116,7 +151,7 @@ export function CrearAnuncioView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {announcements.map((ann) => (
+              {paginated.map((ann) => (
                 <tr key={ann.id} className="hover:bg-gray-50">
                   <td className="p-3 text-xs font-mono font-semibold text-[#0778AC] whitespace-nowrap" title={(ann as any).codigo}>{(ann as any).codigo || "—"}</td>
                   <td className="p-3 text-sm font-semibold text-gray-800 max-w-[160px] truncate" title={ann.title}>{ann.title}</td>
@@ -137,13 +172,36 @@ export function CrearAnuncioView() {
                   </td>
                 </tr>
               ))}
-              {announcements.length === 0 && (
+              {paginated.length === 0 && (
                 <tr>
                   <td colSpan={9} className="p-8 text-center text-gray-400 text-sm">No hay anuncios registrados. Use “Crear Anuncio”.</td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-gray-50 border-t border-gray-100">
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <span>Mostrar</span>
+            <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} className="border border-gray-300 rounded-md px-2 py-1 bg-white text-xs font-semibold">
+              <option value={15}>15</option>
+              <option value={30}>30</option>
+              <option value={60}>60</option>
+            </select>
+            <span>por página</span>
+            <span className="ml-2 text-gray-500 hidden sm:inline">{announcements.length > 0 ? `${(safePage - 1) * pageSize + 1}-${Math.min(safePage * pageSize, announcements.length)} de ${announcements.length}` : "0 de 0"}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="p-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, safePage - 3), Math.min(totalPages, safePage + 2)).map(p => (
+              <button key={p} onClick={() => setPage(p)} className={`min-w-[32px] h-8 rounded-md text-xs font-semibold border ${p === safePage ? "bg-[#0778AC] text-white border-[#0778AC]" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"}`}>{p}</button>
+            ))}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="p-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -227,19 +285,19 @@ export function CrearAnuncioView() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Fecha de inicio *</label>
-                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm" />
+                  <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); clearDateError(); }} required min={format(new Date(), "yyyy-MM-dd")} className={dateInputClass("start")} />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Hora de inicio</label>
-                  <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm" />
+                  <input type="time" value={startTime} onChange={(e) => { setStartTime(e.target.value); clearDateError(); }} className={dateInputClass("start")} />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Fecha de fin *</label>
-                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm" />
+                  <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); clearDateError(); }} required min={startDate || format(new Date(), "yyyy-MM-dd")} className={dateInputClass("end")} />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Hora de fin</label>
-                  <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm" />
+                  <input type="time" value={endTime} onChange={(e) => { setEndTime(e.target.value); clearDateError(); }} className={dateInputClass("end")} />
                 </div>
               </div>
               {dateError && (

@@ -46,13 +46,22 @@ export function RegisterAnnouncementModal({
     }
   };
 
+  const toISODate = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const todayStr = toISODate(new Date());
+
   const validateDates = (): boolean => {
-    const today = new Date();
     const startObj = new Date(startDate + "T" + (startTime || "00:00"));
     const endObj = new Date(endDate + "T" + (endTime || "23:59"));
 
-    if (startObj < today) {
-      setDateError("❌ La fecha y hora de inicio debe ser mayor a la actual.");
+    if (isNaN(startObj.getTime()) || isNaN(endObj.getTime())) {
+      setDateError("❌ Ingrese fechas y horas válidas.");
+      return false;
+    }
+
+    // La fecha y hora de inicio no puede ser anterior a la fecha y hora actual del sistema.
+    if (startObj.getTime() < Date.now()) {
+      setDateError("❌ La fecha y hora de inicio no puede ser anterior a la fecha y hora actual.");
       return false;
     }
 
@@ -81,7 +90,7 @@ export function RegisterAnnouncementModal({
         startDate: new Date(`${startDate}T${startTime || "00:00"}`),
         endDate: new Date(`${endDate}T${endTime || "23:59"}`),
         createdBy: user?.fullName || username,
-      } as any);
+      } as any, user?.id ?? null);
 
       if (publishDirectly && created?.id) {
         await publishAnnouncement(created.id);
@@ -252,6 +261,7 @@ export function RegisterAnnouncementModal({
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
+                    min={todayStr}
                     className={`w-full border-2 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 transition-all ${
                       dateError
                         ? "border-red-400 focus:border-red-400 focus:ring-red-200"
@@ -287,6 +297,7 @@ export function RegisterAnnouncementModal({
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
+                    min={startDate || todayStr}
                     className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-[#CF3438] focus:ring-2 focus:ring-[#CF3438]/20 transition-all"
                     required
                   />
@@ -344,7 +355,7 @@ export function RegisterAnnouncementModal({
                           startDate: startDateTime,
                           endDate: endDateTime,
                           createdBy: user?.fullName || "",
-                        } as any);
+                        } as any, user?.id ?? null);
                         if (created?.id) {
                           await publishAnnouncement(created.id);
                         }

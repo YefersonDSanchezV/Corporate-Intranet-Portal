@@ -30,7 +30,7 @@ export const announcementsApi = {
     return mapAnuncioToFE(dto);
   },
   remove: (id: string) => apiFetch<void>(`/announcements/${id}`, { method: "DELETE" }),
-  publish: (id: string) => apiFetch<void>(`/announcements/${id}/publish`, { method: "POST" }),
-  reject: (id: string, observation: string) => apiFetch<void>(`/announcements/${id}/reject`, { method: "POST", body: { observation } }),
+  publish: (id: string) => apiFetch<BackendAnuncioResponse>(`/announcements/${id}/publish`, { method: "POST" }),
+  reject: (id: string, observation: string) => apiFetch<BackendAnuncioResponse>(`/announcements/${id}/reject`, { method: "POST", body: { observation } }),
   types: () => apiFetch<AnnouncementType[]>("/announcement-types"),
 };

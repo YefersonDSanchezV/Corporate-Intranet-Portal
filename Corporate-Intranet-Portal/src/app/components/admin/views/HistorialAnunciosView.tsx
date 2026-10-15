@@ -8,7 +8,7 @@ export function HistorialAnunciosView() {
   const { announcements } = useAnnouncements();
   const [selectedAnn, setSelectedAnn] = useState<any | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
 
   const sorted = useMemo(() => {
     return [...announcements].filter(a => a.estado === "PUBLICADO" || a.estado === "RECHAZADO").sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
@@ -66,9 +66,9 @@ export function HistorialAnunciosView() {
           <div className="flex items-center gap-2 text-xs text-gray-600">
             <span>Mostrar</span>
             <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} className="border border-gray-300 rounded-md px-2 py-1 bg-white text-xs font-semibold">
-              <option value={10}>10</option>
-              <option value={20}>20</option>
+              <option value={15}>15</option>
               <option value={30}>30</option>
+              <option value={60}>60</option>
             </select>
             <span>por página</span>
             <span className="ml-2 text-gray-500 hidden sm:inline">{sorted.length > 0 ? `${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, sorted.length)} de ${sorted.length}` : "0 de 0"}</span>

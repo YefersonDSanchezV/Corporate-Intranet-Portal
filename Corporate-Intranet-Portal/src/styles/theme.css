@@ -121,6 +121,51 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Carrusel vertical de anuncios: entrada deslizándose hacia arriba */
+@keyframes announcement-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.announcement-slide-up {
+  animation: announcement-slide-up 0.45s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-slide-up {
+    animation: none;
+  }
+}
+
+/* Calendario de anuncios: punto de alerta en días con anuncio publicado */
+.day-has-published {
+  position: relative;
+  font-weight: 700;
+}
+
+.day-has-published::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #CF3438;
+  pointer-events: none;
+}
+
+.day-has-published[aria-selected="true"]::after {
+  background: #ffffff;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

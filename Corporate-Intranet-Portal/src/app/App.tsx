@@ -14,7 +14,6 @@ import { AdminAuthProvider, useAdminAuth } from "./contexts/AdminAuthContext";
 import { AnnouncementsProvider } from "./contexts/AnnouncementsContext";
 import { SystemProvider } from "./contexts/SystemContext";
 import { AnnouncementPanel } from "./components/AnnouncementPanel";
-import { BirthdayWall } from "./components/BirthdayWall";
 import { AdminPanel } from "./components/admin/AdminPanel";
 import { Toaster } from "sonner";
 
@@ -63,9 +62,8 @@ function AppContent() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               <aside className="lg:col-span-3 order-2 lg:order-1">
-                <div className="sticky top-4 space-y-6">
+                <div className="sticky top-4">
                   <AnnouncementPanel variant="sidebar" />
-                  <BirthdayWall />
                 </div>
               </aside>
               <div className="lg:col-span-9 order-1 lg:order-2">{renderModule()}</div>

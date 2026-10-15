@@ -23,6 +23,22 @@ export function AnunciosPendientesView() {
   const [editEndDate, setEditEndDate] = useState("");
   const [editEndTime, setEditEndTime] = useState("23:59");
   const [editDateError, setEditDateError] = useState("");
+  const [editErrorField, setEditErrorField] = useState<"start" | "end" | "both" | null>(null);
+
+  // Clase para resaltar en rojo el campo de fecha/hora donde está el error.
+  const editDateInputClass = (field: "start" | "end") =>
+    `w-full border-2 rounded-lg p-3 text-sm focus:outline-none transition-all ${
+      editErrorField === field || editErrorField === "both"
+        ? "border-[#CF3438] focus:border-[#CF3438] ring-2 ring-[#CF3438]/20"
+        : "border-gray-200"
+    }`;
+
+  const clearEditDateError = () => {
+    if (editDateError) {
+      setEditDateError("");
+      setEditErrorField(null);
+    }
+  };
 
   const openEdit = (ann: any) => {
     setEditingAnn(ann);
@@ -36,6 +52,7 @@ export function AnunciosPendientesView() {
     setEditEndDate(e.toISOString().slice(0,10));
     setEditEndTime(e.toTimeString().slice(0,5));
     setEditDateError("");
+    setEditErrorField(null);
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -44,11 +61,23 @@ export function AnunciosPendientesView() {
 
     const start = new Date(`${editStartDate}T${editStartTime}:00`);
     const end = new Date(`${editEndDate}T${editEndTime}:00`);
-    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      setEditDateError("Ingrese fechas y horas válidas.");
+      setEditErrorField("both");
+      return;
+    }
+    if (start.getTime() < Date.now()) {
+      setEditDateError("La fecha y hora de inicio no puede ser anterior a la fecha y hora actual.");
+      setEditErrorField("start");
+      return;
+    }
+    if (end <= start) {
       setEditDateError("La fecha y hora de fin debe ser posterior a la de inicio.");
+      setEditErrorField("end");
       return;
     }
     setEditDateError("");
+    setEditErrorField(null);
 
     try {
       await updateAnnouncement(editingAnn.id, {
@@ -67,6 +96,15 @@ export function AnunciosPendientesView() {
   };
 
   const handlePublish = async (id: string, onDone?: () => void) => {
+    // Solo se puede publicar si la fecha y hora de inicio es igual o mayor a la actual.
+    const ann = announcements.find((a: any) => a.id === id);
+    if (ann) {
+      const startTime = new Date(ann.startDate).getTime();
+      if (!isNaN(startTime) && startTime < Date.now()) {
+        toast.error(`El anuncio con código ${(ann as any).codigo || "—"}, no se puede publicar porque la fecha y hora es menor a la fecha y hora actual.`);
+        return;
+      }
+    }
     try {
       await publishAnnouncement(id);
       toast.success("Anuncio publicado.");
@@ -215,19 +253,19 @@ export function AnunciosPendientesView() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Fecha de inicio *</label>
-                  <input type="date" value={editStartDate} onChange={e => setEditStartDate(e.target.value)} required className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm" />
+                  <input type="date" value={editStartDate} onChange={e => { setEditStartDate(e.target.value); clearEditDateError(); }} required className={editDateInputClass("start")} />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Hora de inicio</label>
-                  <input type="time" value={editStartTime} onChange={e => setEditStartTime(e.target.value)} className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm" />
+                  <input type="time" value={editStartTime} onChange={e => { setEditStartTime(e.target.value); clearEditDateError(); }} className={editDateInputClass("start")} />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Fecha de fin *</label>
-                  <input type="date" value={editEndDate} onChange={e => setEditEndDate(e.target.value)} required className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm" />
+                  <input type="date" value={editEndDate} onChange={e => { setEditEndDate(e.target.value); clearEditDateError(); }} required className={editDateInputClass("end")} />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Hora de fin</label>
-                  <input type="time" value={editEndTime} onChange={e => setEditEndTime(e.target.value)} className="w-full border-2 border-gray-200 rounded-lg p-3 text-sm" />
+                  <input type="time" value={editEndTime} onChange={e => { setEditEndTime(e.target.value); clearEditDateError(); }} className={editDateInputClass("end")} />
                 </div>
               </div>
               {editDateError && (
