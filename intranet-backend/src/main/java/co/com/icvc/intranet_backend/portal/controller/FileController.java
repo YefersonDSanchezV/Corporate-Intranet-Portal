@@ -27,12 +27,23 @@ import java.nio.charset.StandardCharsets;
 public class FileController {
 
     private final FileService fileService;
+    private final co.com.icvc.intranet_backend.user.repository.UsuarioRepository usuarioRepository;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PortalDtos.ArchivoResponse> upload(@RequestPart MultipartFile file,
-            @RequestParam Integer usuarioOid) {
+            @RequestParam(required = false) Integer usuarioOid) {
+        Integer oid = usuarioOid;
+        if (oid == null) {
+            var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getName() != null) {
+                oid = usuarioRepository.findByUsername(auth.getName()).map(u -> u.getOid()).orElse(null);
+            }
+        }
+        if (oid == null) {
+            return ResponseEntity.badRequest().build();
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(
-                PortalDtos.ArchivoResponse.from(fileService.store(file, usuarioOid)));
+                PortalDtos.ArchivoResponse.from(fileService.store(file, oid)));
     }
 
     @GetMapping("/{id}")

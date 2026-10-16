@@ -108,6 +108,7 @@ const MENU: SidebarItem[] = [
         ],
       },
       { id: "logros-acreditaciones", label: "Logros y Acreditaciones", view: "logros-acreditaciones", icon: FileBadge2Icon},
+      { id: "parametros", label: "Parámetros", view: "parametros-comunicaciones", icon: Settings },
     ],
   },
   {

@@ -24,9 +24,23 @@ spring:
     baseline-on-migrate: true
     baseline-version: 1
 
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
 app:
   upload:
     dir: ./uploads
+  s3:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:minioadmin}
+    secret-key: ${MINIO_SECRET_KEY:minioadmin}
+    buckets:
+      - fotos-cumpleanos
+      - documentos
+      - videos
+    presigned-expiry-minutes: 15
   jwt:
     secret: ${JWT_SECRET}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:480}

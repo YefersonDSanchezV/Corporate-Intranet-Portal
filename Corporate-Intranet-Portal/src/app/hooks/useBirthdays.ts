@@ -41,7 +41,7 @@ function mapBackend(b: BackendCumpleanosResponse, hoy = new Date()): BirthdayInf
 
 function mapManualBackend(b: BackendCumpleanosManualResponse, hoy = new Date()): BirthdayInfo | null {
   return manualToBirthday(
-    { nombreCompleto: b.nombreCompleto, fechaNacimiento: b.fechaNacimiento.slice(0, 10), cargo: b.cargo, manualOid: b.oid },
+    { nombreCompleto: b.nombreCompleto, fechaNacimiento: b.fechaNacimiento.slice(0, 10), cargo: b.cargo, manualOid: b.oid, fotoArchivoOid: b.fotoArchivoOid ?? null },
     hoy
   );
 }

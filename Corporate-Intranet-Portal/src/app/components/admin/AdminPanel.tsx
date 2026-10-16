@@ -12,6 +12,7 @@ import { CalendarioAnunciosView } from "./views/CalendarioAnunciosView";
 import { AnunciosPendientesView } from "./views/AnunciosPendientesView";
 import { HistorialAnunciosView } from "./views/HistorialAnunciosView";
 import { CalendarioCumpleaniosView } from "./views/CalendarioCumpleaniosView";
+import { ParametrosComunicacionesView } from "./views/ParametrosComunicacionesView";
 import { LogrosAcreditacionesView } from "./views/LogrosAcreditacionesView";
 import { FormatosContingenciaView } from "./views/FormatosContingenciaView";
 import { ConsultaExternaView } from "./views/ConsultaExternaView";
@@ -83,6 +84,8 @@ export function AdminPanel() {
         return <HistorialAnunciosView />;
       case "calendario-cumpleanios":
         return <CalendarioCumpleaniosView />;
+      case "parametros-comunicaciones":
+        return <ParametrosComunicacionesView />;
       case "logros-acreditaciones":
         return <LogrosAcreditacionesView />;
       case "formatos-contingencia":

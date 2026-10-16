@@ -2,13 +2,14 @@ package co.com.icvc.intranet_backend.portal.service;
 
 import co.com.icvc.intranet_backend.common.exception.NotFoundException;
 import co.com.icvc.intranet_backend.common.exception.ValidationException;
-import co.com.icvc.intranet_backend.portal.dto.PortalDtos;
 import co.com.icvc.intranet_backend.portal.entity.Archivo;
 import co.com.icvc.intranet_backend.portal.repository.ArchivoRepository;
 import co.com.icvc.intranet_backend.user.entity.Usuario;
 import co.com.icvc.intranet_backend.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,13 +26,34 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FileService {
 
     private final ArchivoRepository archivoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final MinioStorageService minioStorageService;
+    private final ParametroService parametroService;
 
     @Value("${app.upload.dir:./uploads}")
     private String uploadDir;
+
+    @Value("${app.s3.buckets:fotos-cumpleanos,documentos,videos}")
+    private String bucketsProp;
+
+    private String defaultBucket() {
+        try {
+            String param = parametroService.get("FOTOS_CUMPLE_BUCKET");
+            if (param != null && !param.isBlank()) {
+                return param.trim();
+            }
+        } catch (Exception ex) {
+            log.debug("No se pudo leer parámetro FOTOS_CUMPLE_BUCKET: {}", ex.getMessage());
+        }
+        if (bucketsProp != null && !bucketsProp.isBlank()) {
+            return bucketsProp.split(",")[0].trim();
+        }
+        return "fotos-cumpleanos";
+    }
 
     @Transactional
     public Archivo store(MultipartFile file, Integer usuarioOid) {
@@ -39,12 +62,32 @@ public class FileService {
         }
         Usuario usuario = usuarioRepository.findById(usuarioOid)
                 .orElseThrow(() -> NotFoundException.of("Usuario", usuarioOid));
+        String bucket = defaultBucket();
+        String nombreInterno = UUID.randomUUID() + "-" + file.getOriginalFilename();
+        String key = "cumpleanos/" + nombreInterno;
+        try {
+            minioStorageService.put(bucket, key, file.getInputStream(),
+                    file.getContentType(), file.getSize());
+            Archivo archivo = Archivo.builder()
+                    .nombreInterno(nombreInterno)
+                    .nombreOriginal(file.getOriginalFilename())
+                    .ruta("s3://" + bucket + "/" + key)
+                    .tipo(file.getContentType())
+                    .tamano(file.getSize())
+                    .fechaCreacion(LocalDateTime.now())
+                    .usuario(usuario)
+                    .build();
+            return archivoRepository.save(archivo);
+        } catch (Exception ex) {
+            log.warn("MinIO no disponible, fallback a disco local: {}", ex.getMessage());
+        }
         try {
             Path dir = Paths.get(uploadDir).toAbsolutePath().normalize();
             Files.createDirectories(dir);
-            String nombreInterno = UUID.randomUUID() + "-" + file.getOriginalFilename();
             Path destino = dir.resolve(nombreInterno).normalize();
-            Files.copy(file.getInputStream(), destino);
+            try (InputStream in = file.getInputStream()) {
+                Files.copy(in, destino);
+            }
 
             Archivo archivo = Archivo.builder()
                     .nombreInterno(nombreInterno)
@@ -56,8 +99,8 @@ public class FileService {
                     .usuario(usuario)
                     .build();
             return archivoRepository.save(archivo);
-        } catch (IOException ex) {
-            throw new ValidationException("No se pudo almacenar el archivo: " + ex.getMessage());
+        } catch (IOException ioEx) {
+            throw new ValidationException("No se pudo almacenar el archivo: " + ioEx.getMessage());
         }
     }
 
@@ -106,8 +149,19 @@ public class FileService {
     @Transactional(readOnly = true)
     public Resource loadAsResource(Integer id) {
         Archivo archivo = require(id);
+        String ruta = archivo.getRuta();
+        if (ruta != null && ruta.startsWith("s3://")) {
+            String[] parts = parseS3Uri(ruta);
+            byte[] bytes = minioStorageService.getBytes(parts[0], parts[1]);
+            return new ByteArrayResource(bytes) {
+                @Override
+                public String getFilename() {
+                    return archivo.getNombreOriginal();
+                }
+            };
+        }
         try {
-            Path path = Paths.get(archivo.getRuta());
+            Path path = Paths.get(ruta);
             Resource resource = new UrlResource(path.toUri());
             if (!resource.exists() || !resource.isReadable()) {
                 throw new NotFoundException("Archivo físico no disponible: " + id);
@@ -122,10 +176,29 @@ public class FileService {
     public void delete(Integer id) {
         Archivo archivo = archivoRepository.findById(id)
                 .orElseThrow(() -> NotFoundException.of("Archivo", id));
-        try {
-            Files.deleteIfExists(Paths.get(archivo.getRuta()));
-        } catch (IOException ignored) {
+        String ruta = archivo.getRuta();
+        if (ruta != null && ruta.startsWith("s3://")) {
+            try {
+                String[] parts = parseS3Uri(ruta);
+                minioStorageService.remove(parts[0], parts[1]);
+            } catch (Exception ignored) {
+            }
+        } else {
+            try {
+                Files.deleteIfExists(Paths.get(ruta));
+            } catch (IOException ignored) {
+            }
         }
         archivoRepository.delete(archivo);
+    }
+
+    private String[] parseS3Uri(String uri) {
+        // s3://bucket/key...
+        String sinEsquema = uri.substring("s3://".length());
+        int slash = sinEsquema.indexOf('/');
+        if (slash < 0) {
+            throw new ValidationException("Ruta S3 inválida: " + uri);
+        }
+        return new String[]{sinEsquema.substring(0, slash), sinEsquema.substring(slash + 1)};
     }
 }

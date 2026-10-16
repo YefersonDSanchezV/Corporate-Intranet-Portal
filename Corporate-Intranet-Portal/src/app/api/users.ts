@@ -1,6 +1,8 @@
 import type { AccessRequest, PasswordResetRequest, User } from "../contexts/AuthContext";
-import { apiFetch } from "./client";
+import { apiFetch, getToken } from "./client";
 import { mapUsuarioToFE, type BackendUsuarioResponse } from "./mappers";
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api";
 
 export interface BackendCumpleanosResponse {
   oid: number;
@@ -20,12 +22,14 @@ export interface BackendCumpleanosManualResponse {
   fechaNacimiento: string;
   cargo: string;
   fechaCreacion: string;
+  fotoArchivoOid?: number | null;
 }
 
 export interface ManualBirthdayBody {
   nombreCompleto: string;
   fechaNacimiento: string;
   cargo: string;
+  fotoArchivoOid?: number | null;
 }
 
 export const usersApi = {
@@ -86,6 +90,15 @@ export const usersApi = {
     update: (id: number, body: ManualBirthdayBody) =>
       apiFetch<BackendCumpleanosManualResponse>(`/cumpleanos-manuales/${id}`, { method: "PUT", body }),
     remove: (id: number) => apiFetch<void>(`/cumpleanos-manuales/${id}`, { method: "DELETE" }),
+    /** Sube la foto obligatoria (JPG/PNG). Requiere permiso calendario-cumpleanios:grabar. */
+    uploadFoto: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      const headers: Record<string, string> = {};
+      const token = getToken();
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      return fetch(`${API_BASE}/cumpleanos-manuales/foto`, { method: "POST", headers, body: form });
+    },
   },
   accessRequests: () => apiFetch<any[]>("/access-requests"),
   createAccessRequest: (request: Omit<AccessRequest, "id" | "requestDate" | "status">) =>

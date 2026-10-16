@@ -4,9 +4,54 @@ import { useAuth } from "../contexts/AuthContext";
 import { useAdminAccess } from "./admin/useAdminAccess";
 import { useBirthdays } from "../hooks/useBirthdays";
 import { useMuroChat } from "../hooks/useMuroChat";
-import { diasHastaProximo } from "../utils/birthdays";
+import { diasHastaProximo, type BirthdayInfo } from "../utils/birthdays";
+import { filesApi } from "../api/files";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+
+function FotoMuro({ b }: { b: BirthdayInfo }) {
+  const [src, setSrc] = useState("");
+  useEffect(() => {
+    let active = true;
+    let url = "";
+    if (b.fotoArchivoOid == null) {
+      setSrc("");
+      return;
+    }
+    (async () => {
+      try {
+        const res = await filesApi.download(String(b.fotoArchivoOid));
+        if (!res.ok || !active) return;
+        const blob = await res.blob();
+        url = URL.createObjectURL(blob);
+        if (active) setSrc(url);
+      } catch {
+        if (active) setSrc("");
+      }
+    })();
+    return () => {
+      active = false;
+      if (url) {
+        try { URL.revokeObjectURL(url); } catch { /* noop */ }
+      }
+    };
+  }, [b.fotoArchivoOid]);
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={`Foto de ${b.nombreCompleto}`}
+        className="w-9 h-9 rounded-full object-cover shrink-0 border border-gray-200"
+      />
+    );
+  }
+  return (
+    <div className="bg-[#f0f4f8] p-2 rounded-full">
+      <User className="w-4 h-4 text-[#0778AC]" />
+    </div>
+  );
+}
 
 function parseISO(iso: string): Date {
   return new Date(`${iso}T00:00:00`);
@@ -129,9 +174,7 @@ export function BirthdayWall() {
                   <div key={i} className="w-full shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {pagina.map((b) => (
                       <div key={b.id} className="flex items-center gap-3 bg-white p-2.5 rounded-lg shadow-sm border border-[#CF3438]/30 transition-colors">
-                        <div className="bg-[#f0f4f8] p-2 rounded-full">
-                          <User className="w-4 h-4 text-[#0778AC]" />
-                        </div>
+                        <FotoMuro b={b} />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-gray-800 leading-tight truncate">{b.nombreCompleto}</p>
                           <p className="text-[10px] text-[#CF3438] font-bold mt-0.5">
@@ -179,9 +222,7 @@ export function BirthdayWall() {
           <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
             {upcoming.map((b) => (
               <div key={b.id} className="flex items-center gap-3 bg-white p-2.5 rounded-lg shadow-sm border border-gray-100 hover:border-[#CF3438]/30 transition-colors">
-                <div className="bg-[#f0f4f8] p-2 rounded-full">
-                  <User className="w-4 h-4 text-[#0778AC]" />
-                </div>
+                <FotoMuro b={b} />
                 <div>
                   <p className="text-sm font-bold text-gray-800 leading-tight">{b.nombreCompleto}</p>
                   <p className="text-[10px] text-gray-500 font-semibold mt-0.5">

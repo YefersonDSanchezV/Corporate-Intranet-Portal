@@ -45,4 +45,7 @@ public class CumpleanosManual {
 
     @Column(name = "gencumfechcrea", nullable = false)
     private LocalDateTime fechaCreacion;
+
+    @Column(name = "gencumfoto_archivo_oid")
+    private Integer fotoArchivoOid;
 }

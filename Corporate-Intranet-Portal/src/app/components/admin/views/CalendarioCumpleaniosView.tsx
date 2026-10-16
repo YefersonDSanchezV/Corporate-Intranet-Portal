@@ -1,5 +1,5 @@
 import { Cake, Download, FileText, Pencil, Plus, Save, Search, Trash2, Users, X, XCircle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useBirthdays } from "../../../hooks/useBirthdays";
@@ -49,6 +49,74 @@ export function CalendarioCumpleaniosView() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
 
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
+  const [fotoPreview, setFotoPreview] = useState("");
+  const [fotoArchivoOid, setFotoArchivoOid] = useState<number | null>(null);
+  const [fotoError, setFotoError] = useState("");
+  const fotoInputRef = useRef<HTMLInputElement>(null);
+
+  const revokePreview = (url: string) => {
+    if (url.startsWith("blob:")) {
+      try { URL.revokeObjectURL(url); } catch { /* noop */ }
+    }
+  };
+
+  const handleFotoChange = (file: File | null) => {
+    setFotoError("");
+    if (!file) return;
+    const validTypes = ["image/jpeg", "image/png"];
+    const extOk = /\.(jpe?g|png)$/i.test(file.name);
+    if (!validTypes.includes(file.type) && !extOk) {
+      setFotoError("La foto debe ser JPG o PNG.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setFotoError("La foto no puede superar 2MB.");
+      return;
+    }
+    setFotoFile(file);
+    setFotoPreview((prev) => {
+      if (prev) revokePreview(prev);
+      return URL.createObjectURL(file);
+    });
+  };
+
+  const handleQuitarFoto = () => {
+    setFotoFile(null);
+    setFotoPreview((prev) => {
+      if (prev) revokePreview(prev);
+      return "";
+    });
+    setFotoArchivoOid(null);
+    setFotoError("");
+    if (fotoInputRef.current) fotoInputRef.current.value = "";
+  };
+
+  const fotoPreviewRef = useRef("");
+  fotoPreviewRef.current = fotoPreview;
+  useEffect(() => {
+    return () => {
+      const u = fotoPreviewRef.current;
+      if (u && u.startsWith("blob:")) {
+        try { URL.revokeObjectURL(u); } catch { /* noop */ }
+      }
+    };
+  }, []);
+
+  const loadFotoPreview = async (oid: number) => {
+    try {
+      const res = await filesApi.download(String(oid));
+      if (!res.ok) return;
+      const blob = await res.blob();
+      setFotoPreview((prev) => {
+        if (prev) revokePreview(prev);
+        return URL.createObjectURL(blob);
+      });
+    } catch {
+      // sin preview: se conserva el oid hasta cambiar
+    }
+  };
+
   const [showReportes, setShowReportes] = useState(false);
   const [reportes, setReportes] = useState<MuroReporte[]>([]);
   const [loadingReportes, setLoadingReportes] = useState(false);
@@ -79,6 +147,14 @@ export function CalendarioCumpleaniosView() {
     setFechaNacimiento("");
     setCargo("");
     setFormError("");
+    setFotoFile(null);
+    setFotoArchivoOid(null);
+    setFotoError("");
+    setFotoPreview((prev) => {
+      if (prev) revokePreview(prev);
+      return "";
+    });
+    if (fotoInputRef.current) fotoInputRef.current.value = "";
     setShowForm(true);
   };
 
@@ -88,6 +164,16 @@ export function CalendarioCumpleaniosView() {
     setFechaNacimiento(b.fechaNacimiento);
     setCargo(b.area);
     setFormError("");
+    setFotoFile(null);
+    setFotoError("");
+    if (fotoInputRef.current) fotoInputRef.current.value = "";
+    const oid = b.fotoArchivoOid ?? null;
+    setFotoArchivoOid(oid);
+    setFotoPreview((prev) => {
+      if (prev) revokePreview(prev);
+      return "";
+    });
+    if (oid != null) void loadFotoPreview(oid);
     setShowForm(true);
   };
 
@@ -111,8 +197,38 @@ export function CalendarioCumpleaniosView() {
       setFormError("El cargo no puede exceder 255 caracteres.");
       return;
     }
+    if (!fotoFile && fotoArchivoOid == null) {
+      setFotoError("La foto es obligatoria.");
+      setFormError("Debe adjuntar una foto (JPG/PNG, máximo 2MB).");
+      return;
+    }
     setSaving(true);
-    const body = { nombreCompleto: nombre.trim(), fechaNacimiento, cargo: cargo.trim() };
+    let fotoOid = fotoArchivoOid;
+    try {
+      if (fotoFile) {
+        const res = await usersApi.manualBirthdays.uploadFoto(fotoFile);
+        if (!res.ok) throw new Error(`No se pudo subir la foto (${res.status})`);
+        let oid: number | null = null;
+        try {
+          const data = await res.json();
+          const raw = data?.oid ?? data?.archivoOid ?? data?.id ?? data?.fileOid ?? data?.data?.oid;
+          const n = Number(raw);
+          if (Number.isFinite(n)) oid = n;
+        } catch {
+          oid = null;
+        }
+        if (oid == null) throw new Error("El servidor no devolvió el identificador de la foto.");
+        fotoOid = oid;
+        setFotoArchivoOid(oid);
+      }
+    } catch (e) {
+      setSaving(false);
+      const msg = e instanceof Error ? e.message : "No se pudo subir la foto.";
+      setFotoError(msg);
+      setFormError(msg);
+      return;
+    }
+    const body = { nombreCompleto: nombre.trim(), fechaNacimiento, cargo: cargo.trim(), fotoArchivoOid: fotoOid };
     const res = editing ? await updateManual(editing, body) : await addManual(body);
     setSaving(false);
     if (!res.ok) {
@@ -122,6 +238,14 @@ export function CalendarioCumpleaniosView() {
     setNombre("");
     setFechaNacimiento("");
     setCargo("");
+    setFotoFile(null);
+    setFotoArchivoOid(null);
+    setFotoError("");
+    setFotoPreview((prev) => {
+      if (prev) revokePreview(prev);
+      return "";
+    });
+    if (fotoInputRef.current) fotoInputRef.current.value = "";
     closeForm();
     setNotice(editing ? "Cumpleaños actualizado correctamente." : "Cumpleaños registrado correctamente.");
   };
@@ -241,6 +365,45 @@ export function CalendarioCumpleaniosView() {
                 <p className="text-[11px] text-gray-400 mt-1">
                   Texto libre, independiente del cargo registrado en el sistema.
                 </p>
+              </div>
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Foto *</label>
+                <div className="flex items-center gap-4">
+                  {fotoPreview ? (
+                    <img src={fotoPreview} alt="Foto del cumpleañero" className="w-24 h-24 rounded-full object-cover border-2 border-[#0778AC]/20" />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs font-semibold border-2 border-dashed border-gray-200">
+                      Sin foto
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2">
+                    <input
+                      ref={fotoInputRef}
+                      type="file"
+                      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                      className="hidden"
+                      onChange={(e) => handleFotoChange(e.target.files?.[0] ?? null)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fotoInputRef.current?.click()}
+                      className="px-4 py-2 rounded-lg border border-[#0778AC]/30 text-[#0778AC] text-xs font-semibold hover:bg-[#0778AC]/5"
+                    >
+                      {fotoPreview ? "Cambiar" : "Seleccionar foto"}
+                    </button>
+                    {fotoPreview && (
+                      <button
+                        type="button"
+                        onClick={handleQuitarFoto}
+                        className="px-4 py-2 rounded-lg border border-gray-200 text-gray-500 text-xs font-semibold hover:bg-gray-50"
+                      >
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-2">JPG o PNG, máximo 2MB. Obligatoria.</p>
+                {fotoError && <p className="text-xs text-red-600 mt-1">{fotoError}</p>}
               </div>
               {vista && isValidBirthDate(fechaNacimiento) && (
                 <div className="lg:col-span-2 bg-[#0778AC]/5 border border-[#0778AC]/20 rounded-lg px-4 py-2.5 text-sm text-[#0778AC] font-semibold">
@@ -431,9 +594,7 @@ export function CalendarioCumpleaniosView() {
                   </p>
                   {b.area && <p className="text-[10px] text-gray-400 mt-0.5">{b.area}</p>}
                 </div>
-                <div className="bg-[#0778AC]/10 rounded-full w-11 h-11 flex items-center justify-center shrink-0">
-                  <span className="text-[#0778AC] font-bold text-sm">{b.edad}</span>
-                </div>
+                <CumpleFoto b={b} className="w-11 h-11" />
               </div>
             ))}
           </div>
@@ -455,6 +616,7 @@ export function CalendarioCumpleaniosView() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50">
+                <th className="p-3 text-sm font-semibold text-gray-600">Foto</th>
                 <th className="p-3 text-sm font-semibold text-gray-600">Nombre completo</th>
                 <th className="p-3 text-sm font-semibold text-gray-600 text-center">Edad</th>
                 <th className="p-3 text-sm font-semibold text-gray-600">Fecha de cumpleaños</th>
@@ -466,6 +628,9 @@ export function CalendarioCumpleaniosView() {
             <tbody className="divide-y divide-gray-100">
               {filtrados.map((b) => (
                 <tr key={b.id} className={`hover:bg-gray-50 ${b.esHoy ? "bg-red-50/50" : ""}`}>
+                  <td className="p-3">
+                    <CumpleFoto b={b} className="w-10 h-10" />
+                  </td>
                   <td className="p-3 font-semibold text-sm">
                     {b.nombreCompleto}
                     {b.esHoy && (
@@ -512,7 +677,7 @@ export function CalendarioCumpleaniosView() {
               ))}
               {filtrados.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-gray-400 text-sm">
+                  <td colSpan={7} className="p-6 text-center text-gray-400 text-sm">
                     {loading ? "Cargando..." : "Sin resultados para este filtro."}
                   </td>
                 </tr>
@@ -521,6 +686,50 @@ export function CalendarioCumpleaniosView() {
           </table>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CumpleFoto({ b, className = "w-11 h-11" }: { b: BirthdayInfo; className?: string }) {
+  const [src, setSrc] = useState("");
+  useEffect(() => {
+    let active = true;
+    let url = "";
+    if (b.fotoArchivoOid == null) {
+      setSrc("");
+      return;
+    }
+    (async () => {
+      try {
+        const res = await filesApi.download(String(b.fotoArchivoOid));
+        if (!res.ok || !active) return;
+        const blob = await res.blob();
+        url = URL.createObjectURL(blob);
+        if (active) setSrc(url);
+      } catch {
+        if (active) setSrc("");
+      }
+    })();
+    return () => {
+      active = false;
+      if (url) {
+        try { URL.revokeObjectURL(url); } catch { /* noop */ }
+      }
+    };
+  }, [b.fotoArchivoOid]);
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={`Foto de ${b.nombreCompleto}`}
+        className={`${className} rounded-full object-cover shrink-0 border border-gray-200`}
+      />
+    );
+  }
+  return (
+    <div className={`bg-[#0778AC]/10 rounded-full ${className} flex items-center justify-center shrink-0`}>
+      <span className="text-[#0778AC] font-bold text-sm">{b.edad}</span>
     </div>
   );
 }

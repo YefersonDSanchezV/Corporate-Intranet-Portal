@@ -33,10 +33,14 @@ public class CumpleanosManualService {
     public CumpleanosManualDtos.Response create(CumpleanosManualDtos.CreateRequest request) {
         FechaNacimientoValidator.validar(request.fechaNacimiento());
         String cargo = validarCargo(request.cargo());
+        if (request.fotoArchivoOid() == null) {
+            throw new ValidationException("La fotografía es obligatoria");
+        }
         CumpleanosManual cumpleanos = CumpleanosManual.builder()
                 .nombreCompleto(request.nombreCompleto().trim())
                 .fechaNacimiento(request.fechaNacimiento())
                 .cargo(cargo)
+                .fotoArchivoOid(request.fotoArchivoOid())
                 .fechaCreacion(LocalDateTime.now())
                 .build();
         return CumpleanosManualDtos.Response.from(cumpleanosRepository.save(cumpleanos));
@@ -49,6 +53,10 @@ public class CumpleanosManualService {
         cumpleanos.setNombreCompleto(request.nombreCompleto().trim());
         cumpleanos.setFechaNacimiento(request.fechaNacimiento());
         cumpleanos.setCargo(validarCargo(request.cargo()));
+        if (request.fotoArchivoOid() == null) {
+            throw new ValidationException("La fotografía es obligatoria");
+        }
+        cumpleanos.setFotoArchivoOid(request.fotoArchivoOid());
         return CumpleanosManualDtos.Response.from(cumpleanosRepository.save(cumpleanos));
     }
 

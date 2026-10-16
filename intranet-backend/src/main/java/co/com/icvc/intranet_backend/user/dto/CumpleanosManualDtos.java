@@ -21,7 +21,8 @@ public final class CumpleanosManualDtos {
     public record CreateRequest(
             @NotBlank(message = "El nombre completo es obligatorio") String nombreCompleto,
             @NotNull(message = "La fecha de nacimiento es obligatoria") @Past(message = "La fecha de nacimiento debe ser anterior a hoy") LocalDate fechaNacimiento,
-            @NotBlank(message = "El cargo es obligatorio") String cargo) {
+            @NotBlank(message = "El cargo es obligatorio") String cargo,
+            Integer fotoArchivoOid) {
     }
 
     public record Response(
@@ -29,6 +30,7 @@ public final class CumpleanosManualDtos {
             String nombreCompleto,
             LocalDate fechaNacimiento,
             String cargo,
+            Integer fotoArchivoOid,
             LocalDateTime fechaCreacion) {
 
         public static Response from(CumpleanosManual cumpleanos) {
@@ -37,6 +39,7 @@ public final class CumpleanosManualDtos {
                     cumpleanos.getNombreCompleto(),
                     cumpleanos.getFechaNacimiento(),
                     cumpleanos.getCargo(),
+                    cumpleanos.getFotoArchivoOid(),
                     cumpleanos.getFechaCreacion());
         }
     }

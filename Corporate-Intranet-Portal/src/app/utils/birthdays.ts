@@ -14,6 +14,8 @@ export interface BirthdayInfo {
   origen: "sistema" | "manual";
   /** Oid del registro manual en el backend (solo origen manual persistido). */
   manualOid?: number;
+  /** Oid del archivo de foto en el backend (solo origen manual). */
+  fotoArchivoOid?: number | null;
 }
 
 export const EDAD_MINIMA = 14;
@@ -106,6 +108,7 @@ export interface ManualBirthdayEntry {
   cargo: string; // texto libre, independiente del catálogo del sistema
   manualOid?: number;
   localId?: string;
+  fotoArchivoOid?: number | null;
 }
 
 /** Convierte un registro manual (cargo libre) a la misma forma de la tabla. */
@@ -134,6 +137,7 @@ export function manualToBirthday(entry: ManualBirthdayEntry, hoy = new Date()): 
     esHoy: diasRestantes === 0,
     origen: "manual",
     manualOid: entry.manualOid,
+    fotoArchivoOid: entry.fotoArchivoOid ?? null,
   };
 }
 
