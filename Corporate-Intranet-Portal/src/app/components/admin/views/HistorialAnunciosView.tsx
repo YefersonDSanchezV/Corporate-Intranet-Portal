@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useAnnouncements } from "../../../contexts/AnnouncementsContext";
+import { AnnouncementHistory } from "../../AnnouncementHistory";
 
 export function HistorialAnunciosView() {
   const { announcements } = useAnnouncements();
@@ -11,7 +12,7 @@ export function HistorialAnunciosView() {
   const [pageSize, setPageSize] = useState(15);
 
   const sorted = useMemo(() => {
-    return [...announcements].filter(a => a.estado === "PUBLICADO" || a.estado === "RECHAZADO").sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+    return [...announcements].filter(a => a.estado === "PUBLICADO" || a.estado === "RECHAZADO").sort((a, b) => (b.codigo || "").localeCompare(a.codigo || ""));
   }, [announcements]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
@@ -133,6 +134,7 @@ export function HistorialAnunciosView() {
                   <div className="text-xs text-gray-600 mt-1 flex items-center gap-1"><Calendar className="w-3 h-3" /> {format(new Date(selectedAnn.startDate), "dd/MM/yyyy HH:mm", { locale: es })} → {format(new Date(selectedAnn.endDate), "dd/MM/yyyy HH:mm", { locale: es })}</div>
                 </div>
               </div>
+              <AnnouncementHistory announcementId={selectedAnn.id} />
               <div className="flex justify-end pt-4 border-t border-gray-100">
                 <button onClick={() => setSelectedAnn(null)} className="px-5 py-2.5 rounded-lg bg-[#0778AC] hover:bg-[#065a87] text-white text-sm font-semibold">Cerrar</button>
               </div>

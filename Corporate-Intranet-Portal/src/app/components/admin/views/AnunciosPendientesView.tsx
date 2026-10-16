@@ -1,10 +1,11 @@
-import { Eye, Send, X, Pencil, Save, XCircle } from "lucide-react";
+import { Eye, Send, X, Pencil, Save, XCircle, Building2, User, Calendar } from "lucide-react";
 import { useAdminAccess } from "../useAdminAccess";
 import { noPermissionReason } from "../AccessGate";
 import { useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useAnnouncements } from "../../../contexts/AnnouncementsContext";
+import { AnnouncementHistory } from "../../AnnouncementHistory";
 import { toast } from "sonner";
 
 export function AnunciosPendientesView() {
@@ -40,6 +41,14 @@ export function AnunciosPendientesView() {
     }
   };
 
+  // Formatea una fecha usando la hora local (evita el desfase de zona horaria de toISOString).
+  const toLocalDateInput = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
   const openEdit = (ann: any) => {
     setEditingAnn(ann);
     setEditTitle(ann.title);
@@ -47,9 +56,9 @@ export function AnunciosPendientesView() {
     setEditArea((ann as any).areaInforma || "");
     const s = new Date(ann.startDate);
     const e = new Date(ann.endDate);
-    setEditStartDate(s.toISOString().slice(0,10));
+    setEditStartDate(toLocalDateInput(s));
     setEditStartTime(s.toTimeString().slice(0,5));
-    setEditEndDate(e.toISOString().slice(0,10));
+    setEditEndDate(toLocalDateInput(e));
     setEditEndTime(e.toTimeString().slice(0,5));
     setEditDateError("");
     setEditErrorField(null);
@@ -201,30 +210,63 @@ export function AnunciosPendientesView() {
       </div>
 
       {selectedAnn && (
-        <div className="fixed inset-0 z-[200] bg-black/30 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-[#0778AC]">{selectedAnn.title}</h2>
-              <button onClick={() => setSelectedAnn(null)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-[#0778AC] px-6 py-4 flex justify-between items-center flex-shrink-0">
+              <h3 className="font-bold text-white flex items-center gap-2"><Eye className="w-5 h-5" /> Consultar Anuncio</h3>
+              <button onClick={() => setSelectedAnn(null)} className="text-white/80 hover:text-white hover:bg-white/20 p-1.5 rounded-full"><X className="w-5 h-5" /></button>
             </div>
-            <p className="text-sm text-gray-600 mb-4">{selectedAnn.description}</p>
-            <div className="text-xs text-gray-500 space-y-1">
-              <p>Código: {(selectedAnn as any).codigo || "—"}</p>
-              <p>Área informa: {(selectedAnn as any).areaInforma || "—"}</p>
-              <p>Creado por: {selectedAnn.createdBy}</p>
-              <p>Inicio: {format(selectedAnn.startDate, "dd/MM/yyyy HH:mm", { locale: es })}</p>
-              <p>Fin: {format(selectedAnn.endDate, "dd/MM/yyyy HH:mm", { locale: es })}</p>
-            </div>
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => handlePublish(selectedAnn.id, () => setSelectedAnn(null))}
-                disabled={!canActualizar}
-                title={canActualizar ? undefined : noPermissionReason("Anuncios Pendientes", "actualizar")}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white py-2 rounded-lg font-semibold text-sm"
-              >
-                Publicar anuncio
-              </button>
-              <button onClick={() => setSelectedAnn(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 py-2 rounded-lg font-semibold text-sm">Cerrar</button>
+            <div className="p-6 space-y-4 overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Código</div>
+                  <div className="text-sm font-mono font-semibold text-[#0778AC] mt-1">{(selectedAnn as any).codigo || "—"}</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Área que informa</div>
+                  <div className="text-sm font-semibold text-gray-800 mt-1 flex items-center gap-1"><Building2 className="w-4 h-4 text-[#0778AC]" /> {(selectedAnn as any).areaInforma || "—"}</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 md:col-span-2">
+                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Título</div>
+                  <div className="text-sm font-semibold text-gray-800 mt-1">{selectedAnn.title}</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 md:col-span-2">
+                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Descripción</div>
+                  <div className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{selectedAnn.description || "—"}</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Creado por</div>
+                  <div className="text-sm font-semibold text-gray-800 mt-1 flex items-center gap-1"><User className="w-4 h-4" /> {selectedAnn.createdBy}</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Estado</div>
+                  <div className="inline-block mt-1 text-[10px] font-bold px-2 py-1 rounded bg-amber-100 text-amber-700">Pendiente</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Fecha/Hora Inicio</div>
+                  <div className="text-sm font-semibold text-gray-800 mt-1">{format(selectedAnn.startDate, "dd/MM/yyyy HH:mm", { locale: es })}</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Fecha/Hora Final</div>
+                  <div className="text-sm font-semibold text-gray-800 mt-1">{format(selectedAnn.endDate, "dd/MM/yyyy HH:mm", { locale: es })}</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Vigencia</div>
+                  <div className="text-xs text-gray-600 mt-1 flex items-center gap-1"><Calendar className="w-3 h-3" /> {format(selectedAnn.startDate, "dd/MM/yyyy HH:mm", { locale: es })} → {format(selectedAnn.endDate, "dd/MM/yyyy HH:mm", { locale: es })}</div>
+                </div>
+              </div>
+              <AnnouncementHistory announcementId={selectedAnn.id} />
+              <div className="flex gap-2 pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => handlePublish(selectedAnn.id, () => setSelectedAnn(null))}
+                  disabled={!canActualizar}
+                  title={canActualizar ? undefined : noPermissionReason("Anuncios Pendientes", "actualizar")}
+                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white py-2.5 rounded-lg font-semibold text-sm"
+                >
+                  Publicar anuncio
+                </button>
+                <button onClick={() => setSelectedAnn(null)} className="flex-1 bg-[#0778AC] hover:bg-[#065a87] text-white py-2.5 rounded-lg text-sm font-semibold">Cerrar</button>
+              </div>
             </div>
           </div>
         </div>

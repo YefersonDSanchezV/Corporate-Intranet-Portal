@@ -1,0 +1,52 @@
+package co.com.icvc.intranet_backend.communication.entity;
+
+import co.com.icvc.intranet_backend.portal.entity.Archivo;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+/**
+ * Registro del CSV generado al cierre del día con todos los mensajes del
+ * Muro de Cumpleaños. Un registro por día (fechaDia única).
+ */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "genmurocsv")
+public class MuroCsvRegistro {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "oid")
+    private Integer oid;
+
+    @Column(name = "genmurocsvfech", nullable = false, unique = true)
+    private LocalDate fechaDia;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "genarchivo", nullable = false)
+    private Archivo archivo;
+
+    @Column(name = "genmurocsvtot", nullable = false)
+    private Integer totalMensajes;
+
+    @Column(name = "genmurocsvfechcre", nullable = false)
+    private LocalDateTime fechaCreacion;
+}

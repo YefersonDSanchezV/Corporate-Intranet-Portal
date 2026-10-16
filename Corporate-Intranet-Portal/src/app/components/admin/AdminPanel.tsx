@@ -12,9 +12,7 @@ import { CalendarioAnunciosView } from "./views/CalendarioAnunciosView";
 import { AnunciosPendientesView } from "./views/AnunciosPendientesView";
 import { HistorialAnunciosView } from "./views/HistorialAnunciosView";
 import { CalendarioCumpleaniosView } from "./views/CalendarioCumpleaniosView";
-import { CalendarioEventosView } from "./views/CalendarioEventosView";
 import { LogrosAcreditacionesView } from "./views/LogrosAcreditacionesView";
-import { TareasSeguimientoView } from "./views/TareasSeguimientoView";
 import { FormatosContingenciaView } from "./views/FormatosContingenciaView";
 import { ConsultaExternaView } from "./views/ConsultaExternaView";
 import { EnlaceRedireccionView } from "./views/EnlaceRedireccionView";
@@ -85,12 +83,8 @@ export function AdminPanel() {
         return <HistorialAnunciosView />;
       case "calendario-cumpleanios":
         return <CalendarioCumpleaniosView />;
-      case "calendario-eventos":
-        return <CalendarioEventosView />;
       case "logros-acreditaciones":
         return <LogrosAcreditacionesView />;
-      case "tareas-seguimiento":
-        return <TareasSeguimientoView />;
       case "formatos-contingencia":
         return <FormatosContingenciaView />;
       case "consulta-externa":

@@ -1,6 +1,11 @@
 import type { Announcement } from "../contexts/AnnouncementsContext";
 import { apiFetch } from "./client";
-import { mapAnuncioToFE, type BackendAnuncioResponse } from "./mappers";
+import {
+  mapAnuncioToFE,
+  mapAnuncioHistoryToFE,
+  type BackendAnuncioResponse,
+  type BackendAnuncioHistoryResponse,
+} from "./mappers";
 import { format } from "date-fns";
 
 export interface AnnouncementType { id: string; name: string; }
@@ -33,4 +38,8 @@ export const announcementsApi = {
   publish: (id: string) => apiFetch<BackendAnuncioResponse>(`/announcements/${id}/publish`, { method: "POST" }),
   reject: (id: string, observation: string) => apiFetch<BackendAnuncioResponse>(`/announcements/${id}/reject`, { method: "POST", body: { observation } }),
   types: () => apiFetch<AnnouncementType[]>("/announcement-types"),
+  history: async (id: string) => {
+    const data = await apiFetch<BackendAnuncioHistoryResponse[]>(`/announcements/${id}/history`);
+    return data.map(mapAnuncioHistoryToFE);
+  },
 };

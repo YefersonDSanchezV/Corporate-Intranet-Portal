@@ -2,13 +2,19 @@ package co.com.icvc.intranet_backend.communication.controller;
 
 import co.com.icvc.intranet_backend.communication.dto.AnuncioDtos;
 import co.com.icvc.intranet_backend.communication.service.AnnouncementService;
+import co.com.icvc.intranet_backend.common.web.HttpUtils;
 import co.com.icvc.intranet_backend.permisos.RequiresPermission;
 import co.com.icvc.intranet_backend.portal.dto.PortalDtos;
+import co.com.icvc.intranet_backend.user.dto.LogAuditoriaDtos;
+import co.com.icvc.intranet_backend.user.entity.Usuario;
+import co.com.icvc.intranet_backend.user.repository.UsuarioRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +35,7 @@ import java.util.List;
 public class AnnouncementController {
 
     private final AnnouncementService announcementService;
+    private final UsuarioRepository usuarioRepository;
 
     @GetMapping
     public List<AnuncioDtos.Response> list(@RequestParam(required = false) String estado) {
@@ -44,8 +51,24 @@ public class AnnouncementController {
 
     @PutMapping("/{id}")
     @RequiresPermission(module = "anuncios-pendientes", action = "actualizar")
-    public AnuncioDtos.Response update(@PathVariable Integer id, @Valid @RequestBody AnuncioDtos.CreateRequest request) {
-        return announcementService.update(id, request);
+    public AnuncioDtos.Response update(@PathVariable Integer id, @Valid @RequestBody AnuncioDtos.CreateRequest request,
+            Authentication authentication, HttpServletRequest http) {
+        return announcementService.update(id, request, resolveEditorOid(authentication), HttpUtils.clientIp(http));
+    }
+
+    @GetMapping("/{id}/history")
+    public List<LogAuditoriaDtos.Response> history(@PathVariable Integer id) {
+        return announcementService.history(id);
+    }
+
+    // Resuelve el oid del usuario autenticado (genusuario.oid) para dejarlo en la auditoría.
+    private Integer resolveEditorOid(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return null;
+        }
+        return usuarioRepository.findByUsername(authentication.getName())
+                .map(Usuario::getOid)
+                .orElse(null);
     }
 
     @DeleteMapping("/{id}")

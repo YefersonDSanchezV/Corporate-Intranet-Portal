@@ -31,6 +31,7 @@ public class AccessRequestService {
 
     @Transactional
     public SolicitudUsuarioDtos.Response create(SolicitudUsuarioDtos.CreateRequest request) {
+        FechaNacimientoValidator.validar(request.fechaNacimiento());
         if (usuarioRepository.existsByIdentificacion(request.identificacion())) {
             throw new ConflictException("usuario ya se encuentra creado en el sistema");
         }

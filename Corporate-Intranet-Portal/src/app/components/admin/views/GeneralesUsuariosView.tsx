@@ -34,6 +34,7 @@ import {
 } from "../rbac";
 import { usersApi } from "../../../api/users";
 import { ApiError } from "../../../api/client";
+import { isValidBirthDate, EDAD_MINIMA, EDAD_MAXIMA } from "../../../utils/birthdays";
 import { useAdminAccess } from "../useAdminAccess";
 import { noPermissionReason } from "../AccessGate";
 
@@ -208,6 +209,10 @@ export function GeneralesUsuariosView({
       showToast("El campo Celular no puede estar vacío");
       return;
     }
+    if (!isValidBirthDate(birthDate)) {
+      showToast(`Fecha de nacimiento inválida: debe ser anterior a hoy y la edad estar entre ${EDAD_MINIMA} y ${EDAD_MAXIMA} años`);
+      return;
+    }
 
     try {
       await addUser({
@@ -351,8 +356,17 @@ export function GeneralesUsuariosView({
 
   const handleSaveEdit = async () => {
     if (!editingUser) return;
-    await updateUser(editingUser);
-    setEditingUser(null);
+    if (editingUser.birthDate && !isValidBirthDate(editingUser.birthDate)) {
+      showToast(`Fecha de nacimiento inválida: debe ser anterior a hoy y la edad estar entre ${EDAD_MINIMA} y ${EDAD_MAXIMA} años`);
+      return;
+    }
+    try {
+      await updateUser(editingUser);
+      setEditingUser(null);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "No se pudo actualizar el usuario";
+      showToast(msg);
+    }
   };
 
   const handleAddCargo = async () => {

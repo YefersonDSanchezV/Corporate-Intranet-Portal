@@ -16,6 +16,11 @@ import co.com.icvc.intranet_backend.communication.repository.UsuarioComunicacion
 import co.com.icvc.intranet_backend.portal.dto.PortalDtos;
 import co.com.icvc.intranet_backend.portal.entity.Archivo;
 import co.com.icvc.intranet_backend.portal.service.FileService;
+import co.com.icvc.intranet_backend.user.dto.LogAuditoriaDtos;
+import co.com.icvc.intranet_backend.user.repository.LogAuditoriaRepository;
+import co.com.icvc.intranet_backend.user.service.AuditService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +39,9 @@ public class AnnouncementService {
     private final UsuarioComunicacionRepository usuarioComunicacionRepository;
     private final ArchivoAnuncioRepository archivoAnuncioRepository;
     private final FileService fileService;
+    private final AuditService auditService;
+    private final LogAuditoriaRepository logAuditoriaRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
     public List<AnuncioDtos.Response> list(String estado) {
@@ -100,8 +108,10 @@ public class AnnouncementService {
     }
 
     @Transactional
-    public AnuncioDtos.Response update(Integer id, AnuncioDtos.CreateRequest request) {
+    public AnuncioDtos.Response update(Integer id, AnuncioDtos.CreateRequest request, Integer editorOid, String ip) {
         Anuncio anuncio = require(id);
+        // Snapshot ANTES de la modificación para dejar registro de qué cambió.
+        AnuncioDtos.Response before = AnuncioDtos.Response.from(anuncio);
         UsuarioComunicacion creadorExistente = anuncio.getCreador();
         TipoAnuncio tipo = tipoRepository.findById(request.tipoOid())
                 .orElseThrow(() -> NotFoundException.of("Tipo de anuncio", request.tipoOid()));
@@ -116,7 +126,41 @@ public class AnnouncementService {
         if (creadorExistente != null) {
             anuncio.setCreador(creadorExistente);
         }
-        return AnuncioDtos.Response.from(anuncioRepository.save(anuncio));
+        Anuncio saved = anuncioRepository.save(anuncio);
+        AnuncioDtos.Response after = AnuncioDtos.Response.from(saved);
+        registrarEdicion(saved, before, after, editorOid, ip);
+        return after;
+    }
+
+    // Deja un registro en la auditoría (genlogs) con los valores antes/después de la edición.
+    private void registrarEdicion(Anuncio anuncio, AnuncioDtos.Response before, AnuncioDtos.Response after,
+            Integer editorOid, String ip) {
+        if (editorOid == null) {
+            return;
+        }
+        auditService.registrar("ACTUALIZAR", "comanuncio", registroKey(anuncio),
+                toJson(before), toJson(after), editorOid, ip);
+    }
+
+    @Transactional(readOnly = true)
+    public List<LogAuditoriaDtos.Response> history(Integer id) {
+        Anuncio anuncio = require(id);
+        return logAuditoriaRepository
+                .findAllByTablaAndRegistroOrderByFechaCambioDesc("comanuncio", registroKey(anuncio)).stream()
+                .map(LogAuditoriaDtos.Response::from)
+                .toList();
+    }
+
+    private String registroKey(Anuncio anuncio) {
+        return anuncio.getCodigo() != null ? anuncio.getCodigo() : String.valueOf(anuncio.getOid());
+    }
+
+    private String toJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException ex) {
+            return null;
+        }
     }
 
     @Transactional

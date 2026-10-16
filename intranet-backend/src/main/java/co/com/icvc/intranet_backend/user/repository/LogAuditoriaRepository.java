@@ -10,4 +10,6 @@ public interface LogAuditoriaRepository extends JpaRepository<LogAuditoria, Inte
     List<LogAuditoria> findAllByOrderByFechaCambioDesc();
 
     List<LogAuditoria> findAllByTablaOrderByFechaCambioDesc(String tabla);
+
+    List<LogAuditoria> findAllByTablaAndRegistroOrderByFechaCambioDesc(String tabla, String registro);
 }

@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import { useAnnouncements } from "../../../contexts/AnnouncementsContext";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useAdminAuth } from "../../../contexts/AdminAuthContext";
+import { AnnouncementHistory } from "../../AnnouncementHistory";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -249,6 +250,7 @@ export function CrearAnuncioView() {
                   <div className="text-sm font-semibold text-gray-800 mt-1">{format(selectedAnn.endDate, "dd/MM/yyyy HH:mm", { locale: es })}</div>
                 </div>
               </div>
+              <AnnouncementHistory announcementId={selectedAnn.id} />
               <div className="flex justify-end pt-4 border-t border-gray-100">
                 <button onClick={() => setSelectedAnn(null)} className="px-5 py-2.5 rounded-lg bg-[#0778AC] hover:bg-[#065a87] text-white text-sm font-semibold">Cerrar</button>
               </div>

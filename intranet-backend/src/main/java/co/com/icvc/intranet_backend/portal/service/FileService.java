@@ -61,6 +61,42 @@ public class FileService {
         }
     }
 
+    /**
+     * Guarda bytes generados por el sistema (ej. CSV del cierre del muro)
+     * con el mismo registro de {@code genarchivo} que los archivos subidos.
+     */
+    @Transactional
+    public Archivo storeBytes(byte[] contenido, String nombreOriginal, String contentType, Integer usuarioOid) {
+        if (contenido == null || contenido.length == 0) {
+            throw new ValidationException("El archivo está vacío");
+        }
+        if (nombreOriginal == null || nombreOriginal.isBlank()) {
+            throw new ValidationException("El nombre del archivo es obligatorio");
+        }
+        Usuario usuario = usuarioRepository.findById(usuarioOid)
+                .orElseThrow(() -> NotFoundException.of("Usuario", usuarioOid));
+        try {
+            Path dir = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Files.createDirectories(dir);
+            String nombreInterno = UUID.randomUUID() + "-" + nombreOriginal;
+            Path destino = dir.resolve(nombreInterno).normalize();
+            Files.write(destino, contenido);
+
+            Archivo archivo = Archivo.builder()
+                    .nombreInterno(nombreInterno)
+                    .nombreOriginal(nombreOriginal)
+                    .ruta(destino.toString())
+                    .tipo(contentType)
+                    .tamano((long) contenido.length)
+                    .fechaCreacion(LocalDateTime.now())
+                    .usuario(usuario)
+                    .build();
+            return archivoRepository.save(archivo);
+        } catch (IOException ex) {
+            throw new ValidationException("No se pudo almacenar el archivo: " + ex.getMessage());
+        }
+    }
+
     @Transactional(readOnly = true)
     public Archivo require(Integer id) {
         return archivoRepository.findById(id)

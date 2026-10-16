@@ -2,6 +2,7 @@ package co.com.icvc.intranet_backend.user.controller;
 
 import co.com.icvc.intranet_backend.common.web.HttpUtils;
 import co.com.icvc.intranet_backend.permisos.RequiresPermission;
+import co.com.icvc.intranet_backend.user.dto.CumpleanosDtos;
 import co.com.icvc.intranet_backend.user.dto.UsuarioDtos;
 import co.com.icvc.intranet_backend.user.service.AuditService;
 import co.com.icvc.intranet_backend.user.service.UserService;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -32,6 +34,17 @@ public class UserController {
     @GetMapping
     public List<UsuarioDtos.Response> list() {
         return userService.list();
+    }
+
+    /**
+     * Calendario de cumpleaños automático: nombre completo, edad que cumple,
+     * fecha de cumpleaños (año actual) y fecha de nacimiento.
+     * Fuente: fecha de nacimiento validada de usuarios activos.
+     */
+    @GetMapping("/cumpleanos")
+    public List<CumpleanosDtos.Response> cumpleanos(
+            @RequestParam(required = false) Integer mes) {
+        return userService.listCumpleanos(mes);
     }
 
     @PostMapping

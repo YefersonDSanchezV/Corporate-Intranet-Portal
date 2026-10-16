@@ -3,6 +3,7 @@ package co.com.icvc.intranet_backend.user.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Positive;
 
 import java.time.LocalDate;
@@ -18,7 +19,7 @@ public final class UsuarioDtos {
             @NotBlank String password,
             @NotNull @Positive Long identificacion,
             @NotBlank String nombreCompleto,
-            @NotNull LocalDate fechaNacimiento,
+            @NotNull @Past(message = "La fecha de nacimiento debe ser anterior a hoy") LocalDate fechaNacimiento,
             @NotBlank @Email String correoInstitucional,
             @NotBlank String telefono,
             @NotNull @Positive Integer cargoOid) {
@@ -30,7 +31,7 @@ public final class UsuarioDtos {
             String telefono,
             @NotNull @Positive Integer cargoOid,
             @NotNull Boolean estado,
-            LocalDate fechaNacimiento) {
+            @Past(message = "La fecha de nacimiento debe ser anterior a hoy") LocalDate fechaNacimiento) {
     }
 
     public record StatusRequest(@NotNull Boolean estado) {

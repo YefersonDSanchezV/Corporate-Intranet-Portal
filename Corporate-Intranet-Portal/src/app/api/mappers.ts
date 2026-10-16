@@ -81,6 +81,47 @@ export function mapAnuncioToBE(fe: Omit<Announcement, "id" | "published" | "crea
   };
 }
 
+// --- Announcement edit history (genlogs) ---
+export interface BackendAnuncioHistoryResponse {
+  oid: number;
+  usuarioOid: number | null;
+  username: string | null;
+  accion: string;
+  valorAnterior: string | null;
+  valorNuevo: string | null;
+  fechaCambio: string;
+  ip: string | null;
+  tabla: string | null;
+  registro: string | null;
+}
+export interface AnnouncementHistoryEntry {
+  id: string;
+  username: string;
+  action: string;
+  date: string;
+  before: Record<string, any> | null;
+  after: Record<string, any> | null;
+}
+export function mapAnuncioHistoryToFE(dto: BackendAnuncioHistoryResponse): AnnouncementHistoryEntry {
+  const parse = (raw: string | null): Record<string, any> | null => {
+    if (!raw) return null;
+    try {
+      const value = JSON.parse(raw);
+      return value && typeof value === "object" ? value : null;
+    } catch {
+      return null;
+    }
+  };
+  return {
+    id: String(dto.oid),
+    username: dto.username || "sistema",
+    action: dto.accion,
+    date: dto.fechaCambio,
+    before: parse(dto.valorAnterior),
+    after: parse(dto.valorNuevo),
+  };
+}
+
 // --- Tasks ---
 export function mapTareaToFE(dto: BackendTareaResponse): Task {
   return {

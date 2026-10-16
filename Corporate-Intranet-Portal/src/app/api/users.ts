@@ -2,6 +2,32 @@ import type { AccessRequest, PasswordResetRequest, User } from "../contexts/Auth
 import { apiFetch } from "./client";
 import { mapUsuarioToFE, type BackendUsuarioResponse } from "./mappers";
 
+export interface BackendCumpleanosResponse {
+  oid: number;
+  username: string;
+  nombreCompleto: string;
+  fechaNacimiento: string;
+  fechaCumpleanos: string;
+  edadQueCumple: number;
+  cargoOid: number | null;
+  cargoNombre: string | null;
+  estado: boolean;
+}
+
+export interface BackendCumpleanosManualResponse {
+  oid: number;
+  nombreCompleto: string;
+  fechaNacimiento: string;
+  cargo: string;
+  fechaCreacion: string;
+}
+
+export interface ManualBirthdayBody {
+  nombreCompleto: string;
+  fechaNacimiento: string;
+  cargo: string;
+}
+
 export const usersApi = {
   list: async () => {
     const data = await apiFetch<BackendUsuarioResponse[]>("/users");
@@ -47,6 +73,20 @@ export const usersApi = {
     return mapUsuarioToFE(dto);
   },
   resetPassword: (id: string, newPassword?: string) => apiFetch<void>(`/users/${id}/password`, { method: "PATCH", body: { password: newPassword ?? null } }),
+  /** Calendario automático desde el backend (fecha de nacimiento validada). */
+  birthdays: (mes?: number) => {
+    const qs = mes ? `?mes=${mes}` : "";
+    return apiFetch<BackendCumpleanosResponse[]>(`/users/cumpleanos${qs}`);
+  },
+  /** Cumpleaños manuales (cargo en texto libre). */
+  manualBirthdays: {
+    list: () => apiFetch<BackendCumpleanosManualResponse[]>("/cumpleanos-manuales"),
+    create: (body: ManualBirthdayBody) =>
+      apiFetch<BackendCumpleanosManualResponse>("/cumpleanos-manuales", { method: "POST", body }),
+    update: (id: number, body: ManualBirthdayBody) =>
+      apiFetch<BackendCumpleanosManualResponse>(`/cumpleanos-manuales/${id}`, { method: "PUT", body }),
+    remove: (id: number) => apiFetch<void>(`/cumpleanos-manuales/${id}`, { method: "DELETE" }),
+  },
   accessRequests: () => apiFetch<any[]>("/access-requests"),
   createAccessRequest: (request: Omit<AccessRequest, "id" | "requestDate" | "status">) =>
     apiFetch<AccessRequest>("/access-requests", { method: "POST", body: request }),

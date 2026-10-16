@@ -45,6 +45,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/logout").permitAll()
                 // Solicitudes públicas (todo el personal puede crear solicitudes)
                 .requestMatchers(HttpMethod.POST, "/api/access-requests", "/api/password-reset-requests").permitAll()
+                // Muro de Cumpleaños: escribe todo el personal, con o sin sesión
+                // (el interceptor lo permite y el autor se resuelve del JWT o del nombre indicado)
+                .requestMatchers(HttpMethod.POST, "/api/muro/mensajes").permitAll()
                 // /api/me y /api/me/** requieren JWT para identificar al usuario
                 .requestMatchers("/api/me", "/api/me/**").authenticated()
                 // Escrituras: cualquier usuario autenticado llega hasta el interceptor de

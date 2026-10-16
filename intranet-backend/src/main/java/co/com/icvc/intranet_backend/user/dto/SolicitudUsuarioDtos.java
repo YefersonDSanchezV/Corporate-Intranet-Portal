@@ -3,6 +3,7 @@ package co.com.icvc.intranet_backend.user.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Positive;
 
 public final class SolicitudUsuarioDtos {
@@ -19,7 +20,7 @@ public final class SolicitudUsuarioDtos {
             @NotBlank String cargo,
             @NotBlank @Email String correo,
             @NotBlank String celular,
-            @NotNull java.time.LocalDate fechaNacimiento,
+            @NotNull @Past(message = "La fecha de nacimiento debe ser anterior a hoy") java.time.LocalDate fechaNacimiento,
             // Compatibilidad: si frontend viejo envía nombre/cargo/correo antiguos
             String nombre,
             String observaciones) {

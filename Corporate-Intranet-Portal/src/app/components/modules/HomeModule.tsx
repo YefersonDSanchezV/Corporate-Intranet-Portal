@@ -32,10 +32,10 @@ export function HomeModule() {
       <SearchBar />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mb-12 items-stretch">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 min-h-0 min-w-0">
           <AnnouncementPanel variant="home" />
         </div>
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 min-h-0 min-w-0">
           <BirthdayWall />
         </div>
       </div>

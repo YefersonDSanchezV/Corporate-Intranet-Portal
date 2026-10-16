@@ -32,7 +32,10 @@ public class PermissionInterceptor implements HandlerInterceptor {
             "/api/auth/login",
             "/api/auth/logout",
             "/api/access-requests",
-            "/api/password-reset-requests");
+            "/api/password-reset-requests",
+            // Muro de Cumpleaños: publica cualquier usuario autenticado
+            // (SecurityConfig sigue exigiendo JWT; el autor se toma del token).
+            "/api/muro/mensajes");
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
@@ -43,7 +46,7 @@ public class PermissionInterceptor implements HandlerInterceptor {
 
         RequiresPermission required = handlerMethod.getMethodAnnotation(RequiresPermission.class);
         if (required == null) {
-            if (isPublicWrite(request)) {
+            if (isPublicWrite(request) || isMuroDelete(request)) {
                 return true;
             }
             return forbidden(response, "Operación sin permiso declarado");
@@ -70,6 +73,15 @@ public class PermissionInterceptor implements HandlerInterceptor {
     private static boolean isPublicWrite(HttpServletRequest request) {
         return HttpMethod.POST.matches(request.getMethod())
                 && PUBLIC_WRITE_PATHS.contains(request.getRequestURI());
+    }
+
+    /**
+     * Borrado de mensajes del muro: pasa el interceptor y la regla
+     * autor-o-moderador la aplica {@code MuroService.eliminar}.
+     */
+    private static boolean isMuroDelete(HttpServletRequest request) {
+        return HttpMethod.DELETE.matches(request.getMethod())
+                && request.getRequestURI().startsWith("/api/muro/mensajes/");
     }
 
     private static boolean forbidden(HttpServletResponse response, String message) throws IOException {

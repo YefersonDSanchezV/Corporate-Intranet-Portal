@@ -45,9 +45,7 @@ export const CONTROL_PANEL_MODULES: Array<{
       { id: "anuncios-pendientes", label: "Anuncios Pendientes" },
       { id: "anuncios-historial", label: "Histórico de Anuncios" },
       { id: "calendario-cumpleanios", label: "Calendario de Cumpleaños" },
-      { id: "calendario-eventos", label: "Calendario de Eventos" },
       { id: "logros-acreditaciones", label: "Logros y Acreditaciones" },
-      { id: "tareas-seguimiento", label: "Tareas y Seguimiento" },
     ],
   },
   {
@@ -161,9 +159,7 @@ export type PermissionBasedAdminView =
   | "anuncios-pendientes"
   | "anuncios-historial"
   | "calendario-cumpleanios"
-  | "calendario-eventos"
   | "logros-acreditaciones"
-  | "tareas-seguimiento"
   | "formatos-contingencia"
   | "consulta-externa"
   | "enlace-redireccion";

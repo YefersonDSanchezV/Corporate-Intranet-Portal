@@ -10,6 +10,9 @@ import co.com.icvc.intranet_backend.communication.repository.TipoAnuncioReposito
 import co.com.icvc.intranet_backend.communication.repository.UsuarioComunicacionRepository;
 import co.com.icvc.intranet_backend.communication.service.AnnouncementService;
 import co.com.icvc.intranet_backend.portal.service.FileService;
+import co.com.icvc.intranet_backend.user.repository.LogAuditoriaRepository;
+import co.com.icvc.intranet_backend.user.service.AuditService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -37,6 +40,12 @@ class AnnouncementServiceTest {
     private ArchivoAnuncioRepository archivoAnuncioRepository;
     @Mock
     private FileService fileService;
+    @Mock
+    private AuditService auditService;
+    @Mock
+    private LogAuditoriaRepository logAuditoriaRepository;
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private AnnouncementService announcementService;

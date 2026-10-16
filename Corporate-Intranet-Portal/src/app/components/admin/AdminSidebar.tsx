@@ -94,7 +94,6 @@ const MENU: SidebarItem[] = [
         icon: FileText,
         children: [
           { id: "crear-anuncio", label: "Crear Anuncio", view: "crear-anuncio", icon: FileText },
-          { id: "calendario-anuncios", label: "Calendario de Anuncios", view: "calendario-anuncios", icon: Calendar },
           { id: "anuncios-pendientes", label: "Anuncios Pendientes", view: "anuncios-pendientes", icon: AlignEndVertical },
           { id: "anuncios-historial", label: "Histórico de Anuncios", view: "anuncios-historial", icon: Calendar },
         ],
@@ -105,11 +104,10 @@ const MENU: SidebarItem[] = [
         icon: Calendar,
         children: [
           { id: "cumpleanios", label: "Cumpleaños", view: "calendario-cumpleanios", icon: Calendar },
-          { id: "eventos", label: "Eventos", view: "calendario-eventos", icon: Calendar },
+          { id: "calendario-anuncios", label: "Calendario de Anuncios", view: "calendario-anuncios", icon: Calendar },
         ],
       },
       { id: "logros-acreditaciones", label: "Logros y Acreditaciones", view: "logros-acreditaciones", icon: FileBadge2Icon},
-      { id: "tareas-seguimiento", label: "Tareas y Seguimiento", view: "tareas-seguimiento", icon: ClipboardCheck },
     ],
   },
   {

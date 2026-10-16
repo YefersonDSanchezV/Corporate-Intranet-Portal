@@ -2,6 +2,7 @@ package co.com.icvc.intranet_backend.user.service;
 
 import co.com.icvc.intranet_backend.common.exception.ConflictException;
 import co.com.icvc.intranet_backend.common.exception.NotFoundException;
+import co.com.icvc.intranet_backend.user.dto.CumpleanosDtos;
 import co.com.icvc.intranet_backend.user.dto.UsuarioDtos;
 import co.com.icvc.intranet_backend.user.entity.CargoIntra;
 import co.com.icvc.intranet_backend.user.entity.Usuario;
@@ -36,8 +37,46 @@ public class UserService {
                 .toList();
     }
 
+    /**
+     * Calendario de cumpleaños: se deriva automáticamente de la fecha de
+     * nacimiento de usuarios activos con fecha válida. Ordenado por mes/día.
+     */
+    @Transactional(readOnly = true)
+    public List<CumpleanosDtos.Response> listCumpleanos(Integer mes) {
+        return usuarioRepository.findAllByOrderByUsernameAsc().stream()
+                .filter(u -> u.isEstado() && u.getFechaNacimiento() != null)
+                .filter(u -> {
+                    try {
+                        FechaNacimientoValidator.validar(u.getFechaNacimiento());
+                        return true;
+                    } catch (Exception ex) {
+                        return false;
+                    }
+                })
+                .filter(u -> mes == null || u.getFechaNacimiento().getMonthValue() == mes)
+                .map(u -> new CumpleanosDtos.Response(
+                        u.getOid(),
+                        u.getUsername(),
+                        u.getNombreCompleto(),
+                        u.getFechaNacimiento(),
+                        FechaNacimientoValidator.fechaCumpleanosAnioActual(u.getFechaNacimiento()),
+                        FechaNacimientoValidator.edadQueCumple(u.getFechaNacimiento()),
+                        u.getCargo() != null ? u.getCargo().getOid() : null,
+                        u.getCargo() != null ? u.getCargo().getNombre() : null,
+                        u.isEstado()))
+                .sorted((a, b) -> {
+                    int cmp = Integer.compare(a.fechaNacimiento().getMonthValue(), b.fechaNacimiento().getMonthValue());
+                    if (cmp != 0) return cmp;
+                    cmp = Integer.compare(a.fechaNacimiento().getDayOfMonth(), b.fechaNacimiento().getDayOfMonth());
+                    if (cmp != 0) return cmp;
+                    return a.nombreCompleto().compareToIgnoreCase(b.nombreCompleto());
+                })
+                .toList();
+    }
+
     @Transactional
     public UsuarioDtos.Response create(UsuarioDtos.CreateRequest request) {
+        FechaNacimientoValidator.validar(request.fechaNacimiento());
         if (usuarioRepository.existsByUsername(request.username())) {
             throw new ConflictException("El nombre de usuario ya existe");
         }
@@ -89,6 +128,7 @@ public class UserService {
         usuario.setCargo(cargo);
         usuario.setEstado(request.estado());
         if (request.fechaNacimiento() != null) {
+            FechaNacimientoValidator.validar(request.fechaNacimiento());
             usuario.setFechaNacimiento(request.fechaNacimiento());
         }
         return UsuarioDtos.Response.from(usuarioRepository.save(usuario));
