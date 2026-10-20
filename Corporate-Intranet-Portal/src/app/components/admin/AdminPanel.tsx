@@ -12,7 +12,9 @@ import { CalendarioAnunciosView } from "./views/CalendarioAnunciosView";
 import { AnunciosPendientesView } from "./views/AnunciosPendientesView";
 import { HistorialAnunciosView } from "./views/HistorialAnunciosView";
 import { CalendarioCumpleaniosView } from "./views/CalendarioCumpleaniosView";
+import { CumpleaniosComunicacionesView } from "./views/CumpleaniosComunicacionesView";
 import { ParametrosComunicacionesView } from "./views/ParametrosComunicacionesView";
+import { PlantillasCumpleaniosView } from "./views/PlantillasCumpleaniosView";
 import { LogrosAcreditacionesView } from "./views/LogrosAcreditacionesView";
 import { FormatosContingenciaView } from "./views/FormatosContingenciaView";
 import { ConsultaExternaView } from "./views/ConsultaExternaView";
@@ -27,6 +29,7 @@ export function AdminPanel() {
   const { adminUser } = useAdminAuth();
   const { roles, rolePermissions } = useSystem();
   const [activeView, setActiveView] = useState<AdminView>("welcome");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const allowedViews = useMemo(() => {
     const permissions = getUserAdminPermissions(adminUser, roles, rolePermissions);
     return getAllowedAdminViews(permissions);
@@ -84,8 +87,12 @@ export function AdminPanel() {
         return <HistorialAnunciosView />;
       case "calendario-cumpleanios":
         return <CalendarioCumpleaniosView />;
+      case "cumpleanios-comunicaciones":
+        return <CumpleaniosComunicacionesView />;
       case "parametros-comunicaciones":
         return <ParametrosComunicacionesView />;
+      case "plantillas-cumpleanios":
+        return <PlantillasCumpleaniosView />;
       case "logros-acreditaciones":
         return <LogrosAcreditacionesView />;
       case "formatos-contingencia":
@@ -112,7 +119,12 @@ export function AdminPanel() {
 
   return (
     <div className="fixed inset-0 bg-[#f8f9fa] z-[150] flex overflow-hidden">
-      <AdminSidebar activeView={activeView} onViewChange={setActiveView} />
+      <AdminSidebar
+        activeView={activeView}
+        onViewChange={setActiveView}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => setSidebarCollapsed((prev) => !prev)}
+      />
       <main className="flex-1 h-full overflow-y-auto">{renderView()}</main>
     </div>
   );

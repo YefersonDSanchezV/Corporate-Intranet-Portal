@@ -17,7 +17,7 @@ import {
   UserPlus,
   XCircle,
 } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AccessRequest, useAuth, User, UserRole } from "../../../contexts/AuthContext";
 import { useSystem } from "../../../contexts/SystemContext";
 import { AdminView } from "../AdminSidebar";
@@ -849,117 +849,151 @@ export function GeneralesUsuariosView({
               )}
             </div>
 
-            <div className="p-4 overflow-auto flex-1 custom-scrollbar">
+            <div className="p-4 overflow-auto flex-1 custom-scrollbar bg-gray-50/40">
               {permissionRoleId ? (
-                <table className="w-full border-collapse text-sm">
-                  <thead className="sticky top-0 z-10">
-                    <tr className="bg-gray-50 border-b-2 border-gray-200">
-                      <th className="text-left font-semibold text-gray-600 px-3 py-2.5 min-w-[280px]">Módulo / Submódulo</th>
-                      {CONTROL_PANEL_ACTIONS.map((action) => (
-                        <th
-                          key={action.id}
-                          className={`px-2 py-2.5 text-center font-semibold w-[104px] ${action.implicit ? "text-gray-400" : "text-gray-600"}`}
-                          title={action.implicit ? `${action.label}: se concede automáticamente con el acceso al módulo` : action.hint}
+                <div className="space-y-3">
+                  {CONTROL_PANEL_MODULES.map((section) => {
+                    const childIds = section.children?.map((child) => child.id) ?? [];
+                    const sectionIds = [section.id, ...childIds];
+                    const sectionSelected = sectionIds.every((id) => selectedPermissions.includes(id));
+                    const sectionPartial = !sectionSelected && sectionIds.some((id) => selectedPermissions.includes(id));
+                    const isExpanded = !!expandedSections[section.id];
+                    return (
+                      <div
+                        key={section.id}
+                        className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+                      >
+                        {/* Carpeta padre: encabezado desplegable */}
+                        <div
+                          className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                            sectionSelected ? "bg-[#0778AC]/10" : "bg-white hover:bg-gray-50"
+                          }`}
                         >
-                          <span className="block leading-tight">{action.label}</span>
-                          {action.implicit && <span className="block text-[9px] font-normal uppercase tracking-wide">implícita</span>}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {CONTROL_PANEL_MODULES.map((section) => {
-                      const childIds = section.children?.map((child) => child.id) ?? [];
-                      const sectionIds = [section.id, ...childIds];
-                      const sectionSelected = sectionIds.every((id) => selectedPermissions.includes(id));
-                      const sectionPartial = !sectionSelected && sectionIds.some((id) => selectedPermissions.includes(id));
-                      const isExpanded = !!expandedSections[section.id];
-                      return (
-                        <Fragment key={section.id}>
-                          <tr className={`border-b border-gray-100 ${sectionSelected ? "bg-[#0778AC]/10" : "bg-gray-50"}`}>
-                            <td className="px-3 py-2">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setExpandedSections(prev => ({ ...prev, [section.id]: !isExpanded }))}
-                                  className="p-1 rounded hover:bg-black/10 text-gray-500 hover:text-gray-700 flex-shrink-0"
-                                  title={isExpanded ? "Comprimir" : "Expandir"}
-                                >
-                                  {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                </button>
-                                <label className="flex items-center gap-2 cursor-pointer min-w-0 flex-1">
-                                  <input
-                                    type="checkbox"
-                                    checked={sectionSelected}
-                                    ref={(el) => { if (el) el.indeterminate = sectionPartial; }}
-                                    onChange={() => runPermissionUpdate(() => updateRoleModulePermissions(permissionRoleId, (prev) => {
-                                      const all = sectionIds.every((id) => prev.includes(id));
-                                      return all
-                                        ? prev.filter((p) => !sectionIds.includes(p))
-                                        : Array.from(new Set([...prev, ...sectionIds]));
-                                    }))}
-                                    className="w-4 h-4 accent-[#0778AC] flex-shrink-0"
-                                  />
-                                  <span className="font-bold text-gray-800 truncate">{section.label}</span>
-                                </label>
-                                <span className="text-[10px] text-gray-400 whitespace-nowrap">{childIds.length} sub</span>
-                              </div>
-                            </td>
-                            {CONTROL_PANEL_ACTIONS.map((action) => {
-                              const state = actionStateOverModules(selectedActions, sectionIds, action.id);
-                              // "consultar" refleja el acceso al módulo y no se puede editar a mano.
-                              const derived = action.implicit ? sectionSelected : undefined;
-                              return (
-                                <td key={action.id} className="px-2 py-2 text-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={derived ?? state.all}
-                                    ref={(el) => { if (el) el.indeterminate = derived === undefined && !state.all && state.some; }}
-                                    disabled={derived !== undefined}
-                                    onChange={() => setActionForModules(sectionIds, action.id, !state.all)}
-                                    title={derived !== undefined ? "Se concede con el acceso al módulo" : action.hint}
-                                    className={`w-4 h-4 accent-[#0778AC] ${derived !== undefined ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-                                  />
-                                </td>
-                              );
-                            })}
-                          </tr>
-                          {isExpanded && section.children?.map((sub) => (
-                            <tr key={sub.id} className="border-b border-gray-50 hover:bg-gray-50/70">
-                              <td className="py-1.5 pr-3 pl-12">
-                                <label className="flex items-center gap-2 cursor-pointer min-w-0">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedPermissions.includes(sub.id)}
-                                    onChange={() => togglePermission(sub.id)}
-                                    className="w-4 h-4 accent-[#0778AC] flex-shrink-0"
-                                  />
-                                  <span className="text-gray-700 truncate">{sub.label}</span>
-                                  <span className="text-[10px] text-gray-400 font-mono truncate hidden xl:inline">{sub.id}</span>
-                                </label>
-                              </td>
-                              {CONTROL_PANEL_ACTIONS.map((action) => {
-                                const derived = action.implicit ? selectedPermissions.includes(sub.id) : undefined;
+                          <button
+                            type="button"
+                            onClick={() => setExpandedSections((prev) => ({ ...prev, [section.id]: !isExpanded }))}
+                            className="p-1 rounded-lg hover:bg-black/10 text-gray-500 hover:text-gray-700 flex-shrink-0"
+                            title={isExpanded ? "Comprimir carpeta" : "Expandir carpeta"}
+                          >
+                            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          </button>
+                          <label className="flex items-center gap-2.5 cursor-pointer min-w-0 flex-1">
+                            <input
+                              type="checkbox"
+                              checked={sectionSelected}
+                              ref={(el) => { if (el) el.indeterminate = sectionPartial; }}
+                              onChange={() => runPermissionUpdate(() => updateRoleModulePermissions(permissionRoleId, (prev) => {
+                                const all = sectionIds.every((id) => prev.includes(id));
+                                return all
+                                  ? prev.filter((p) => !sectionIds.includes(p))
+                                  : Array.from(new Set([...prev, ...sectionIds]));
+                              }))}
+                              className="w-4 h-4 accent-[#0778AC] flex-shrink-0"
+                            />
+                            <span className="font-bold text-gray-800 text-sm truncate">{section.label}</span>
+                          </label>
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-100 rounded-full px-2 py-0.5 whitespace-nowrap">
+                            {childIds.length} submódulo{childIds.length === 1 ? "" : "s"}
+                          </span>
+                          {!isExpanded && (
+                            <span className="text-[11px] text-gray-400 italic hidden lg:inline">
+                              {sectionSelected ? "Acceso completo" : sectionPartial ? "Acceso parcial" : "Sin acceso"}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Fila de acciones del módulo: mismo diseño de check que la autorización original */}
+                        {isExpanded && (
+                          <div className="md:grid md:grid-cols-[minmax(200px,1fr)_repeat(5,96px)] items-center gap-2 px-4 py-2 pl-10 bg-[#0778AC]/5 border-t border-[#0778AC]/10">
+                            <span className="text-xs font-semibold text-[#0778AC]">Todo el módulo</span>
+                            <div className="mt-2 md:mt-0 flex flex-wrap items-center gap-x-4 gap-y-2 md:contents">
+                              {CONTROL_PANEL_ACTIONS.filter((action) => !action.implicit).map((action) => {
+                                const state = actionStateOverModules(selectedActions, sectionIds, action.id);
                                 return (
-                                  <td key={action.id} className="px-2 py-1.5 text-center">
+                                  <label
+                                    key={action.id}
+                                    className="flex md:justify-center items-center gap-1.5 cursor-pointer"
+                                    title={`${action.hint} (se aplica a todo el módulo)`}
+                                  >
                                     <input
                                       type="checkbox"
-                                      checked={derived ?? hasActionPermission(selectedActions, sub.id, action.id)}
-                                      disabled={derived !== undefined}
-                                      onChange={(e) => setActionForModules([sub.id], action.id, e.target.checked)}
-                                      title={derived !== undefined ? "Se concede con el acceso al submódulo" : action.hint}
-                                      className={`w-4 h-4 accent-[#0778AC] ${derived !== undefined ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                                      checked={state.all}
+                                      ref={(el) => { if (el) el.indeterminate = !state.all && state.some; }}
+                                      onChange={() => setActionForModules(sectionIds, action.id, !state.all)}
+                                      className="w-4 h-4 accent-[#0778AC] cursor-pointer"
                                     />
-                                  </td>
+                                    <span className="md:hidden text-xs text-gray-600">{action.label}</span>
+                                  </label>
                                 );
                               })}
-                            </tr>
-                          ))}
-                        </Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Submódulos hijos */}
+                        {isExpanded && (
+                          <div className="border-t border-gray-100">
+                            {/* Cabecera de acciones: mismo estilo de columnas/check que la tabla original */}
+                            <div className="hidden md:grid grid-cols-[minmax(200px,1fr)_repeat(5,96px)] items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-100">
+                              <span className="text-xs font-semibold text-gray-500 pl-6">Submódulo</span>
+                              {CONTROL_PANEL_ACTIONS.filter((action) => !action.implicit).map((action) => (
+                                <span
+                                  key={action.id}
+                                  className="text-[11px] font-semibold text-gray-500 text-center leading-tight"
+                                  title={action.hint}
+                                >
+                                  {action.label}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="divide-y divide-gray-50">
+                              {section.children?.map((sub) => {
+                                const subSelected = selectedPermissions.includes(sub.id);
+                                return (
+                                  <div
+                                    key={sub.id}
+                                    className="md:grid md:grid-cols-[minmax(200px,1fr)_repeat(5,96px)] items-center gap-2 px-4 py-2.5 pl-10 hover:bg-gray-50/70"
+                                  >
+                                    <label className="flex items-center gap-2.5 cursor-pointer min-w-0">
+                                      <input
+                                        type="checkbox"
+                                        checked={subSelected}
+                                        onChange={() => togglePermission(sub.id)}
+                                        className="w-4 h-4 accent-[#0778AC] flex-shrink-0"
+                                      />
+                                      <span className="text-sm text-gray-700 truncate">{sub.label}</span>
+                                      <span className="text-[10px] text-gray-400 font-mono truncate hidden xl:inline">{sub.id}</span>
+                                    </label>
+                                    <div className="mt-2 md:mt-0 flex flex-wrap items-center gap-x-4 gap-y-2 md:contents">
+                                      {CONTROL_PANEL_ACTIONS.filter((action) => !action.implicit).map((action) => {
+                                        const granted = hasActionPermission(selectedActions, sub.id, action.id);
+                                        return (
+                                          <label
+                                            key={action.id}
+                                            className="flex md:justify-center items-center gap-1.5 cursor-pointer"
+                                            title={action.hint}
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              checked={granted}
+                                              onChange={(e) => setActionForModules([sub.id], action.id, e.target.checked)}
+                                              className="w-4 h-4 accent-[#0778AC] cursor-pointer"
+                                            />
+                                            <span className="md:hidden text-xs text-gray-600">{action.label}</span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
                 <p className="text-sm text-gray-400 italic text-center py-10">Seleccione un cargo arriba para gestionar sus permisos.</p>
               )}

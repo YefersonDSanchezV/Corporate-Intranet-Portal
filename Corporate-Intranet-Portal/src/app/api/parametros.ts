@@ -6,6 +6,11 @@ export interface Parametro {
   descripcion?: string | null;
 }
 
+export interface ProbarMinioResult {
+  ok: boolean;
+  mensaje: string;
+}
+
 export const parametrosApi = {
   list: () => apiFetch<Parametro[]>("/parametros"),
   get: (clave: string) => apiFetch<Parametro>(`/parametros/${encodeURIComponent(clave)}`),
@@ -13,5 +18,11 @@ export const parametrosApi = {
     apiFetch<Parametro>(`/parametros/${encodeURIComponent(clave)}`, {
       method: "PUT",
       body: { valor },
+    }),
+  probarMinio: (payload: { endpoint?: string; accessKey?: string; secretKey?: string; bucket?: string }) =>
+    apiFetch<ProbarMinioResult>("/parametros/probar-minio", {
+      method: "POST",
+      body: payload,
+      timeoutMs: 15000,
     }),
 };

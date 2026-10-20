@@ -8,4 +8,6 @@ import java.util.List;
 public interface CumpleanosManualRepository extends JpaRepository<CumpleanosManual, Integer> {
 
     List<CumpleanosManual> findAllByOrderByNombreCompletoAsc();
+
+    boolean existsByPlantillaOid(Integer plantillaOid);
 }

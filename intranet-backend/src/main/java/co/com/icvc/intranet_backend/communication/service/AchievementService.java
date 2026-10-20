@@ -60,7 +60,7 @@ public class AchievementService {
     @Transactional
     public PortalDtos.ArchivoResponse attachFile(Integer id, MultipartFile file, Integer usuarioOid) {
         LogroAcreditacion logro = require(id);
-        Archivo archivo = fileService.store(file, usuarioOid);
+        Archivo archivo = fileService.storePorTipo(file, usuarioOid, "DOCUMENTOS");
         archivoLogroRepository.save(ArchivoLogro.builder().logro(logro).archivo(archivo).build());
         return PortalDtos.ArchivoResponse.from(archivo);
     }

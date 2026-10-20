@@ -94,7 +94,7 @@ public class AssistanceService {
     public PortalDtos.ArchivoResponse attachFile(Integer id, MultipartFile file, Integer usuarioOid) {
         FormatoContingencia formato = formatoRepository.findById(id)
                 .orElseThrow(() -> NotFoundException.of("Formato de contingencia", id));
-        Archivo archivo = fileService.store(file, usuarioOid);
+        Archivo archivo = fileService.storePorTipo(file, usuarioOid, "DOCUMENTOS");
         archivoFormatoRepository.save(ArchivoFormato.builder().formato(formato).archivo(archivo).build());
         return PortalDtos.ArchivoResponse.from(archivo);
     }

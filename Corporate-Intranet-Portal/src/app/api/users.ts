@@ -22,7 +22,12 @@ export interface BackendCumpleanosManualResponse {
   fechaNacimiento: string;
   cargo: string;
   fechaCreacion: string;
+  fechaActualizacion?: string | null;
   fotoArchivoOid?: number | null;
+  plantillaOid?: number | null;
+  plantillaNombre?: string | null;
+  plantillaArchivoOid?: number | null;
+  posicion?: { px: number; py: number; ancho: number; alto: number; redondo: boolean } | null;
 }
 
 export interface ManualBirthdayBody {
@@ -30,6 +35,12 @@ export interface ManualBirthdayBody {
   fechaNacimiento: string;
   cargo: string;
   fotoArchivoOid?: number | null;
+  plantillaOid?: number | null;
+  fotoPx?: number | null;
+  fotoPy?: number | null;
+  fotoAncho?: number | null;
+  fotoAlto?: number | null;
+  fotoRedondo?: boolean | null;
 }
 
 export const usersApi = {

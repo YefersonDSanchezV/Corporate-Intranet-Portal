@@ -15,6 +15,7 @@ export const CONTROL_PANEL_MODULES: Array<{
       { id: "solicitudes", label: "Solicitudes" },
       { id: "cargos", label: "Cargo" },
       { id: "logs", label: "Logs" },
+      { id: "parametros-comunicaciones", label: "Parámetros de Comunicaciones" },
     ],
   },
   {
@@ -45,7 +46,8 @@ export const CONTROL_PANEL_MODULES: Array<{
       { id: "anuncios-pendientes", label: "Anuncios Pendientes" },
       { id: "anuncios-historial", label: "Histórico de Anuncios" },
       { id: "calendario-cumpleanios", label: "Calendario de Cumpleaños" },
-      { id: "parametros-comunicaciones", label: "Parámetros" },
+      { id: "cumpleanios-comunicaciones", label: "Cumpleaños" },
+      { id: "plantillas-cumpleanios", label: "Plantillas de Cumpleaños" },
       { id: "logros-acreditaciones", label: "Logros y Acreditaciones" },
     ],
   },
@@ -160,7 +162,9 @@ export type PermissionBasedAdminView =
   | "anuncios-pendientes"
   | "anuncios-historial"
   | "calendario-cumpleanios"
+  | "cumpleanios-comunicaciones"
   | "parametros-comunicaciones"
+  | "plantillas-cumpleanios"
   | "logros-acreditaciones"
   | "formatos-contingencia"
   | "consulta-externa"

@@ -3,6 +3,7 @@ package co.com.icvc.intranet_backend.portal.service;
 import co.com.icvc.intranet_backend.common.exception.NotFoundException;
 import co.com.icvc.intranet_backend.common.exception.ValidationException;
 import co.com.icvc.intranet_backend.portal.entity.Archivo;
+import co.com.icvc.intranet_backend.portal.entity.CarpetaAlmacen;
 import co.com.icvc.intranet_backend.portal.repository.ArchivoRepository;
 import co.com.icvc.intranet_backend.user.entity.Usuario;
 import co.com.icvc.intranet_backend.user.repository.UsuarioRepository;
@@ -33,6 +34,7 @@ public class FileService {
     private final UsuarioRepository usuarioRepository;
     private final MinioStorageService minioStorageService;
     private final ParametroService parametroService;
+    private final CarpetaAlmacenService carpetaAlmacenService;
 
     @Value("${app.upload.dir:./uploads}")
     private String uploadDir;
@@ -55,16 +57,66 @@ public class FileService {
         return "fotos-cumpleanos";
     }
 
+    /**
+     * Almacenamiento por defecto (sin carpeta explícita). Conserva EXACTAMENTE el
+     * comportamiento histórico: bucket {@code FOTOS_CUMPLE_BUCKET} y prefijo
+     * {@code cumpleanos/}. Si el catálogo de carpetas tiene la carpeta por defecto
+     * activa, se usa su bucket/prefijo (que la migración dejó idénticos), de modo
+     * que los archivos nuevos y antiguos comparten la misma ruta.
+     */
     @Transactional
     public Archivo store(MultipartFile file, Integer usuarioOid) {
+        CarpetaAlmacen carpeta = carpetaAlmacenService.resolverPorTipo(null);
+        if (carpeta != null) {
+            return store(file, usuarioOid, carpeta);
+        }
+        return almacenar(file, usuarioOid, defaultBucket(), "cumpleanos/");
+    }
+
+    /** Almacena el archivo en la carpeta lógica indicada (bucket físico + prefijo). */
+    @Transactional
+    public Archivo store(MultipartFile file, Integer usuarioOid, Integer carpetaOid) {
+        if (carpetaOid == null) {
+            return store(file, usuarioOid);
+        }
+        return store(file, usuarioOid, carpetaAlmacenService.requireActiva(carpetaOid));
+    }
+
+    /** Almacena el archivo en la carpeta indicada por tipo de contenido (p. ej. DOCUMENTOS). */
+    @Transactional
+    public Archivo storePorTipo(MultipartFile file, Integer usuarioOid, String tipo) {
+        CarpetaAlmacen carpeta = carpetaAlmacenService.resolverPorTipo(tipo);
+        if (carpeta == null) {
+            return store(file, usuarioOid);
+        }
+        return store(file, usuarioOid, carpeta);
+    }
+
+    /**
+     * Almacena el archivo en la carpeta lógica indicada por nombre. Si la carpeta no
+     * existe en el catálogo, cae al comportamiento por defecto (compatibilidad).
+     */
+    @Transactional
+    public Archivo storeEnCarpeta(MultipartFile file, Integer usuarioOid, String nombreCarpeta) {
+        CarpetaAlmacen carpeta = carpetaAlmacenService.resolverPorNombre(nombreCarpeta);
+        if (carpeta == null) {
+            return store(file, usuarioOid);
+        }
+        return store(file, usuarioOid, carpeta);
+    }
+
+    private Archivo store(MultipartFile file, Integer usuarioOid, CarpetaAlmacen carpeta) {
+        return almacenar(file, usuarioOid, carpeta.getBucket(), carpeta.getPrefijo());
+    }
+
+    private Archivo almacenar(MultipartFile file, Integer usuarioOid, String bucket, String prefijo) {
         if (file == null || file.isEmpty()) {
             throw new ValidationException("El archivo está vacío");
         }
         Usuario usuario = usuarioRepository.findById(usuarioOid)
                 .orElseThrow(() -> NotFoundException.of("Usuario", usuarioOid));
-        String bucket = defaultBucket();
         String nombreInterno = UUID.randomUUID() + "-" + file.getOriginalFilename();
-        String key = "cumpleanos/" + nombreInterno;
+        String key = prefijo + nombreInterno;
         try {
             minioStorageService.put(bucket, key, file.getInputStream(),
                     file.getContentType(), file.getSize());

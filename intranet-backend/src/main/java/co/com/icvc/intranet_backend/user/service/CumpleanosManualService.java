@@ -2,6 +2,9 @@ package co.com.icvc.intranet_backend.user.service;
 
 import co.com.icvc.intranet_backend.common.exception.NotFoundException;
 import co.com.icvc.intranet_backend.common.exception.ValidationException;
+import co.com.icvc.intranet_backend.portal.dto.PosicionFoto;
+import co.com.icvc.intranet_backend.portal.entity.PlantillaCumpleanios;
+import co.com.icvc.intranet_backend.portal.repository.PlantillaCumpleaniosRepository;
 import co.com.icvc.intranet_backend.user.dto.CumpleanosManualDtos;
 import co.com.icvc.intranet_backend.user.entity.CumpleanosManual;
 import co.com.icvc.intranet_backend.user.repository.CumpleanosManualRepository;
@@ -15,12 +18,15 @@ import java.util.List;
 /**
  * CRUD de cumpleaños manuales. El cargo se guarda como texto libre escrito
  * por el operador; no referencia al catálogo de cargos del sistema.
+ * La plantilla es opcional y se puede asignar desde el formulario o desde el
+ * modal de edición del módulo de Cumpleaños.
  */
 @Service
 @RequiredArgsConstructor
 public class CumpleanosManualService {
 
     private final CumpleanosManualRepository cumpleanosRepository;
+    private final PlantillaCumpleaniosRepository plantillaRepository;
 
     @Transactional(readOnly = true)
     public List<CumpleanosManualDtos.Response> list() {
@@ -36,11 +42,19 @@ public class CumpleanosManualService {
         if (request.fotoArchivoOid() == null) {
             throw new ValidationException("La fotografía es obligatoria");
         }
+        PlantillaCumpleanios plantilla = resolverPlantilla(request.plantillaOid());
+        PosicionFoto posicion = request.posicion() != null ? request.posicion() : PosicionFoto.de(plantilla);
         CumpleanosManual cumpleanos = CumpleanosManual.builder()
                 .nombreCompleto(request.nombreCompleto().trim())
                 .fechaNacimiento(request.fechaNacimiento())
                 .cargo(cargo)
                 .fotoArchivoOid(request.fotoArchivoOid())
+                .plantilla(plantilla)
+                .fotoPx(posicion.px())
+                .fotoPy(posicion.py())
+                .fotoAncho(posicion.ancho())
+                .fotoAlto(posicion.alto())
+                .fotoRedondo(posicion.redondo())
                 .fechaCreacion(LocalDateTime.now())
                 .build();
         return CumpleanosManualDtos.Response.from(cumpleanosRepository.save(cumpleanos));
@@ -57,12 +71,32 @@ public class CumpleanosManualService {
             throw new ValidationException("La fotografía es obligatoria");
         }
         cumpleanos.setFotoArchivoOid(request.fotoArchivoOid());
+        if (request.plantillaOid() != null) {
+            cumpleanos.setPlantilla(resolverPlantilla(request.plantillaOid()));
+        }
+        PosicionFoto posicion = request.posicion();
+        if (posicion != null) {
+            cumpleanos.setFotoPx(posicion.px());
+            cumpleanos.setFotoPy(posicion.py());
+            cumpleanos.setFotoAncho(posicion.ancho());
+            cumpleanos.setFotoAlto(posicion.alto());
+            cumpleanos.setFotoRedondo(posicion.redondo());
+        }
+        cumpleanos.setFechaActualizacion(LocalDateTime.now());
         return CumpleanosManualDtos.Response.from(cumpleanosRepository.save(cumpleanos));
     }
 
     @Transactional
     public void delete(Integer id) {
         cumpleanosRepository.delete(require(id));
+    }
+
+    private PlantillaCumpleanios resolverPlantilla(Integer plantillaOid) {
+        if (plantillaOid == null) {
+            return null;
+        }
+        return plantillaRepository.findById(plantillaOid)
+                .orElseThrow(() -> NotFoundException.of("Plantilla de cumpleaños", plantillaOid));
     }
 
     private String validarCargo(String cargo) {

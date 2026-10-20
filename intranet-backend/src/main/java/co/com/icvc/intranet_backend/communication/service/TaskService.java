@@ -107,7 +107,7 @@ public class TaskService {
     @Transactional
     public PortalDtos.ArchivoResponse attachFile(Integer id, MultipartFile file, Integer usuarioOid) {
         TareaSeguimiento tarea = require(id);
-        Archivo archivo = fileService.store(file, usuarioOid);
+        Archivo archivo = fileService.storePorTipo(file, usuarioOid, "DOCUMENTOS");
         archivoTareaRepository.save(ArchivoTarea.builder().tarea(tarea).archivo(archivo).build());
         return PortalDtos.ArchivoResponse.from(archivo);
     }

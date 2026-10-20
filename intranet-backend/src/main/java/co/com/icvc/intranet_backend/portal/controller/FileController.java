@@ -31,7 +31,9 @@ public class FileController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PortalDtos.ArchivoResponse> upload(@RequestPart MultipartFile file,
-            @RequestParam(required = false) Integer usuarioOid) {
+            @RequestParam(required = false) Integer usuarioOid,
+            @RequestParam(required = false) Integer carpetaOid,
+            @RequestParam(required = false) String tipo) {
         Integer oid = usuarioOid;
         if (oid == null) {
             var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
@@ -42,8 +44,14 @@ public class FileController {
         if (oid == null) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-                PortalDtos.ArchivoResponse.from(fileService.store(file, oid)));
+        // Con carpeta/tipo la carga usa el bucket+prefijo del catálogo dinámico;
+        // sin ellos conserva la carpeta por defecto (comportamiento histórico).
+        var archivo = carpetaOid != null
+                ? fileService.store(file, oid, carpetaOid)
+                : (tipo != null && !tipo.isBlank()
+                        ? fileService.storePorTipo(file, oid, tipo)
+                        : fileService.store(file, oid));
+        return ResponseEntity.status(HttpStatus.CREATED).body(PortalDtos.ArchivoResponse.from(archivo));
     }
 
     @GetMapping("/{id}")

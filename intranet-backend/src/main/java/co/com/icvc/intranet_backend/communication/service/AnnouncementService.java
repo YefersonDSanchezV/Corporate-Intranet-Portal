@@ -195,7 +195,7 @@ public class AnnouncementService {
     @Transactional
     public PortalDtos.ArchivoResponse attachFile(Integer id, MultipartFile file, Integer usuarioOid) {
         Anuncio anuncio = require(id);
-        Archivo archivo = fileService.store(file, usuarioOid);
+        Archivo archivo = fileService.storePorTipo(file, usuarioOid, "DOCUMENTOS");
         ArchivoAnuncio relacion = ArchivoAnuncio.builder()
                 .anuncio(anuncio)
                 .archivo(archivo)
