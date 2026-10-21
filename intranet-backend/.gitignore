@@ -1,1 +1,4 @@
 target/
+.env
+.env_pruebas
+.env.pruebas
