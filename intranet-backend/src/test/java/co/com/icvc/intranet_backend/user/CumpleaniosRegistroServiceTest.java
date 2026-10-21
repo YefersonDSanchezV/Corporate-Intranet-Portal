@@ -59,7 +59,7 @@ class CumpleaniosRegistroServiceTest {
         when(usuarioRepository.findById(7)).thenReturn(Optional.of(usuario));
         when(archivoRepository.findById(5)).thenReturn(Optional.of(archivo));
 
-        var request = new CumpleaniosRegistroDtos.UpdateRequest(5, null, null, null, null, null, null);
+        var request = new CumpleaniosRegistroDtos.UpdateRequest(5, null, null, null, null, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.update(7, request))
                 .isInstanceOf(ValidationException.class)
@@ -86,7 +86,8 @@ class CumpleaniosRegistroServiceTest {
         });
 
         var request = new CumpleaniosRegistroDtos.UpdateRequest(
-                5, null, new BigDecimal("40"), new BigDecimal("55"), new BigDecimal("22"), new BigDecimal("30"), false);
+                5, null, new BigDecimal("40"), new BigDecimal("55"), new BigDecimal("22"), new BigDecimal("30"), false,
+                new BigDecimal("1.5"), new BigDecimal("10"), new BigDecimal("-4"));
 
         var response = service.update(7, request);
 
@@ -97,7 +98,9 @@ class CumpleaniosRegistroServiceTest {
         assertThat(response.oid()).isNull();
         assertThat(response.fotoArchivoOid()).isEqualTo(5);
         assertThat(response.plantillaOid()).isNull();
-        assertThat(response.posicion()).isEqualTo(
-                PosicionFoto.of(new BigDecimal("40"), new BigDecimal("55"), new BigDecimal("22"), new BigDecimal("30"), false));
+        // El zoom y el desplazamiento son el reencuadre de la foto dentro del marco.
+        assertThat(response.posicion()).isEqualTo(PosicionFoto.of(
+                new BigDecimal("40"), new BigDecimal("55"), new BigDecimal("22"), new BigDecimal("30"), false,
+                new BigDecimal("1.5"), new BigDecimal("10"), new BigDecimal("-4")));
     }
 }

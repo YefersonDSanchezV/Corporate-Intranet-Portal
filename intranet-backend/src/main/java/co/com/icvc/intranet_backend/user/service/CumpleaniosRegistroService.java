@@ -170,6 +170,9 @@ public class CumpleaniosRegistroService {
         config.setFotoAncho(posicion.ancho());
         config.setFotoAlto(posicion.alto());
         config.setFotoRedondo(posicion.redondo());
+        config.setFotoZoom(posicion.zoom());
+        config.setFotoOffsetX(posicion.offsetX());
+        config.setFotoOffsetY(posicion.offsetY());
     }
 
     private void aplicar(CumpleanosManual manual, PosicionFoto posicion) {
@@ -178,5 +181,8 @@ public class CumpleaniosRegistroService {
         manual.setFotoAncho(posicion.ancho());
         manual.setFotoAlto(posicion.alto());
         manual.setFotoRedondo(posicion.redondo());
+        manual.setFotoZoom(posicion.zoom());
+        manual.setFotoOffsetX(posicion.offsetX());
+        manual.setFotoOffsetY(posicion.offsetY());
     }
 }

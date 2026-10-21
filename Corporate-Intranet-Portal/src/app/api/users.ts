@@ -27,7 +27,16 @@ export interface BackendCumpleanosManualResponse {
   plantillaOid?: number | null;
   plantillaNombre?: string | null;
   plantillaArchivoOid?: number | null;
-  posicion?: { px: number; py: number; ancho: number; alto: number; redondo: boolean } | null;
+  posicion?: {
+    px: number;
+    py: number;
+    ancho: number;
+    alto: number;
+    redondo: boolean;
+    zoom?: number;
+    offsetX?: number;
+    offsetY?: number;
+  } | null;
 }
 
 export interface ManualBirthdayBody {
@@ -41,6 +50,9 @@ export interface ManualBirthdayBody {
   fotoAncho?: number | null;
   fotoAlto?: number | null;
   fotoRedondo?: boolean | null;
+  fotoZoom?: number | null;
+  fotoOffsetX?: number | null;
+  fotoOffsetY?: number | null;
 }
 
 export const usersApi = {

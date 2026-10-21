@@ -61,4 +61,30 @@ public class PlantillaCumpleanios {
 
     @Column(name = "genplanfotoredondo", nullable = false)
     private boolean fotoRedondo;
+
+    /**
+     * JSON con la posición y el estilo de los campos dinámicos (nombre, cargo y
+     * fecha) expresados en porcentaje sobre la plantilla. Si es {@code null} la
+     * aplicación usa los valores por defecto, de modo que las plantillas creadas
+     * antes de V37 siguen funcionando.
+     */
+    @Column(name = "genplanconfig", columnDefinition = "TEXT")
+    private String config;
+
+    /** Meses (1..12) separados por coma en que aplica; vacío = todo el año. */
+    @Column(name = "genplanmeses", length = 30)
+    private String meses;
+
+    /** Formato original cargado: PDF o IMAGEN. */
+    @Column(name = "genplanorigen", length = 20)
+    private String origen;
+
+    /**
+     * Capa frontal opcional: un PNG (idealmente con transparencia) que se dibuja por
+     * encima de la foto y por debajo de los textos, para los adornos del arte que van
+     * sobre el marco de la foto (por ejemplo, el gorro de una plantilla navideña).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "genplanfrente")
+    private Archivo frente;
 }

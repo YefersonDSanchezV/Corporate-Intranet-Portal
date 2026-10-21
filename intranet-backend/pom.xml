@@ -117,6 +117,14 @@
 			<artifactId>minio</artifactId>
 			<version>8.5.13</version>
 		</dependency>
+
+		<!-- Rasteriza las plantillas PDF a imagen para poder superponer los datos
+		     dinámicos (foto, nombre, cargo, fecha) sobre ellas. -->
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>3.0.3</version>
+		</dependency>
 	</dependencies>
 
 	<build>

@@ -74,6 +74,21 @@ public class CumpleanosManual {
     @Column(name = "gencumfotoredondo", nullable = false)
     private boolean fotoRedondo;
 
+    /** Zoom de la foto dentro del marco (1 = ajuste automático). */
+    @Builder.Default
+    @Column(name = "gencumfotozoom", nullable = false)
+    private BigDecimal fotoZoom = BigDecimal.ONE;
+
+    /** Desplazamiento horizontal de la foto dentro del marco, % del ancho. */
+    @Builder.Default
+    @Column(name = "gencumfotooffsetx", nullable = false)
+    private BigDecimal fotoOffsetX = BigDecimal.ZERO;
+
+    /** Desplazamiento vertical de la foto dentro del marco, % del alto. */
+    @Builder.Default
+    @Column(name = "gencumfotooffsety", nullable = false)
+    private BigDecimal fotoOffsetY = BigDecimal.ZERO;
+
     @Column(name = "gencumfechact")
     private LocalDateTime fechaActualizacion;
 }

@@ -84,7 +84,10 @@ public final class CumpleaniosRegistroDtos {
                             cumpleanos.getFotoPy(),
                             cumpleanos.getFotoAncho(),
                             cumpleanos.getFotoAlto(),
-                            cumpleanos.isFotoRedondo()));
+                            cumpleanos.isFotoRedondo(),
+                            cumpleanos.getFotoZoom(),
+                            cumpleanos.getFotoOffsetX(),
+                            cumpleanos.getFotoOffsetY()));
         }
 
         private static PosicionFoto posicion(CumpleanosUsuario config) {
@@ -96,7 +99,10 @@ public final class CumpleaniosRegistroDtos {
                     config.getFotoPy(),
                     config.getFotoAncho(),
                     config.getFotoAlto(),
-                    config.isFotoRedondo());
+                    config.isFotoRedondo(),
+                    config.getFotoZoom(),
+                    config.getFotoOffsetX(),
+                    config.getFotoOffsetY());
         }
     }
 
@@ -112,13 +118,18 @@ public final class CumpleaniosRegistroDtos {
             java.math.BigDecimal fotoPy,
             java.math.BigDecimal fotoAncho,
             java.math.BigDecimal fotoAlto,
-            Boolean fotoRedondo) {
+            Boolean fotoRedondo,
+            java.math.BigDecimal fotoZoom,
+            java.math.BigDecimal fotoOffsetX,
+            java.math.BigDecimal fotoOffsetY) {
 
         public PosicionFoto posicion() {
-            if (fotoPx == null && fotoPy == null && fotoAncho == null && fotoAlto == null && fotoRedondo == null) {
+            if (fotoPx == null && fotoPy == null && fotoAncho == null && fotoAlto == null && fotoRedondo == null
+                    && fotoZoom == null && fotoOffsetX == null && fotoOffsetY == null) {
                 return null;
             }
-            return PosicionFoto.validar(fotoPx, fotoPy, fotoAncho, fotoAlto, fotoRedondo);
+            return PosicionFoto.validar(fotoPx, fotoPy, fotoAncho, fotoAlto, fotoRedondo,
+                    fotoZoom, fotoOffsetX, fotoOffsetY);
         }
     }
 }

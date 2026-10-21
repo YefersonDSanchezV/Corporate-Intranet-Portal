@@ -36,6 +36,12 @@ export interface CumpleanioTarjetaBody {
   fotoAncho?: number | null;
   fotoAlto?: number | null;
   fotoRedondo?: boolean | null;
+  /** Zoom de la foto dentro del marco (1 = ajuste automático). */
+  fotoZoom?: number | null;
+  /** Desplazamiento horizontal dentro del marco, % del ancho. */
+  fotoOffsetX?: number | null;
+  /** Desplazamiento vertical dentro del marco, % del alto. */
+  fotoOffsetY?: number | null;
 }
 
 export const cumpleaniosApi = {

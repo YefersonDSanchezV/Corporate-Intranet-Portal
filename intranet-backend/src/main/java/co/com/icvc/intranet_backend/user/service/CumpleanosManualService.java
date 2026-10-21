@@ -55,6 +55,9 @@ public class CumpleanosManualService {
                 .fotoAncho(posicion.ancho())
                 .fotoAlto(posicion.alto())
                 .fotoRedondo(posicion.redondo())
+                .fotoZoom(posicion.zoom())
+                .fotoOffsetX(posicion.offsetX())
+                .fotoOffsetY(posicion.offsetY())
                 .fechaCreacion(LocalDateTime.now())
                 .build();
         return CumpleanosManualDtos.Response.from(cumpleanosRepository.save(cumpleanos));
@@ -81,6 +84,9 @@ public class CumpleanosManualService {
             cumpleanos.setFotoAncho(posicion.ancho());
             cumpleanos.setFotoAlto(posicion.alto());
             cumpleanos.setFotoRedondo(posicion.redondo());
+            cumpleanos.setFotoZoom(posicion.zoom());
+            cumpleanos.setFotoOffsetX(posicion.offsetX());
+            cumpleanos.setFotoOffsetY(posicion.offsetY());
         }
         cumpleanos.setFechaActualizacion(LocalDateTime.now());
         return CumpleanosManualDtos.Response.from(cumpleanosRepository.save(cumpleanos));

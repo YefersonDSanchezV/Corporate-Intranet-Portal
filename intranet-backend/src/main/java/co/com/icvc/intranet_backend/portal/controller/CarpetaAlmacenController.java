@@ -52,12 +52,6 @@ public class CarpetaAlmacenController {
         return carpetaService.archivos(oid);
     }
 
-    /** DIAGNÓSTICO TEMPORAL: ver qué hay realmente en MinIO. */
-    @GetMapping("/diagnostico")
-    public java.util.Map<String, java.util.List<co.com.icvc.intranet_backend.portal.service.MinioStorageService.ObjetoMinio>> diagnostico() {
-        return carpetaService.diagnostico();
-    }
-
     /**
      * Vista previa: sirve el contenido del objeto indicado por su clave dentro de la
      * carpeta. Solo acepta claves que empiecen por el prefijo de la carpeta.

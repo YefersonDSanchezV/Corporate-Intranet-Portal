@@ -146,19 +146,6 @@ public class MinioStorageService {
     public record ObjetoMinio(String key, long tamano, java.time.LocalDateTime fecha) {
     }
 
-    /** DIAGNÓSTICO TEMPORAL: lista todos los buckets y sus objetos. */
-    public java.util.Map<String, java.util.List<ObjetoMinio>> listarTodo() {
-        java.util.Map<String, java.util.List<ObjetoMinio>> mapa = new java.util.LinkedHashMap<>();
-        try {
-            for (io.minio.messages.Bucket b : client().listBuckets()) {
-                mapa.put(b.name(), listar(b.name(), ""));
-            }
-        } catch (Exception ex) {
-            throw new IllegalStateException("No se pudieron listar los buckets: " + ex.getMessage(), ex);
-        }
-        return mapa;
-    }
-
     public void remove(String bucket, String key) {
         try {
             client().removeObject(RemoveObjectArgs.builder().bucket(bucket).object(key).build());

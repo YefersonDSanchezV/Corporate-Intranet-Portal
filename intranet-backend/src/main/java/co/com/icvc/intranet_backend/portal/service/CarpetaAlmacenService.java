@@ -362,12 +362,6 @@ public class CarpetaAlmacenService {
     public record ContenidoObjeto(byte[] bytes, String tipo, long tamano) {
     }
 
-    /** DIAGNÓSTICO TEMPORAL. */
-    @Transactional(readOnly = true)
-    public java.util.Map<String, java.util.List<MinioStorageService.ObjetoMinio>> diagnostico() {
-        return minioStorageService.listarTodo();
-    }
-
     private CarpetaAlmacen buscar(Integer oid) {
         return carpetaRepository.findById(oid)
                 .orElseThrow(() -> NotFoundException.of("Carpeta de almacenamiento", oid));

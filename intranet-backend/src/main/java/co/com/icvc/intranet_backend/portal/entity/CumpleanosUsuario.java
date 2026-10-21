@@ -71,6 +71,21 @@ public class CumpleanosUsuario {
     @Column(name = "genucumfotoredondo", nullable = false)
     private boolean fotoRedondo;
 
+    /** Zoom de la foto dentro del marco (1 = ajuste automático). */
+    @Builder.Default
+    @Column(name = "genucumfotozoom", nullable = false)
+    private BigDecimal fotoZoom = BigDecimal.ONE;
+
+    /** Desplazamiento horizontal de la foto dentro del marco, % del ancho. */
+    @Builder.Default
+    @Column(name = "genucumfotooffsetx", nullable = false)
+    private BigDecimal fotoOffsetX = BigDecimal.ZERO;
+
+    /** Desplazamiento vertical de la foto dentro del marco, % del alto. */
+    @Builder.Default
+    @Column(name = "genucumfotooffsety", nullable = false)
+    private BigDecimal fotoOffsetY = BigDecimal.ZERO;
+
     @Column(name = "genucumfechact", nullable = false)
     private LocalDateTime fechaActualizacion;
 }

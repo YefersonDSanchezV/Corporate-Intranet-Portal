@@ -32,14 +32,19 @@ public final class CumpleanosManualDtos {
             BigDecimal fotoPy,
             BigDecimal fotoAncho,
             BigDecimal fotoAlto,
-            Boolean fotoRedondo) {
+            Boolean fotoRedondo,
+            BigDecimal fotoZoom,
+            BigDecimal fotoOffsetX,
+            BigDecimal fotoOffsetY) {
 
         /** Posición configurada en el formulario; si no llega, se usa la de la plantilla. */
         public PosicionFoto posicion() {
-            if (fotoPx == null && fotoPy == null && fotoAncho == null && fotoAlto == null && fotoRedondo == null) {
+            if (fotoPx == null && fotoPy == null && fotoAncho == null && fotoAlto == null && fotoRedondo == null
+                    && fotoZoom == null && fotoOffsetX == null && fotoOffsetY == null) {
                 return null;
             }
-            return PosicionFoto.validar(fotoPx, fotoPy, fotoAncho, fotoAlto, fotoRedondo);
+            return PosicionFoto.validar(fotoPx, fotoPy, fotoAncho, fotoAlto, fotoRedondo,
+                    fotoZoom, fotoOffsetX, fotoOffsetY);
         }
     }
 
@@ -63,7 +68,10 @@ public final class CumpleanosManualDtos {
                     cumpleanos.getFotoPy(),
                     cumpleanos.getFotoAncho(),
                     cumpleanos.getFotoAlto(),
-                    cumpleanos.isFotoRedondo());
+                    cumpleanos.isFotoRedondo(),
+                    cumpleanos.getFotoZoom(),
+                    cumpleanos.getFotoOffsetX(),
+                    cumpleanos.getFotoOffsetY());
             return new Response(
                     cumpleanos.getOid(),
                     cumpleanos.getNombreCompleto(),

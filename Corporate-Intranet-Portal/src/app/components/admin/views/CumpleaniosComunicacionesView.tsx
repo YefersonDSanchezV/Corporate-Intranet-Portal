@@ -5,7 +5,7 @@ import { es } from "date-fns/locale";
 import { ApiError } from "../../../api/client";
 import { cumpleaniosApi, type CumpleaniosRegistro } from "../../../api/cumpleanios";
 import { filesApi } from "../../../api/files";
-import { plantillasCumpleaniosApi, POSICION_DEFECTO, type PlantillaCumpleanios, type PosicionFoto } from "../../../api/plantillas";
+import { MESES_CORTOS, plantillasCumpleaniosApi, POSICION_DEFECTO, type PlantillaCumpleanios, type PosicionFoto } from "../../../api/plantillas";
 import { useBirthdays } from "../../../hooks/useBirthdays";
 import { EDAD_MAXIMA, EDAD_MINIMA, isValidBirthDate } from "../../../utils/birthdays";
 import { noPermissionReason } from "../AccessGate";
@@ -51,6 +51,7 @@ export function CumpleaniosComunicacionesView() {
   const [cargo, setCargo] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [configTarjeta, setConfigTarjeta] = useState<ConfigTarjeta | null>(null);
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [fotoPreview, setFotoPreview] = useState("");
   const [fotoArchivoOid, setFotoArchivoOid] = useState<number | null>(null);
@@ -232,6 +233,10 @@ export function CumpleaniosComunicacionesView() {
           fotoAncho: posicion.ancho,
           fotoAlto: posicion.alto,
           fotoRedondo: posicion.redondo,
+          fotoZoom: posicion.zoom ?? 1,
+          fotoOffsetX: posicion.offsetX ?? 0,
+          fotoOffsetY: posicion.offsetY ?? 0,
+          ...(configTarjeta ? { config: JSON.stringify(configTarjeta) } : {}),
         });
         setTarjetas((prev) => ({ ...prev, [actualizado.id]: actualizado }));
         setNotice(`Tarjeta de ${editing.nombreCompleto} actualizada correctamente.`);
@@ -247,6 +252,10 @@ export function CumpleaniosComunicacionesView() {
           fotoAncho: posicion.ancho,
           fotoAlto: posicion.alto,
           fotoRedondo: posicion.redondo,
+          fotoZoom: posicion.zoom ?? 1,
+          fotoOffsetX: posicion.offsetX ?? 0,
+          fotoOffsetY: posicion.offsetY ?? 0,
+          ...(configTarjeta ? { config: JSON.stringify(configTarjeta) } : {}),
         };
         const res = editing
           ? await updateManual({ ...editing } as never, body)
@@ -279,10 +288,15 @@ export function CumpleaniosComunicacionesView() {
   };
 
   const plantillaSeleccionada = plantillas.find((p) => p.oid === plantillaOid);
-  const ordenados = useMemo(
-    () => [...plantillas].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
-    [plantillas],
-  );
+  /** Las plantillas temáticas del mes consultado aparecen primero. */
+  const ordenados = useMemo(() => {
+    const mesActual = mes + 1;
+    const aplica = (p: PlantillaCumpleanios) => !p.meses || p.meses.length === 0 || p.meses.includes(mesActual);
+    return [...plantillas].sort((a, b) => {
+      const diferencia = Number(aplica(b)) - Number(aplica(a));
+      return diferencia !== 0 ? diferencia : a.nombre.localeCompare(b.nombre, "es");
+    });
+  }, [plantillas, mes]);
 
   return (
     <div className="p-6 max-w-[1500px] mx-auto">
@@ -468,6 +482,8 @@ export function CumpleaniosComunicacionesView() {
                   }}
                   plantillaArchivoOid={detalle.plantillaArchivoOid}
                   posicion={detalle.posicion}
+                  config={plantillas.find((p) => p.oid === detalle.plantillaOid)?.config ?? null}
+                  frenteArchivoOid={plantillas.find((p) => p.oid === detalle.plantillaOid)?.frenteArchivoOid ?? null}
                   emptyLabel="Este cumpleaños no tiene plantilla asignada. Asígnela desde Editar."
                 />
                 <dl className="text-sm space-y-3">
@@ -479,10 +495,12 @@ export function CumpleaniosComunicacionesView() {
                   <Dato label="Cargo" valor={detalle.cargo || "-"} />
                   <Dato label="Plantilla" valor={detalle.plantillaNombre || "Sin asignar"} />
                   <Dato
-                    label="Posición de la foto"
+                    label="Marco de la foto"
                     valor={
                       detalle.posicion
-                        ? `X ${detalle.posicion.px}% · Y ${detalle.posicion.py}% · ${detalle.posicion.ancho}%×${detalle.posicion.alto}%`
+                        ? `X ${detalle.posicion.px}% · Y ${detalle.posicion.py}% · ${detalle.posicion.ancho}%×${detalle.posicion.alto}%${
+                            (detalle.posicion.zoom ?? 1) > 1 ? ` · Zoom ${detalle.posicion.zoom}×` : ""
+                          }`
                         : "-"
                     }
                   />
@@ -631,13 +649,24 @@ export function CumpleaniosComunicacionesView() {
                       const valor = e.target.value ? Number(e.target.value) : null;
                       setPlantillaOid(valor);
                       const plantilla = plantillas.find((p) => p.oid === valor);
-                      if (plantilla?.foto) setPosicion({ ...plantilla.foto });
+                      if (plantilla?.foto) {
+                        // Cambiar de plantilla reinicia el reencuadre: la foto vuelve a
+                        // centrarse automáticamente dentro del nuevo marco.
+                        setPosicion({ ...plantilla.foto, zoom: 1, offsetX: 0, offsetY: 0 });
+                      } else {
+                        setPosicion({ ...POSICION_DEFECTO });
+                      }
                     }}
                     className="w-full border-2 border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#0778AC]"
                   >
                     <option value="">Sin plantilla</option>
                     {ordenados.map((p) => (
-                      <option key={p.oid} value={p.oid}>{p.nombre}</option>
+                      <option key={p.oid} value={p.oid}>
+                        {p.nombre}
+                        {p.meses && p.meses.length > 0
+                          ? ` · ${p.meses.map((m) => MESES_CORTOS[m - 1] ?? m).join(", ")}`
+                          : ""}
+                      </option>
                     ))}
                   </select>
                   <p className="text-[11px] text-gray-400 mt-1">
@@ -650,11 +679,14 @@ export function CumpleaniosComunicacionesView() {
                 <div className="border border-gray-100 rounded-lg p-5 bg-gray-50/40">
                   <h4 className="text-sm font-semibold text-gray-800 mb-1">Vista previa de la tarjeta</h4>
                   <p className="text-xs text-gray-500 mb-4">
-                    Ajuste la posición de la foto sobre la plantilla. Los valores son porcentajes.
+                    La foto se inserta automáticamente dentro del marco de la plantilla. Arrástrela para reencuadrarla
+                    y use el zoom si necesita acercarla: siempre queda dentro del marco.
                   </p>
                   <EditorTarjetaCumple
                     plantillaArchivoOid={plantillaSeleccionada?.archivoOid ?? null}
                     posicion={posicion}
+                    config={plantillaSeleccionada?.config ?? null}
+                    frenteArchivoOid={plantillaSeleccionada?.frenteArchivoOid ?? null}
                     fotoArchivoOid={fotoArchivoOid}
                     fotoLocal={fotoPreview}
                     nombre={nombre}
@@ -662,6 +694,7 @@ export function CumpleaniosComunicacionesView() {
                     edad={fechaNacimiento ? edadProxima(fechaNacimiento) : 0}
                     cargo={cargo}
                     onPosicionChange={setPosicion}
+                    onConfigChange={setConfigTarjeta}
                   />
                 </div>
               )}

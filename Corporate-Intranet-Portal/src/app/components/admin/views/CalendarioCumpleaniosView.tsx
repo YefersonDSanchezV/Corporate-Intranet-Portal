@@ -9,7 +9,7 @@ import { EDAD_MAXIMA, EDAD_MINIMA, isValidBirthDate, type BirthdayInfo } from ".
 import { filesApi } from "../../../api/files";
 import { usersApi } from "../../../api/users";
 import { cumpleaniosApi } from "../../../api/cumpleanios";
-import { plantillasCumpleaniosApi, POSICION_DEFECTO, type PlantillaCumpleanios, type PosicionFoto } from "../../../api/plantillas";
+import { MESES_CORTOS, plantillasCumpleaniosApi, POSICION_DEFECTO, type PlantillaCumpleanios, type PosicionFoto } from "../../../api/plantillas";
 import { EditorTarjetaCumple } from "./components/EditorTarjetaCumple";
 
 const MESES = [
@@ -265,6 +265,9 @@ export function CalendarioCumpleaniosView() {
           fotoAncho: posicion.ancho,
           fotoAlto: posicion.alto,
           fotoRedondo: posicion.redondo,
+          fotoZoom: posicion.zoom ?? 1,
+          fotoOffsetX: posicion.offsetX ?? 0,
+          fotoOffsetY: posicion.offsetY ?? 0,
         });
       } catch (e) {
         setSaving(false);
@@ -289,6 +292,9 @@ export function CalendarioCumpleaniosView() {
       fotoAncho: posicion.ancho,
       fotoAlto: posicion.alto,
       fotoRedondo: posicion.redondo,
+      fotoZoom: posicion.zoom ?? 1,
+      fotoOffsetX: posicion.offsetX ?? 0,
+      fotoOffsetY: posicion.offsetY ?? 0,
     };
     const res = editing ? await updateManual(editing, body) : await addManual(body);
     setSaving(false);
@@ -326,6 +332,17 @@ export function CalendarioCumpleaniosView() {
   };
 
   const vista = previewCumpleanos(fechaNacimiento);
+
+  /** Las plantillas temáticas del mes del cumpleaños aparecen primero. */
+  const plantillasOrdenadas = useMemo(() => {
+    const mesCumple = vista ? vista.fecha.getMonth() + 1 : null;
+    const aplica = (p: PlantillaCumpleanios) =>
+      !p.meses || p.meses.length === 0 || (mesCumple != null && p.meses.includes(mesCumple));
+    return [...plantillas].sort((a, b) => {
+      const diferencia = Number(aplica(b)) - Number(aplica(a));
+      return diferencia !== 0 ? diferencia : a.nombre.localeCompare(b.nombre, "es");
+    });
+  }, [plantillas, vista]);
 
   return (
     <div className="p-6 max-w-[1500px] mx-auto">
@@ -434,13 +451,24 @@ export function CalendarioCumpleaniosView() {
                     const valor = e.target.value ? Number(e.target.value) : null;
                     setPlantillaOid(valor);
                     const plantilla = plantillas.find((p) => p.oid === valor);
-                    if (plantilla?.foto) setPosicion({ ...plantilla.foto });
+                    if (plantilla?.foto) {
+                      // Al cambiar de plantilla se reinicia el reencuadre: la foto vuelve
+                      // a centrarse automáticamente dentro del nuevo marco.
+                      setPosicion({ ...plantilla.foto, zoom: 1, offsetX: 0, offsetY: 0 });
+                    } else {
+                      setPosicion({ ...POSICION_DEFECTO });
+                    }
                   }}
                   className="w-full border-2 border-gray-200 rounded-lg p-2.5 text-sm focus:outline-none focus:border-[#0778AC]"
                 >
                   <option value="">Sin plantilla</option>
-                  {plantillas.map((p) => (
-                    <option key={p.oid} value={p.oid}>{p.nombre}</option>
+                  {plantillasOrdenadas.map((p) => (
+                    <option key={p.oid} value={p.oid}>
+                      {p.nombre}
+                      {p.meses && p.meses.length > 0
+                        ? ` · ${p.meses.map((m) => MESES_CORTOS[m - 1] ?? m).join(", ")}`
+                        : ""}
+                    </option>
                   ))}
                 </select>
                 <p className="text-[11px] text-gray-400 mt-1">
@@ -451,11 +479,14 @@ export function CalendarioCumpleaniosView() {
                 <div className="lg:col-span-2 border border-gray-100 rounded-lg p-5 bg-gray-50/40">
                   <h4 className="text-sm font-semibold text-gray-800 mb-1">Vista previa de la tarjeta</h4>
                   <p className="text-xs text-gray-500 mb-4">
-                    Ajuste la posición de la foto sobre la plantilla. Los valores son porcentajes.
+                    La foto se inserta automáticamente dentro del marco de la plantilla. Arrástrela para reencuadrarla
+                    y use el zoom si necesita acercarla: siempre queda dentro del marco.
                   </p>
                   <EditorTarjetaCumple
                     plantillaArchivoOid={plantillas.find((p) => p.oid === plantillaOid)?.archivoOid ?? null}
                     posicion={posicion}
+                    config={plantillas.find((p) => p.oid === plantillaOid)?.config ?? null}
+                    frenteArchivoOid={plantillas.find((p) => p.oid === plantillaOid)?.frenteArchivoOid ?? null}
                     fotoArchivoOid={fotoArchivoOid}
                     fotoLocal={fotoPreview}
                     nombre={nombre}

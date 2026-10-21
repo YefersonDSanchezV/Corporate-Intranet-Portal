@@ -105,6 +105,66 @@ public class FileService {
         return store(file, usuarioOid, carpeta);
     }
 
+    /**
+     * Almacena bytes generados por el sistema en la carpeta indicada (MinIO y, si
+     * falla, disco). Se usa, por ejemplo, para guardar el PNG resultante de
+     * rasterizar una plantilla PDF, de modo que quede en el mismo almacenamiento y
+     * con el mismo registro que cualquier otro archivo.
+     */
+    @Transactional
+    public Archivo storeBytesEnCarpeta(byte[] contenido, String nombreOriginal, Integer usuarioOid,
+            String nombreCarpeta) {
+        if (contenido == null || contenido.length == 0) {
+            throw new ValidationException("El archivo está vacío");
+        }
+        CarpetaAlmacen carpeta = carpetaAlmacenService.resolverPorNombre(nombreCarpeta);
+        if (carpeta != null) {
+            return almacenarBytes(contenido, nombreOriginal, usuarioOid, carpeta.getBucket(), carpeta.getPrefijo());
+        }
+        return almacenarBytes(contenido, nombreOriginal, usuarioOid, defaultBucket(), "plantillas/");
+    }
+
+    private Archivo almacenarBytes(byte[] contenido, String nombreOriginal, Integer usuarioOid,
+            String bucket, String prefijo) {
+        Usuario usuario = usuarioRepository.findById(usuarioOid)
+                .orElseThrow(() -> NotFoundException.of("Usuario", usuarioOid));
+        String base = (nombreOriginal == null || nombreOriginal.isBlank()) ? "archivo" : nombreOriginal;
+        String nombreInterno = UUID.randomUUID() + "-" + base;
+        String key = prefijo + nombreInterno;
+        try {
+            minioStorageService.put(bucket, key, new java.io.ByteArrayInputStream(contenido),
+                    "image/png", contenido.length);
+            return archivoRepository.save(Archivo.builder()
+                    .nombreInterno(nombreInterno)
+                    .nombreOriginal(base)
+                    .ruta("s3://" + bucket + "/" + key)
+                    .tipo("image/png")
+                    .tamano((long) contenido.length)
+                    .fechaCreacion(LocalDateTime.now())
+                    .usuario(usuario)
+                    .build());
+        } catch (Exception ex) {
+            log.warn("MinIO no disponible para guardar bytes, fallback a disco local: {}", ex.getMessage());
+        }
+        try {
+            Path dir = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Files.createDirectories(dir);
+            Path destino = dir.resolve(nombreInterno).normalize();
+            Files.write(destino, contenido);
+            return archivoRepository.save(Archivo.builder()
+                    .nombreInterno(nombreInterno)
+                    .nombreOriginal(base)
+                    .ruta(destino.toString())
+                    .tipo("image/png")
+                    .tamano((long) contenido.length)
+                    .fechaCreacion(LocalDateTime.now())
+                    .usuario(usuario)
+                    .build());
+        } catch (IOException ex) {
+            throw new ValidationException("No se pudo almacenar la imagen de la plantilla: " + ex.getMessage());
+        }
+    }
+
     private Archivo store(MultipartFile file, Integer usuarioOid, CarpetaAlmacen carpeta) {
         return almacenar(file, usuarioOid, carpeta.getBucket(), carpeta.getPrefijo());
     }
